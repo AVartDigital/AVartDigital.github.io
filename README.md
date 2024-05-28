@@ -1,1 +1,1 @@
-# AVartDigital.github.io
+<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Time & Weather in Cities</title> </head> <body> <h1>World Time and Weather</h1> <section id="city1"> <h2>London</h2> <p id="londonTime"></p> <p id="londonWeather"></p> </section> <section id="city2"> <h2>Tokyo</h2> <p id="tokyoTime"></p> <p id="tokyoWeather"></p> </section> <script src="script.js"></script> </body> </html>
