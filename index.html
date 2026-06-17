@@ -3,326 +3,191 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>VideoMirror — Cast to TV</title>
+  <title>AVTV — VideoMirror</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #0d0d0d;
-      --surface: #1a1a1a;
-      --surface2: #252525;
-      --accent: #e50914;
-      --accent2: #ff6b6b;
-      --ok: #4ade80;
-      --info: #60a5fa;
-      --text: #f0f0f0;
-      --muted: #888;
-      --radius: 12px;
+      --bg:#0a0d0b; --bg2:#0e1411; --surface:rgba(255,255,255,0.04); --surface2:rgba(255,255,255,0.07);
+      --gold:#e6b143; --gold-soft:#f0c873; --ok:#6ee7a0; --info:#7fb4ff; --danger:#ff8a8a;
+      --text:#f2efe6; --muted:#9aa39b; --radius:14px;
     }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      overflow-x: hidden;
-    }
-
-    header {
-      width: 100%;
-      padding: 18px 24px 14px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      border-bottom: 1px solid #222;
-    }
-
-    header .logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: var(--accent); }
-    header .logo span { color: var(--text); }
-    .subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
-    #app { width: 100%; max-width: 620px; padding: 22px 18px; flex: 1; }
-
-    .screen { display: none; }
-    .screen.active { display: block; }
-
-    /* Mode selector */
-    .mode-card {
-      background: var(--surface);
-      border: 2px solid #2a2a2a;
-      border-radius: var(--radius);
-      padding: 26px 22px;
-      cursor: pointer;
-      transition: border-color 0.2s, transform 0.1s;
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      margin-bottom: 16px;
-      text-align: left;
-    }
-    .mode-card:hover, .mode-card:active { border-color: var(--accent); transform: scale(1.01); }
-    .mode-icon { font-size: 40px; flex-shrink: 0; }
-    .mode-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-    .mode-card p { font-size: 13px; color: var(--muted); line-height: 1.4; }
-
-    .section-title {
-      font-size: 13px; font-weight: 600; color: var(--muted);
-      text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px;
-    }
-
-    .card { background: var(--surface); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
-
-    /* File picker */
-    #file-drop-zone {
-      border: 2px dashed #333; border-radius: var(--radius); padding: 30px 18px;
-      text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; margin-bottom: 14px;
-    }
-    #file-drop-zone.dragover { border-color: var(--accent); background: rgba(229,9,20,0.05); }
-    #file-drop-zone .drop-icon { font-size: 34px; margin-bottom: 8px; }
-    #file-drop-zone p { font-size: 14px; color: var(--muted); }
-    #file-drop-zone strong { color: var(--text); }
-    #file-input, #hidden-video { display: none; }
-
-    .video-info { padding: 10px 14px; background: var(--surface2); border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
-    .video-info strong { display: block; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .video-info span { color: var(--muted); font-size: 12px; }
-
-    .controls { display: flex; gap: 10px; flex-wrap: wrap; }
-
-    button {
-      padding: 12px 18px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
-      cursor: pointer; transition: opacity 0.15s, transform 0.1s; flex: 1; min-width: 110px; color: var(--text);
-    }
-    button:disabled { opacity: 0.4; cursor: not-allowed; }
-    button:not(:disabled):active { transform: scale(0.97); }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-secondary { background: var(--surface2); }
-    .btn-ghost { background: transparent; border: 1px solid #333; color: var(--muted); }
-    .btn-ok { background: var(--ok); color: #08260f; }
-    .btn-wide { width: 100%; }
-
-    /* QR / code */
-    .code-display {
-      background: var(--surface2); border-radius: 8px; padding: 14px; text-align: center; margin: 12px 0;
-    }
-    .code-display .label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-    .code-display .code {
-      font-size: 30px; font-weight: 900; letter-spacing: 5px; color: var(--accent); font-variant-numeric: tabular-nums;
-    }
-    #qr-img, #qr-img-phone {
-      display: block; margin: 14px auto; border-radius: 10px; background: #fff; padding: 10px;
-      width: 210px; height: 210px; object-fit: contain;
-    }
-    .hint { font-size: 12.5px; color: var(--muted); text-align: center; line-height: 1.55; }
-
-    .status-pill {
-      display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px;
-      font-size: 12px; font-weight: 600; background: var(--surface2); color: var(--muted); margin-bottom: 12px;
-    }
-    .status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
-    .status-pill.connected { color: var(--ok); } .status-pill.connected .dot { background: var(--ok); animation: pulse 1.5s infinite; }
-    .status-pill.streaming { color: var(--info); } .status-pill.streaming .dot { background: var(--info); animation: pulse 1s infinite; }
-    .status-pill.error { color: var(--accent2); } .status-pill.error .dot { background: var(--accent2); }
-    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.3;} }
-
-    .join-form { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
-    .join-form input {
-      background: var(--surface2); border: 1px solid #333; border-radius: 8px; padding: 14px;
-      color: var(--text); font-size: 22px; letter-spacing: 5px; text-align: center; font-weight: 700;
-      outline: none; font-variant-numeric: tabular-nums; transition: border-color .2s; width: 100%;
-    }
-    .join-form input:focus { border-color: var(--accent); }
-
-    .back-btn {
-      background: none; border: none; color: var(--muted); font-size: 13px; cursor: pointer;
-      padding: 4px 0; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 6px; flex: none; min-width: 0;
-    }
-
-    /* TV video */
-    #tv-stage { position: relative; background: #000; border-radius: var(--radius); overflow: hidden; }
-    #tv-video { width: 100%; display: block; min-height: 220px; background: #000; }
-    #tv-iframe { width: 100%; height: 60vh; border: 0; display: none; background: #fff; border-radius: var(--radius); }
-    #tv-text-bar {
-      display: none; position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 18px;
-      background: rgba(0,0,0,0.78); color: #fff; font-size: 20px; font-weight: 600; word-break: break-word;
-    }
-
-    /* TV on-screen remote */
-    .tv-remote { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-    .tv-remote button { min-width: 64px; font-size: 18px; padding: 14px 10px; }
-
-    /* Source picker */
-    .source-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-    .source-btn {
-      background: var(--surface); border: 2px solid #2a2a2a; border-radius: var(--radius); padding: 20px 12px;
-      text-align: center; cursor: pointer; transition: border-color .2s, transform .1s;
-    }
-    .source-btn:active { transform: scale(.97); }
-    .source-btn.sel { border-color: var(--accent); }
-    .source-btn .ic { font-size: 30px; margin-bottom: 8px; }
-    .source-btn .nm { font-size: 13px; font-weight: 600; }
-    .source-btn .ds { font-size: 11px; color: var(--muted); margin-top: 3px; }
-
-    /* Floating remote (phone) */
-    #remote {
-      display: none; position: fixed; z-index: 900; width: 280px; max-width: 92vw;
-      background: rgba(26,26,26,0.97); border: 1px solid #333; border-radius: 16px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.6); backdrop-filter: blur(8px);
-      bottom: 18px; right: 14px; user-select: none;
-    }
-    #remote.pinned { box-shadow: 0 0 0 2px var(--accent), 0 12px 40px rgba(0,0,0,0.6); }
-    #remote-head {
-      display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: grab;
-      border-bottom: 1px solid #2a2a2a; touch-action: none;
-    }
-    #remote-head .grip { color: var(--muted); font-size: 16px; }
-    #remote-head .ttl { font-size: 12px; font-weight: 700; flex: 1; text-transform: uppercase; letter-spacing: .5px; }
-    #remote-head button { flex: none; min-width: 0; width: 30px; height: 30px; padding: 0; font-size: 14px; background: var(--surface2); border-radius: 7px; }
-    #remote-body { padding: 12px; }
-    .rbtn-row { display: flex; gap: 8px; margin-bottom: 8px; }
-    .rbtn-row button { padding: 12px 6px; font-size: 16px; min-width: 0; background: var(--surface2); }
-    .rbtn-row button.on { background: var(--accent); color: #fff; }
-    .rmini { font-size: 11px; color: var(--muted); margin: 8px 0 5px; text-transform: uppercase; letter-spacing: .5px; }
-    .send-row { display: flex; gap: 8px; }
-    .send-row input {
-      flex: 1; min-width: 0; background: var(--surface2); border: 1px solid #333; border-radius: 8px;
-      padding: 10px; color: var(--text); font-size: 14px; outline: none;
-    }
-    .send-row button { flex: none; min-width: 0; width: auto; padding: 10px 14px; }
-    .nav-row { display: flex; gap: 8px; margin-top: 8px; }
-    .nav-row button { background: var(--surface2); padding: 10px 6px; font-size: 15px; min-width: 0; }
-
-    #remote-toggle {
-      display: none; position: fixed; bottom: 18px; right: 14px; z-index: 899;
-      width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: #fff;
-      font-size: 22px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); min-width: 0; padding: 0;
-    }
-
-    .spinner { width: 30px; height: 30px; border: 3px solid #333; border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin: 18px auto; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .toast {
-      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #222; color: var(--text);
-      padding: 11px 20px; border-radius: 8px; font-size: 13px; z-index: 3000; opacity: 0; transition: opacity .3s;
-      pointer-events: none; max-width: 90vw; text-align: center;
-    }
-    .toast.show { opacity: 1; }
-
-    .big-confirm { text-align: center; padding: 30px 16px; }
-    .big-confirm .ic { font-size: 54px; margin-bottom: 14px; }
-    .big-confirm h2 { font-size: 22px; margin-bottom: 8px; }
-    .big-confirm p { color: var(--muted); font-size: 14px; line-height: 1.5; margin-bottom: 20px; }
-
-    .note { font-size: 12px; color: var(--muted); line-height: 1.5; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
+    html, body { height:100%; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+      background:radial-gradient(120% 80% at 50% -10%, #16201a 0%, var(--bg2) 45%, var(--bg) 100%);
+      color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; overflow-x:hidden; }
+    header { width:100%; padding:16px 22px 12px; display:flex; align-items:center; gap:12px; border-bottom:1px solid rgba(230,177,67,0.12); }
+    header .logo { font-size:21px; font-weight:800; letter-spacing:1px; color:var(--gold); }
+    header .logo span { color:var(--text); font-weight:300; }
+    .subtitle { font-size:12px; color:var(--muted); margin-top:2px; }
+    #app { width:100%; max-width:1100px; padding:22px 18px 60px; flex:1; }
+    .screen { display:none; } .screen.active { display:block; }
+    .mode-card { background:var(--surface); border:1px solid rgba(230,177,67,0.18); border-radius:var(--radius); padding:26px 22px; cursor:pointer; transition:border-color .2s,transform .1s,background .2s; display:flex; align-items:center; gap:18px; margin-bottom:16px; text-align:left; }
+    .mode-card:hover, .mode-card:active { border-color:var(--gold); transform:scale(1.01); background:var(--surface2); }
+    .mode-icon { font-size:40px; flex-shrink:0; }
+    .mode-card h2 { font-size:18px; font-weight:700; margin-bottom:4px; }
+    .mode-card p { font-size:13px; color:var(--muted); line-height:1.4; }
+    .section-title { font-size:12px; font-weight:700; color:var(--gold-soft); text-transform:uppercase; letter-spacing:1.2px; margin-bottom:12px; }
+    .card { background:var(--surface); border:1px solid rgba(255,255,255,0.06); border-radius:var(--radius); padding:20px; margin-bottom:16px; }
+    button { padding:12px 18px; border:none; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; transition:opacity .15s,transform .1s,background .2s; flex:1; min-width:110px; color:var(--text); }
+    button:disabled { opacity:0.4; cursor:not-allowed; }
+    button:not(:disabled):active { transform:scale(0.96); }
+    .btn-primary { background:linear-gradient(180deg,var(--gold-soft),var(--gold)); color:#2a1c00; }
+    .btn-secondary { background:var(--surface2); border:1px solid rgba(255,255,255,0.08); }
+    .btn-ghost { background:transparent; border:1px solid rgba(255,255,255,0.12); color:var(--muted); }
+    .btn-ok { background:linear-gradient(180deg,#8ff0b4,var(--ok)); color:#06371d; }
+    .btn-wide { width:100%; } .controls { display:flex; gap:10px; flex-wrap:wrap; }
+    .code-display { background:var(--surface2); border-radius:10px; padding:14px; text-align:center; margin:12px 0; }
+    .code-display .label { font-size:11px; color:var(--muted); margin-bottom:4px; letter-spacing:1px; }
+    .code-display .code { font-size:30px; font-weight:900; letter-spacing:6px; color:var(--gold); font-variant-numeric:tabular-nums; }
+    #qr-img { display:block; margin:14px auto; border-radius:12px; background:#fff; padding:10px; width:210px; height:210px; object-fit:contain; }
+    .hint { font-size:12.5px; color:var(--muted); text-align:center; line-height:1.55; }
+    .status-pill { display:inline-flex; align-items:center; gap:7px; padding:6px 13px; border-radius:20px; font-size:12px; font-weight:700; background:var(--surface2); color:var(--muted); margin-bottom:12px; }
+    .status-pill .dot { width:8px; height:8px; border-radius:50%; background:var(--muted); }
+    .status-pill.connected { color:var(--ok); } .status-pill.connected .dot { background:var(--ok); animation:pulse 1.5s infinite; }
+    .status-pill.streaming { color:var(--gold); } .status-pill.streaming .dot { background:var(--gold); box-shadow:0 0 8px var(--gold); animation:pulse 1.2s infinite; }
+    .status-pill.error { color:var(--danger); } .status-pill.error .dot { background:var(--danger); }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.35;} }
+    .join-form { display:flex; flex-direction:column; gap:12px; margin-bottom:14px; }
+    .join-form input { background:var(--surface2); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:14px; color:var(--text); font-size:22px; letter-spacing:6px; text-align:center; font-weight:700; outline:none; font-variant-numeric:tabular-nums; transition:border-color .2s; width:100%; }
+    .join-form input:focus { border-color:var(--gold); }
+    .back-btn { background:none; border:none; color:var(--muted); font-size:13px; cursor:pointer; padding:4px 0; margin-bottom:12px; display:inline-flex; align-items:center; gap:6px; flex:none; min-width:0; }
+    #screen-tv-play { display:none; }
+    #screen-tv-play.active { display:flex; flex-direction:column; align-items:center; }
+    #tv-frame { width:100%; max-width:1024px; margin:0 auto; }
+    .avtv-badge { display:inline-flex; align-items:center; gap:9px; padding:8px 16px; border-radius:22px; background:rgba(0,0,0,0.35); border:1px solid rgba(230,177,67,0.45); font-weight:800; letter-spacing:2px; font-size:14px; color:var(--gold-soft); box-shadow:0 0 24px rgba(230,177,67,0.18); margin-bottom:18px; }
+    .avtv-badge .live-dot { width:12px; height:12px; border-radius:50%; background:var(--gold); box-shadow:0 0 12px var(--gold); animation:pulse 1.4s infinite; }
+    #tv-stage { position:relative; width:100%; aspect-ratio:16/9; border-radius:18px; overflow:hidden; background:#060806 center/cover no-repeat; border:1px solid rgba(230,177,67,0.55); box-shadow:0 0 0 1px rgba(230,177,67,0.12), 0 0 60px rgba(230,177,67,0.12), inset 0 0 120px rgba(0,0,0,0.5); }
+    #tv-stage.idle { background-image:url('./Trees%20WINDOW.png'); }
+    #tv-video { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#000; display:none; }
+    #tv-iframe { position:absolute; inset:0; width:100%; height:100%; border:0; display:none; background:#fff; }
+    #tv-play-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+    #tv-play-overlay .pbtn { width:110px; height:110px; border-radius:50%; background:rgba(20,20,20,0.55); border:2px solid rgba(255,255,255,0.55); display:flex; align-items:center; justify-content:center; backdrop-filter:blur(2px); }
+    #tv-play-overlay .pbtn::after { content:''; margin-left:8px; border-style:solid; border-width:22px 0 22px 36px; border-color:transparent transparent transparent #fff; }
+    #tv-play-overlay.hidden { display:none; }
+    #tv-transfer { position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; background:rgba(6,8,6,0.82); }
+    #tv-transfer.show { display:flex; }
+    #tv-transfer .label { font-size:15px; color:var(--gold-soft); margin-bottom:14px; font-weight:700; letter-spacing:.5px; }
+    .progress-track { width:60%; max-width:420px; height:8px; border-radius:6px; background:rgba(255,255,255,0.12); overflow:hidden; }
+    .progress-fill { height:100%; width:0%; background:linear-gradient(90deg,var(--gold),var(--gold-soft)); transition:width .15s; }
+    #tv-transfer .pct { margin-top:10px; font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; }
+    #tv-textbar { position:absolute; left:0; right:0; bottom:0; padding:16px 20px; background:rgba(0,0,0,0.8); color:#fff; font-size:22px; font-weight:600; word-break:break-word; display:none; }
+    .tv-bar { width:100%; max-width:1024px; display:flex; gap:12px; margin-top:16px; }
+    .tv-bar button { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:18px 10px; font-size:22px; color:var(--gold-soft); display:flex; align-items:center; justify-content:center; gap:8px; }
+    .tv-bar button .lbl { font-size:15px; font-weight:700; }
+    .tv-bar button.on { background:rgba(230,177,67,0.18); border-color:var(--gold); }
+    .tv-end { width:100%; max-width:1024px; margin-top:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:18px; color:var(--text); font-weight:600; display:flex; align-items:center; justify-content:center; gap:10px; }
+    .source-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+    .source-btn { background:var(--surface); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius); padding:20px 12px; text-align:center; cursor:pointer; transition:border-color .2s,transform .1s; }
+    .source-btn:active { transform:scale(.97); }
+    .source-btn.sel { border-color:var(--gold); background:var(--surface2); }
+    .source-btn .ic { font-size:30px; margin-bottom:8px; }
+    .source-btn .nm { font-size:13px; font-weight:700; }
+    .source-btn .ds { font-size:11px; color:var(--muted); margin-top:3px; }
+    #file-drop-zone { border:2px dashed rgba(255,255,255,0.18); border-radius:var(--radius); padding:28px 18px; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; margin-bottom:14px; }
+    #file-drop-zone.dragover { border-color:var(--gold); background:rgba(230,177,67,0.06); }
+    #file-drop-zone .drop-icon { font-size:32px; margin-bottom:8px; }
+    #file-drop-zone p { font-size:14px; color:var(--muted); }
+    #file-drop-zone strong { color:var(--text); }
+    #file-input, #hidden-file-holder { display:none; }
+    .video-info { padding:10px 14px; background:var(--surface2); border-radius:8px; font-size:13px; margin-bottom:12px; }
+    .video-info strong { display:block; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .video-info span { color:var(--muted); font-size:12px; }
+    #phone-remote-card .scrub-row { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+    .time-label { font-size:12px; color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums; min-width:40px; }
+    input[type=range].scrub { flex:1; -webkit-appearance:none; height:6px; background:rgba(255,255,255,0.15); border-radius:4px; outline:none; }
+    input[type=range].scrub::-webkit-slider-thumb { -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:var(--gold); cursor:pointer; box-shadow:0 0 8px rgba(230,177,67,0.6); }
+    input[type=range].scrub::-moz-range-thumb { width:20px; height:20px; border:0; border-radius:50%; background:var(--gold); }
+    .transport { display:flex; gap:10px; margin-bottom:10px; }
+    .transport button { background:var(--surface2); border:1px solid rgba(255,255,255,0.08); padding:16px 8px; font-size:20px; color:var(--gold-soft); }
+    .transport button.big { flex:1.4; }
+    .transport button.on { background:rgba(230,177,67,0.2); border-color:var(--gold); }
+    .extra-row { display:flex; gap:10px; }
+    .extra-row button { background:var(--surface2); border:1px solid rgba(255,255,255,0.08); padding:13px 8px; font-size:14px; }
+    #remote { display:none; position:fixed; z-index:900; width:280px; max-width:92vw; background:rgba(14,20,17,0.97); border:1px solid rgba(230,177,67,0.3); border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,0.6); bottom:18px; right:14px; user-select:none; }
+    #remote.pinned { box-shadow:0 0 0 2px var(--gold), 0 12px 40px rgba(0,0,0,0.6); }
+    #remote-head { display:flex; align-items:center; gap:8px; padding:10px 12px; cursor:grab; border-bottom:1px solid rgba(255,255,255,0.08); touch-action:none; }
+    #remote-head .grip { color:var(--muted); font-size:16px; }
+    #remote-head .ttl { font-size:12px; font-weight:800; flex:1; letter-spacing:1px; color:var(--gold-soft); }
+    #remote-head button { flex:none; min-width:0; width:30px; height:30px; padding:0; font-size:14px; background:var(--surface2); border-radius:7px; }
+    #remote-body { padding:12px; }
+    #remote-body .transport button { padding:12px 6px; font-size:16px; }
+    #remote-toggle { display:none; position:fixed; bottom:18px; right:14px; z-index:899; width:56px; height:56px; border-radius:50%; background:linear-gradient(180deg,var(--gold-soft),var(--gold)); color:#2a1c00; font-size:22px; box-shadow:0 8px 24px rgba(0,0,0,0.5); min-width:0; padding:0; }
+    .spinner { width:30px; height:30px; border:3px solid rgba(255,255,255,0.15); border-top-color:var(--gold); border-radius:50%; animation:spin .8s linear infinite; margin:18px auto; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:#1c2620; border:1px solid rgba(230,177,67,0.25); color:var(--text); padding:11px 20px; border-radius:10px; font-size:13px; z-index:3000; opacity:0; transition:opacity .3s; pointer-events:none; max-width:90vw; text-align:center; }
+    .toast.show { opacity:1; }
+    .big-confirm { text-align:center; padding:30px 16px; max-width:460px; margin:0 auto; }
+    .big-confirm .ic { font-size:54px; margin-bottom:14px; }
+    .big-confirm h2 { font-size:22px; margin-bottom:8px; }
+    .big-confirm p { color:var(--muted); font-size:14px; line-height:1.5; margin-bottom:20px; }
+    .note { font-size:12px; color:var(--muted); line-height:1.5; background:rgba(127,180,255,0.07); border:1px solid rgba(127,180,255,0.22); border-radius:8px; padding:10px 12px; margin-bottom:12px; }
   </style>
 </head>
 <body>
-
-<header>
-  <div>
-    <div class="logo">Video<span>Mirror</span></div>
-    <div class="subtitle">Cast & mirror to your TV over Wi-Fi</div>
-  </div>
-</header>
-
+<header><div><div class="logo">AV<span>TV</span></div><div class="subtitle">Cast & mirror to your TV over Wi-Fi</div></div></header>
 <div id="app">
-
-  <!-- ============ HOME ============ -->
   <div id="screen-home" class="screen active">
     <p style="color:var(--muted);font-size:13px;margin-bottom:14px;">What device are you on?</p>
-    <div class="mode-card" onclick="goPhone()">
-      <div class="mode-icon">📱</div>
-      <div><h2>Phone / Sender</h2><p>Scan the TV's QR code, then cast videos, mirror your screen, or send a website.</p></div>
-    </div>
-    <div class="mode-card" onclick="goTV()">
-      <div class="mode-icon">📺</div>
-      <div><h2>TV / Receiver</h2><p>Open on your Philips TV's Silk browser. Shows a QR code for your phone to scan.</p></div>
-    </div>
+    <div class="mode-card" onclick="goPhone()"><div class="mode-icon">📱</div><div><h2>Phone / Sender</h2><p>Scan the TV's QR code, then send videos, mirror your screen, or open a website.</p></div></div>
+    <div class="mode-card" onclick="goTV()"><div class="mode-icon">📺</div><div><h2>TV / Receiver</h2><p>Open on your Philips TV's Silk browser. Shows a QR code for your phone to scan.</p></div></div>
   </div>
-
-  <!-- ============ TV: WAITING / QR ============ -->
   <div id="screen-tv-wait" class="screen">
     <button class="back-btn" onclick="endAll(true)">← Back</button>
     <div class="section-title">Scan to connect your phone</div>
-    <div class="card">
+    <div class="card" style="max-width:460px;margin:0 auto;">
       <img id="qr-img" alt="QR code" />
-      <div class="code-display">
-        <div class="label">PAIRING CODE</div>
-        <div class="code" id="tv-code">——</div>
-      </div>
+      <div class="code-display"><div class="label">PAIRING CODE</div><div class="code" id="tv-code">——</div></div>
       <div id="tv-wait-status" class="status-pill"><span class="dot"></span><span id="tv-wait-text">Waiting for phone…</span></div>
       <p class="hint">Open your <strong>Samsung camera</strong> and point it at this QR code, then tap the link.<br>Or in the phone's browser choose <em>Phone / Sender</em> and enter the code above.</p>
     </div>
   </div>
-
-  <!-- ============ TV: CONFIRM PAIRING ============ -->
   <div id="screen-tv-confirm" class="screen">
-    <div class="big-confirm">
-      <div class="ic">🔗</div>
-      <h2>Phone wants to connect</h2>
+    <div class="big-confirm"><div class="ic">🔗</div><h2>Phone wants to connect</h2>
       <p>Make sure this code matches the one shown on your phone:</p>
       <div class="code-display"><div class="label">PAIRING CODE</div><div class="code" id="tv-confirm-code">——</div></div>
-      <div class="controls">
-        <button class="btn-ghost" onclick="endAll(true)">Reject</button>
-        <button class="btn-ok" onclick="tvAccept()">✓ Accept</button>
+      <div class="controls"><button class="btn-ghost" onclick="endAll(true)">Reject</button><button class="btn-ok" onclick="tvAccept()">✓ Accept</button></div>
+    </div>
+  </div>
+  <div id="screen-tv-play" class="screen">
+    <div id="tv-frame">
+      <div class="avtv-badge"><span class="live-dot"></span> AVTV — LIVE</div>
+      <div id="tv-stage" class="idle">
+        <video id="tv-video" playsinline></video>
+        <iframe id="tv-iframe" referrerpolicy="no-referrer"></iframe>
+        <div id="tv-play-overlay"><div class="pbtn"></div></div>
+        <div id="tv-transfer"><div class="label" id="tv-transfer-label">Receiving video…</div><div class="progress-track"><div class="progress-fill" id="tv-transfer-fill"></div></div><div class="pct" id="tv-transfer-pct">0%</div></div>
+        <div id="tv-textbar"></div>
       </div>
     </div>
-  </div>
-
-  <!-- ============ TV: PLAYING ============ -->
-  <div id="screen-tv-play" class="screen">
-    <div id="tv-play-status" class="status-pill streaming"><span class="dot"></span><span id="tv-play-text">Connected</span></div>
-    <div id="tv-stage">
-      <video id="tv-video" autoplay playsinline></video>
-      <iframe id="tv-iframe" referrerpolicy="no-referrer"></iframe>
-      <div id="tv-text-bar"></div>
+    <div class="tv-bar">
+      <button onclick="tvLocal('rewind')" title="Rewind 10s">⏪</button>
+      <button id="tv-playpause" onclick="tvLocal('toggle')">⏸</button>
+      <button onclick="tvLocal('forward')" title="Forward 10s">⏩</button>
+      <button onclick="tvLocal('restart')" title="Replay"><span style="font-size:20px;">⟲</span></button>
+      <button id="tv-loopbtn" onclick="tvLocal('loop')"><span>↻</span><span class="lbl">Loop</span></button>
+      <button onclick="tvFullscreen()" title="Fullscreen">⛶</button>
     </div>
-    <div class="tv-remote">
-      <button class="btn-secondary" onclick="tvCmd('rewind')" title="Rewind 10s">⏪</button>
-      <button class="btn-secondary" id="tv-playpause" onclick="tvCmd('toggle')">⏸</button>
-      <button class="btn-secondary" onclick="tvCmd('forward')" title="Forward 10s">⏩</button>
-      <button class="btn-secondary" onclick="tvCmd('restart')" title="Replay from start">🔁</button>
-      <button class="btn-secondary" id="tv-loopbtn" onclick="tvCmd('loop')" title="Loop">↻ Loop</button>
-      <button class="btn-secondary" onclick="tvFullscreen()" title="Fullscreen">⛶</button>
-    </div>
-    <button class="btn-ghost btn-wide" style="margin-top:14px;" onclick="endAll(true)">⏻ End session</button>
+    <div class="tv-end" onclick="endAll(true)" style="cursor:pointer;">🍃 End session</div>
   </div>
-
-  <!-- ============ PHONE: JOIN ============ -->
   <div id="screen-phone-join" class="screen">
     <button class="back-btn" onclick="goHome()">← Back</button>
     <div class="section-title">Connect to your TV</div>
     <div class="note">📷 Easiest: on the TV choose <strong>TV / Receiver</strong>, then scan its QR code with your Samsung camera — it opens this page already connected.</div>
     <div class="section-title">…or enter the TV's code</div>
-    <div class="join-form">
-      <input type="text" id="phone-code-input" maxlength="6" placeholder="123456" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/\D/g,'')" />
-      <button class="btn-primary" onclick="phoneConnect()">Connect to TV</button>
-    </div>
+    <div class="join-form" style="max-width:420px;"><input type="text" id="phone-code-input" maxlength="6" placeholder="123456" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/\D/g,'')" /><button class="btn-primary" onclick="phoneConnect()">Connect to TV</button></div>
     <div id="phone-join-status" class="status-pill" style="display:none;"><span class="dot"></span><span id="phone-join-text">Connecting…</span></div>
     <div id="phone-join-spinner" style="display:none;"><div class="spinner"></div></div>
   </div>
-
-  <!-- ============ PHONE: CONFIRM ============ -->
   <div id="screen-phone-confirm" class="screen">
-    <div class="big-confirm">
-      <div class="ic">📺</div>
-      <h2>Connect to this TV?</h2>
+    <div class="big-confirm"><div class="ic">📺</div><h2>Connect to this TV?</h2>
       <p>Check that this code matches the one shown on your TV screen:</p>
       <div class="code-display"><div class="label">PAIRING CODE</div><div class="code" id="phone-confirm-code">——</div></div>
-      <div class="controls">
-        <button class="btn-ghost" onclick="endAll(true)">Cancel</button>
-        <button class="btn-ok" onclick="phoneConfirm()">✓ Confirm & continue</button>
-      </div>
+      <div class="controls"><button class="btn-ghost" onclick="endAll(true)">Cancel</button><button class="btn-ok" onclick="phoneConfirm()">✓ Confirm & continue</button></div>
     </div>
   </div>
-
-  <!-- ============ PHONE: SOURCE PICKER ============ -->
   <div id="screen-phone-source" class="screen">
     <button class="back-btn" onclick="endAll(true)">← End session</button>
-    <div id="phone-src-status" class="status-pill connected"><span class="dot"></span><span>Paired with TV</span></div>
+    <div class="status-pill connected"><span class="dot"></span><span>Paired with TV — pick what to show</span></div>
     <div class="section-title">What do you want to show?</div>
     <div class="source-grid">
       <div class="source-btn" onclick="pickSource('file')"><div class="ic">🎬</div><div class="nm">Video file</div><div class="ds">Movie from your phone</div></div>
@@ -330,486 +195,164 @@
       <div class="source-btn" onclick="pickSource('url')"><div class="ic">🌐</div><div class="nm">Website</div><div class="ds">Open a URL on TV</div></div>
       <div class="source-btn" onclick="pickSource('camera')"><div class="ic">📷</div><div class="nm">Camera</div><div class="ds">Live phone camera</div></div>
     </div>
-
-    <!-- file sub-panel -->
     <div id="src-file" style="display:none;">
-      <div id="file-drop-zone" onclick="document.getElementById('file-input').click()">
-        <div class="drop-icon">🎬</div><p><strong>Tap to choose a video</strong></p><p>MP4, MKV, MOV, WebM…</p>
-      </div>
+      <div id="file-drop-zone" onclick="document.getElementById('file-input').click()"><div class="drop-icon">🎬</div><p><strong>Tap to choose a video</strong></p><p>MP4, MOV, WebM, M4V…</p></div>
       <input type="file" id="file-input" accept="video/*" />
       <div id="file-info" class="video-info" style="display:none;"><strong id="file-name"></strong><span id="file-meta"></span></div>
-      <button class="btn-primary btn-wide" id="btn-cast-file" onclick="castFile()" disabled>📡 Cast to TV</button>
+      <button class="btn-primary btn-wide" id="btn-cast-file" onclick="sendChosenFile()" disabled>📡 Send to TV & play</button>
+      <p class="hint" style="margin-top:10px;">The video copies to your TV first (a few seconds for clips), then plays with perfect sync. Big movies take longer.</p>
     </div>
-
-    <!-- screen sub-panel -->
-    <div id="src-screen" style="display:none;">
-      <div class="note">⚠️ Mirroring native apps isn't possible from a browser on Android — the OS doesn't allow it. Screen capture works on desktop browsers and some devices only. Tap below to try; if your phone doesn't support it you'll see an error.</div>
-      <button class="btn-primary btn-wide" onclick="castScreen()">📲 Start screen mirror</button>
-    </div>
-
-    <!-- url sub-panel -->
-    <div id="src-url" style="display:none;">
-      <div class="note">Some sites (YouTube, Google…) block being embedded and may show blank. Try it — most articles, dashboards and custom pages work.</div>
-      <div class="join-form">
-        <input type="text" id="url-input" placeholder="https://example.com" style="font-size:15px;letter-spacing:0;text-align:left;" />
-        <button class="btn-primary" onclick="castUrl()">🌐 Open on TV</button>
-      </div>
-    </div>
-
-    <!-- camera sub-panel -->
-    <div id="src-camera" style="display:none;">
-      <button class="btn-primary btn-wide" onclick="castCamera()">📷 Start camera</button>
-    </div>
-
-    <video id="hidden-video" playsinline></video>
+    <div id="src-screen" style="display:none;"><div class="note">⚠️ Mirroring native apps isn't possible from a browser on Android — the OS blocks it. Screen capture works on desktop browsers and some devices only.</div><button class="btn-primary btn-wide" onclick="castScreen()">📲 Start screen mirror</button></div>
+    <div id="src-url" style="display:none;"><div class="note">Some sites (YouTube, Google…) block being embedded and may show blank. Most articles & custom pages work.</div><div class="join-form"><input type="text" id="url-input" placeholder="https://example.com" style="font-size:15px;letter-spacing:0;text-align:left;" /><button class="btn-primary" onclick="castUrl()">🌐 Open on TV</button></div></div>
+    <div id="src-camera" style="display:none;"><button class="btn-primary btn-wide" onclick="castCamera()">📷 Start camera</button></div>
   </div>
-
-  <!-- ============ PHONE: CASTING (remote lives here) ============ -->
   <div id="screen-phone-cast" class="screen">
-    <div id="phone-cast-status" class="status-pill streaming"><span class="dot"></span><span id="phone-cast-text">Casting to TV…</span></div>
-    <div class="card">
-      <div id="cast-preview-wrap" style="background:#000;border-radius:8px;overflow:hidden;margin-bottom:12px;display:none;">
-        <video id="preview-video" playsinline muted style="width:100%;max-height:200px;object-fit:contain;display:block;"></video>
-      </div>
-      <p class="hint" id="cast-desc">Use the floating remote to control playback. It stays pinned over everything.</p>
+    <div id="phone-cast-status" class="status-pill streaming"><span class="dot"></span><span id="phone-cast-text">Playing on TV</span></div>
+    <div class="card" id="phone-remote-card">
+      <div class="scrub-row" id="scrub-wrap"><span class="time-label" id="cur-time">0:00</span><input type="range" class="scrub" id="scrubber" min="0" max="100" value="0" step="0.1" /><span class="time-label" id="dur-time">0:00</span></div>
+      <div class="transport"><button onclick="ctrl('rewind')" title="-10s">⏪</button><button class="big" id="ph-playpause" onclick="ctrl('toggle')">⏸</button><button onclick="ctrl('forward')" title="+10s">⏩</button></div>
+      <div class="transport"><button onclick="ctrl('restart')">⟲ Replay</button><button id="ph-loop" onclick="ctrl('loop')">↻ Loop</button></div>
+      <div class="extra-row"><button onclick="ctrl('reload')" title="Unstick / refresh TV">⟳ Refresh TV</button><button onclick="changeVideo()">🎬 Change video</button></div>
     </div>
-    <div class="controls">
-      <button class="btn-secondary" onclick="backToSource()">↩ Change source</button>
-      <button class="btn-ghost" onclick="endAll(true)">⏻ End session</button>
-    </div>
+    <div class="controls"><button class="btn-secondary" onclick="backToSource()">↩ Other source</button><button class="btn-ghost" onclick="endAll(true)">⏻ End session</button></div>
   </div>
-
-  <!-- ============ ENDED ============ -->
   <div id="screen-ended" class="screen">
-    <div class="big-confirm">
-      <div class="ic">✅</div>
-      <h2 id="ended-title">Session ended</h2>
-      <p id="ended-msg">The connection has been closed on both devices.</p>
-      <button class="btn-primary btn-wide" onclick="location.href=location.pathname">Start over</button>
-    </div>
+    <div class="big-confirm"><div class="ic">✅</div><h2 id="ended-title">Session ended</h2><p id="ended-msg">The connection has been closed on both devices.</p><button class="btn-primary btn-wide" style="max-width:280px;margin:0 auto;" onclick="location.href=location.pathname">Start over</button></div>
   </div>
-
 </div>
-
-<!-- ============ FLOATING REMOTE (phone) ============ -->
 <div id="remote">
-  <div id="remote-head">
-    <span class="grip">⠿</span>
-    <span class="ttl">TV Remote</span>
-    <button id="pin-btn" onclick="togglePin()" title="Pin">📌</button>
-    <button onclick="hideRemote()" title="Minimize">—</button>
-  </div>
+  <div id="remote-head"><span class="grip">⠿</span><span class="ttl">TV REMOTE</span><button id="pin-btn" onclick="togglePin()">📌</button><button onclick="hideRemote()">—</button></div>
   <div id="remote-body">
-    <div class="rbtn-row">
-      <button onclick="remote('rewind')" title="-10s">⏪</button>
-      <button id="r-playpause" onclick="remote('toggle')">⏸</button>
-      <button onclick="remote('forward')" title="+10s">⏩</button>
-    </div>
-    <div class="rbtn-row">
-      <button onclick="remote('restart')" title="Replay">🔁 Replay</button>
-      <button id="r-loop" onclick="remote('loop')" title="Loop">↻ Loop</button>
-    </div>
-    <div class="rmini">Send text to TV</div>
-    <div class="send-row">
-      <input type="text" id="remote-text" placeholder="Type for TV…" onkeydown="if(event.key==='Enter')sendRemoteText()" />
-      <button class="btn-primary" onclick="sendRemoteText()">Send</button>
-    </div>
-    <div class="rmini">TV page navigation</div>
-    <div class="nav-row">
-      <button onclick="remote('nav','up')" title="Scroll up">▲</button>
-      <button onclick="remote('nav','down')" title="Scroll down">▼</button>
-      <button onclick="remote('nav','back')" title="Back">↩</button>
-      <button onclick="remote('nav','reload')" title="Reload">⟳</button>
-    </div>
+    <div class="transport"><button onclick="ctrl('rewind')">⏪</button><button class="big" id="fr-playpause" onclick="ctrl('toggle')">⏸</button><button onclick="ctrl('forward')">⏩</button></div>
+    <div class="transport"><button onclick="ctrl('restart')">⟲</button><button id="fr-loop" onclick="ctrl('loop')">↻</button><button onclick="ctrl('reload')">⟳</button></div>
   </div>
 </div>
 <button id="remote-toggle" onclick="showRemote()">🎮</button>
-
+<input type="file" id="hidden-file-holder" accept="video/*" />
 <div class="toast" id="toast"></div>
-
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-// ───────────────────────── State ─────────────────────────
-let role = null;            // 'tv' | 'phone'
-let peer = null;
-let conn = null;            // data connection
-let call = null;            // media connection
-let localStream = null;     // phone's outgoing stream
-let roomId = null;
-let confirmed = false;
-let currentSource = null;   // 'file'|'screen'|'url'|'camera'
+let role=null, peer=null, conn=null, call=null, localStream=null, roomId=null, confirmed=false, currentSource=null;
 const $ = id => document.getElementById(id);
-
-const ICE = { iceServers: [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' }
-]};
-
-// ───────────────────────── Screen routing ─────────────────────────
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  $(id).classList.add('active');
+const ICE = { iceServers:[ {urls:'stun:stun.l.google.com:19302'}, {urls:'stun:stun1.l.google.com:19302'} ] };
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
+function goHome(){ resetConn(); showScreen('screen-home'); hideRemote(true); }
+function goTV(){
+  role='tv'; roomId=genCode(); showScreen('screen-tv-wait'); $('tv-code').textContent=roomId;
+  drawQR($('qr-img'), location.origin+location.pathname+'?join='+roomId);
+  peer=new Peer(roomId,{config:ICE});
+  peer.on('open',()=>setPill('tv-wait-status','tv-wait-text','','Waiting for phone…'));
+  peer.on('connection',dc=>{ conn=dc; wireConn(); dc.on('open',()=>{ $('tv-confirm-code').textContent=roomId; showScreen('screen-tv-confirm'); }); });
+  peer.on('call',incoming=>{ call=incoming; incoming.answer(); incoming.on('stream',rs=>tvShowStream(rs)); incoming.on('close',()=>setPill('tv-wait-status','tv-wait-text','error','Stream ended')); });
+  peer.on('error',e=>toast('Connection error: '+e.type));
 }
-function goHome() { resetConn(); showScreen('screen-home'); hideRemote(true); }
-
-// ───────────────────────── Role: TV ─────────────────────────
-function goTV() {
-  role = 'tv';
-  roomId = genCode();
-  showScreen('screen-tv-wait');
-  $('tv-code').textContent = roomId;
-  drawQR($('qr-img'), `${location.origin}${location.pathname}?join=${roomId}`);
-
-  peer = new Peer(roomId, { config: ICE });
-  peer.on('open', () => setPill('tv-wait-status','tv-wait-text','','Waiting for phone…'));
-  peer.on('connection', dc => {
-    conn = dc;
-    wireConn();
-    dc.on('open', () => {
-      // Show confirm prompt on TV
-      $('tv-confirm-code').textContent = roomId;
-      showScreen('screen-tv-confirm');
-    });
-  });
-  peer.on('call', incoming => {
-    call = incoming;
-    incoming.answer();
-    incoming.on('stream', remoteStream => {
-      const v = $('tv-video');
-      $('tv-iframe').style.display = 'none';
-      v.style.display = 'block';
-      v.srcObject = remoteStream;
-      v.play().catch(()=>{});
-      showScreen('screen-tv-play');
-      setPill('tv-play-status','tv-play-text','streaming','Streaming live');
-    });
-    incoming.on('close', () => setPill('tv-play-status','tv-play-text','error','Stream ended'));
-  });
-  peer.on('error', e => toast('Connection error: ' + e.type));
+function tvAccept(){ confirmed=true; send({t:'confirmed'}); showScreen('screen-tv-play'); tvIdle(); }
+function tvShowStream(stream){ const v=$('tv-video'); $('tv-iframe').style.display='none'; v.srcObject=stream; v.src=''; v.style.display='block'; $('tv-stage').classList.remove('idle'); $('tv-play-overlay').classList.add('hidden'); v.muted=false; v.play().catch(()=>{ v.muted=true; v.play().catch(()=>{}); }); showScreen('screen-tv-play'); }
+let rx=null;
+function tvFileStart(meta){ rx={chunks:[],received:0,size:meta.size,mime:meta.mime,name:meta.name}; showScreen('screen-tv-play'); $('tv-transfer').classList.add('show'); $('tv-transfer-label').textContent='Receiving “'+(meta.name||'video')+'”…'; $('tv-transfer-fill').style.width='0%'; $('tv-transfer-pct').textContent='0%'; }
+function tvFileChunk(buf){ if(!rx)return; rx.chunks.push(buf); rx.received+=(buf.byteLength||buf.size||0); const pct=rx.size?Math.min(100,Math.round(rx.received/rx.size*100)):0; $('tv-transfer-fill').style.width=pct+'%'; $('tv-transfer-pct').textContent=pct+'%'; }
+function tvFileEnd(){ if(!rx)return; const blob=new Blob(rx.chunks,{type:rx.mime||'video/mp4'}); const url=URL.createObjectURL(blob); const v=$('tv-video'); if(v._url){try{URL.revokeObjectURL(v._url);}catch(e){}} v._url=url; v.srcObject=null; v.src=url; v.loop=tvLoop; v.style.display='block'; $('tv-iframe').style.display='none'; $('tv-stage').classList.remove('idle'); $('tv-transfer').classList.remove('show'); v.onloadedmetadata=()=>{sendTime();}; v.play().then(()=>{$('tv-play-overlay').classList.add('hidden');}).catch(()=>{$('tv-play-overlay').classList.remove('hidden');}); rx=null; send({t:'ready'}); }
+function tvIdle(){ const v=$('tv-video'); v.pause&&v.pause(); v.removeAttribute('src'); v.srcObject=null; v.style.display='none'; $('tv-iframe').style.display='none'; $('tv-stage').classList.add('idle'); $('tv-play-overlay').classList.remove('hidden'); }
+let tvLoop=false;
+function tvLocal(a){ applyTVCmd(a); }
+function applyTVCmd(a,val){ const v=$('tv-video');
+  if($('tv-iframe').style.display==='block'){ if(a==='rewind')navTV('up'); else if(a==='forward')navTV('down'); else if(a==='reload')navTV('reload'); return; }
+  if(!v.src && !v.srcObject) return;
+  switch(a){
+    case 'toggle': v.paused?v.play():v.pause(); break;
+    case 'play': v.play(); break; case 'pause': v.pause(); break;
+    case 'rewind': v.currentTime=Math.max(0,v.currentTime-10); break;
+    case 'forward': v.currentTime=Math.min(v.duration||1e9,v.currentTime+10); break;
+    case 'restart': v.currentTime=0; v.play(); break;
+    case 'seek': if(val!=null) v.currentTime=val; break;
+    case 'loop': tvLoop=!tvLoop; v.loop=tvLoop; $('tv-loopbtn').classList.toggle('on',tvLoop); break;
+    case 'reload': { const t=v.currentTime; const s=v.src; if(s){ v.src=s; v.currentTime=t; v.play().catch(()=>{}); } break; }
+  }
+  updateTVIcons(); sendTime();
 }
-
-function tvAccept() {
-  confirmed = true;
-  send({ t: 'confirmed' });
-  showScreen('screen-tv-play');
-  setPill('tv-play-status','tv-play-text','connected','Paired — waiting for content…');
-}
-
-// TV sends a playback command back to the phone (which owns the video)
-function tvCmd(action) { send({ t: 'cmd', a: action }); if(action==='toggle'){ /* optimistic */ } }
-function tvFullscreen() {
-  const el = $('tv-iframe').style.display === 'block' ? $('tv-iframe') : $('tv-video');
-  if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
-  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-  else if (el.webkitEnterFullscreen) el.webkitEnterFullscreen();
-}
-
-// ───────────────────────── Role: Phone ─────────────────────────
-function goPhone() { role = 'phone'; showScreen('screen-phone-join'); }
-
-function phoneConnect() {
-  const code = $('phone-code-input').value.trim();
-  if (code.length !== 6) { toast('Enter the 6-digit code from your TV'); return; }
-  startPhonePeer(code);
-}
-
-function startPhonePeer(code) {
-  role = 'phone';
-  roomId = code;
-  $('phone-join-status').style.display = 'inline-flex';
-  $('phone-join-spinner').style.display = 'block';
+function updateTVIcons(){ const v=$('tv-video'); $('tv-playpause').textContent=v.paused?'▶':'⏸'; $('tv-loopbtn').classList.toggle('on',tvLoop); }
+function tvFullscreen(){ const el=$('tv-iframe').style.display==='block'?$('tv-iframe'):$('tv-video'); (el.requestFullscreen||el.webkitRequestFullscreen||el.webkitEnterFullscreen||function(){}).call(el); }
+function sendTime(){ const v=$('tv-video'); send({t:'time', ct:v.currentTime||0, dur:v.duration||0, paused:v.paused, loop:tvLoop}); }
+function goPhone(){ role='phone'; showScreen('screen-phone-join'); }
+function phoneConnect(){ const c=$('phone-code-input').value.trim(); if(c.length!==6){toast('Enter the 6-digit TV code');return;} startPhonePeer(c); }
+function startPhonePeer(code){
+  role='phone'; roomId=code; $('phone-join-status').style.display='inline-flex'; $('phone-join-spinner').style.display='block';
   setPill('phone-join-status','phone-join-text','','Connecting to TV…');
-
-  peer = new Peer(undefined, { config: ICE });
-  peer.on('open', () => {
-    conn = peer.connect(code, { reliable: true });
-    wireConn();
-    conn.on('open', () => {
-      $('phone-join-spinner').style.display = 'none';
-      $('phone-confirm-code').textContent = code;
-      showScreen('screen-phone-confirm');
-    });
-    conn.on('error', () => { toast('Could not reach TV ' + code); $('phone-join-spinner').style.display='none'; });
-  });
-  peer.on('error', e => {
-    $('phone-join-spinner').style.display = 'none';
-    toast('Error: ' + e.type + '. Check the code / Wi-Fi.');
-  });
+  peer=new Peer(undefined,{config:ICE});
+  peer.on('open',()=>{ conn=peer.connect(code,{reliable:true}); wireConn(); conn.on('open',()=>{ $('phone-join-spinner').style.display='none'; $('phone-confirm-code').textContent=code; showScreen('screen-phone-confirm'); }); conn.on('error',()=>{ toast('Could not reach TV '+code); $('phone-join-spinner').style.display='none'; }); });
+  peer.on('error',e=>{ $('phone-join-spinner').style.display='none'; toast('Error: '+e.type+'. Check code / Wi-Fi.'); });
 }
-
-function phoneConfirm() {
-  confirmed = true;
-  send({ t: 'confirm' });
-  showScreen('screen-phone-source');
+function phoneConfirm(){ confirmed=true; send({t:'confirm'}); showScreen('screen-phone-source'); }
+function pickSource(s){ currentSource=s; document.querySelectorAll('.source-btn').forEach(b=>b.classList.remove('sel')); ['file','screen','url','camera'].forEach(k=>$('src-'+k).style.display=(k===s)?'block':'none'); if(event&&event.currentTarget)event.currentTarget.classList.add('sel'); }
+let chosenFile=null;
+$('file-input').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) loadFileMeta(f); });
+$('hidden-file-holder').addEventListener('change',e=>{ const f=e.target.files[0]; if(f){ chosenFile=f; sendChosenFile(); } });
+(function(){ const dz=$('file-drop-zone'); dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover');}); dz.addEventListener('dragleave',()=>dz.classList.remove('dragover')); dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('video/'))loadFileMeta(f);}); })();
+function loadFileMeta(f){ chosenFile=f; $('file-name').textContent=f.name; $('file-meta').textContent=formatBytes(f.size); $('file-info').style.display='block'; $('btn-cast-file').disabled=false; }
+async function sendChosenFile(){ if(!chosenFile){ toast('Pick a video first'); return; } if(chosenFile.size>2*1073741824){ toast('Very large file — your TV browser may run out of memory'); } if(call){try{call.close();}catch(e){}call=null;} enterController(); setPill('phone-cast-status','phone-cast-text','streaming','Sending video to TV…'); await transferFile(chosenFile); }
+async function transferFile(file){
+  send({t:'fstart', name:file.name, size:file.size, mime:file.type||'video/mp4'});
+  const CHUNK=64*1024; let offset=0; const dc=conn&&conn.dataChannel; const HIGH=8*1024*1024;
+  while(offset<file.size){ if(dc&&dc.bufferedAmount>HIGH){ await drain(dc,HIGH/2); } const buf=await file.slice(offset,offset+CHUNK).arrayBuffer(); try{ conn.send(buf); }catch(e){ await drain(dc,HIGH/2); conn.send(buf); } offset+=buf.byteLength; if(offset%(CHUNK*16)<CHUNK){ setPill('phone-cast-status','phone-cast-text','streaming','Sending… '+Math.round(offset/file.size*100)+'%'); await tick(); } }
+  send({t:'fend'}); setPill('phone-cast-status','phone-cast-text','streaming','Playing on TV');
 }
-
-// ── source selection ──
-function pickSource(s) {
-  currentSource = s;
-  document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('sel'));
-  ['file','screen','url','camera'].forEach(k => $('src-'+k).style.display = (k===s)?'block':'none');
-  event.currentTarget.classList.add('sel');
+function drain(dc,target){ return new Promise(res=>{ const i=setInterval(()=>{ if(!dc||dc.bufferedAmount<=target){ clearInterval(i); res(); } },50); }); }
+function tick(){ return new Promise(r=>setTimeout(r,0)); }
+function changeVideo(){ $('hidden-file-holder').value=''; $('hidden-file-holder').click(); }
+function backToSource(){ if(call){try{call.close();}catch(e){}call=null;} if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;} showScreen('screen-phone-source'); hideRemote(); }
+async function castScreen(){ if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){ toast('Screen capture not supported here'); return; } try{ localStream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true}); callTV(localStream); enterController(true); setPill('phone-cast-status','phone-cast-text','streaming','Mirroring screen'); }catch(e){ toast('Screen mirror cancelled / unsupported'); } }
+async function castCamera(){ try{ localStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:true}); callTV(localStream); enterController(true); setPill('phone-cast-status','phone-cast-text','streaming','Live camera'); }catch(e){ toast('Camera access denied'); } }
+function castUrl(){ let u=$('url-input').value.trim(); if(!u){toast('Enter a URL');return;} if(!/^https?:\/\//i.test(u))u='https://'+u; send({t:'url',url:u}); enterController(true); setPill('phone-cast-status','phone-cast-text','streaming','Website on TV'); $('scrub-wrap').style.display='none'; }
+function callTV(stream){ if(call){try{call.close();}catch(e){}} call=peer.call(roomId,stream); }
+function enterController(liveMode){ showScreen('screen-phone-cast'); $('scrub-wrap').style.display=liveMode?'none':'flex'; showRemote(); }
+let scrubbing=false;
+$('scrubber').addEventListener('input',()=>{ scrubbing=true; $('cur-time').textContent=fmt($('scrubber').value); });
+$('scrubber').addEventListener('change',()=>{ ctrl('seek', parseFloat($('scrubber').value)); scrubbing=false; });
+function ctrl(a,val){ send({t:'pb', a:a, v:val}); }
+function wireConn(){ conn.on('data',m=>handleData(m)); conn.on('close',()=>onPeerClosed()); }
+function handleData(msg){
+  if(msg instanceof ArrayBuffer || ArrayBuffer.isView(msg)){ if(role==='tv') tvFileChunk(msg); return; }
+  if(!msg||!msg.t) return;
+  switch(msg.t){
+    case 'confirm': if(role==='tv'){ $('tv-confirm-code').textContent=roomId; showScreen('screen-tv-confirm'); } break;
+    case 'confirmed': if(role==='phone') toast('TV accepted ✓'); break;
+    case 'fstart': if(role==='tv') tvFileStart(msg); break;
+    case 'fend': if(role==='tv') tvFileEnd(); break;
+    case 'ready': if(role==='phone'){ setPill('phone-cast-status','phone-cast-text','streaming','Playing on TV'); } break;
+    case 'pb': if(role==='tv') applyTVCmd(msg.a,msg.v); break;
+    case 'time': if(role==='phone') onTime(msg); break;
+    case 'url': if(role==='tv') openUrlOnTV(msg.url); break;
+    case 'text': if(role==='tv') showTextOnTV(msg.text); break;
+    case 'nav': if(role==='tv') navTV(msg.d); break;
+    case 'end': onPeerClosed(true); break;
+  }
 }
-
-// file
-$('file-input').addEventListener('change', e => { const f = e.target.files[0]; if (f) loadFile(f); });
-(function(){
-  const dz = $('file-drop-zone');
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
-  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('video/')) loadFile(f); });
+function onTime(m){ const sc=$('scrubber'); if(!scrubbing&&m.dur){ sc.max=m.dur; sc.value=m.ct; } $('cur-time').textContent=fmt(m.ct); $('dur-time').textContent=fmt(m.dur); const pp=m.paused?'▶':'⏸'; $('ph-playpause').textContent=pp; $('fr-playpause').textContent=pp; $('ph-loop').classList.toggle('on',!!m.loop); $('fr-loop').classList.toggle('on',!!m.loop); }
+['timeupdate','play','pause','seeked','ended','loadedmetadata','durationchange'].forEach(ev=>{ document.addEventListener('DOMContentLoaded',()=>{ $('tv-video').addEventListener(ev,()=>{ if(role==='tv'){ updateTVIcons(); sendTime(); if(ev==='ended'&&!tvLoop){ $('tv-play-overlay').classList.remove('hidden'); } } }); }); });
+function openUrlOnTV(url){ $('tv-video').style.display='none'; const f=$('tv-iframe'); f.style.display='block'; f.src=url; $('tv-stage').classList.remove('idle'); $('tv-play-overlay').classList.add('hidden'); showScreen('screen-tv-play'); $('tv-textbar').style.display='none'; }
+function showTextOnTV(text){ const b=$('tv-textbar'); b.textContent='⌨ '+text; b.style.display='block'; try{ const d=$('tv-iframe').contentDocument; const el=d&&d.activeElement; if(el&&('value'in el)){ el.value=text; el.dispatchEvent(new Event('input',{bubbles:true})); } }catch(e){} clearTimeout(showTextOnTV._t); showTextOnTV._t=setTimeout(()=>b.style.display='none',6000); }
+function navTV(dir){ const f=$('tv-iframe'); const ifr=f.style.display==='block'; try{ if(dir==='up') ifr?f.contentWindow.scrollBy(0,-300):scrollBy(0,-300); else if(dir==='down') ifr?f.contentWindow.scrollBy(0,300):scrollBy(0,300); else if(dir==='back'){ if(ifr)f.contentWindow.history.back(); } else if(dir==='reload'){ if(ifr)f.contentWindow.location.reload(); } }catch(e){ toast('Cannot navigate this site (cross-origin)'); } }
+function endAll(notify){ if(notify&&conn&&conn.open){try{conn.send({t:'end'});}catch(e){}} resetConn(); $('ended-title').textContent='Session ended'; $('ended-msg').textContent='You closed the connection. The other device has been notified.'; showScreen('screen-ended'); hideRemote(true); }
+function onPeerClosed(remoteEnded){ resetConn(); $('ended-title').textContent=remoteEnded?'Session ended':'Disconnected'; $('ended-msg').textContent=remoteEnded?'The other device ended the session.':'The connection was lost.'; showScreen('screen-ended'); hideRemote(true); }
+function resetConn(){ if(call){try{call.close();}catch(e){}call=null;} if(conn){try{conn.close();}catch(e){}conn=null;} if(peer){try{peer.destroy();}catch(e){}peer=null;} if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;} const v=$('tv-video'); try{v.pause();v.removeAttribute('src');v.srcObject=null;}catch(e){} confirmed=false; rx=null; }
+function send(obj){ if(conn&&conn.open){ try{conn.send(obj);}catch(e){} } }
+function showRemote(){ if(role!=='phone')return; $('remote').style.display='block'; $('remote-toggle').style.display='none'; }
+function hideRemote(full){ $('remote').style.display='none'; $('remote-toggle').style.display=full?'none':(role==='phone'?'flex':'none'); }
+let pinned=false;
+function togglePin(){ pinned=!pinned; $('remote').classList.toggle('pinned',pinned); $('pin-btn').textContent=pinned?'📍':'📌'; toast(pinned?'Remote pinned':'Remote unpinned'); }
+(function dragRemote(){ const r=$('remote'),h=$('remote-head'); let sx,sy,ox,oy,drag=false;
+  h.addEventListener('pointerdown',e=>{ drag=true; r.style.bottom='auto'; r.style.right='auto'; const b=r.getBoundingClientRect(); ox=b.left;oy=b.top;sx=e.clientX;sy=e.clientY; r.style.left=ox+'px';r.style.top=oy+'px'; h.setPointerCapture(e.pointerId); h.style.cursor='grabbing'; });
+  h.addEventListener('pointermove',e=>{ if(!drag)return; let nx=ox+(e.clientX-sx),ny=oy+(e.clientY-sy); nx=Math.max(4,Math.min(innerWidth-r.offsetWidth-4,nx)); ny=Math.max(4,Math.min(innerHeight-r.offsetHeight-4,ny)); r.style.left=nx+'px';r.style.top=ny+'px'; });
+  h.addEventListener('pointerup',()=>{ drag=false; h.style.cursor='grab'; });
 })();
-function loadFile(file) {
-  const v = $('hidden-video');
-  v.src = URL.createObjectURL(file);
-  v.loop = false;
-  $('file-name').textContent = file.name;
-  $('file-meta').textContent = formatBytes(file.size);
-  $('file-info').style.display = 'block';
-  $('btn-cast-file').disabled = false;
-}
-function castFile() {
-  const v = $('hidden-video');
-  v.muted = true;
-  v.play().then(startStreamFromVideo).catch(()=>startStreamFromVideo());
-}
-function startStreamFromVideo() {
-  const v = $('hidden-video');
-  try { localStream = v.captureStream ? v.captureStream() : v.mozCaptureStream(); }
-  catch(e){ toast('Capture failed: ' + e.message); return; }
-  callTV(localStream);
-  bindRemoteVideo(v);
-  enterCasting('Movie is playing on the TV. Control it with the remote below.', null);
-}
-
-// screen
-async function castScreen() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-    toast('Screen capture not supported on this browser/device'); return;
-  }
-  try {
-    localStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-    callTV(localStream);
-    localStream.getVideoTracks()[0].addEventListener('ended', () => { toast('Screen sharing stopped'); });
-    bindRemoteVideo(null);
-    enterCasting('Your screen is mirroring to the TV.', localStream);
-  } catch(e) { toast('Screen mirror cancelled / unsupported'); }
-}
-
-// camera
-async function castCamera() {
-  try {
-    localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: true });
-    callTV(localStream);
-    bindRemoteVideo(null);
-    enterCasting('Live camera is showing on the TV.', localStream);
-  } catch(e) { toast('Camera access denied'); }
-}
-
-// url
-function castUrl() {
-  let u = $('url-input').value.trim();
-  if (!u) { toast('Enter a URL'); return; }
-  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
-  send({ t: 'url', url: u });
-  enterCasting('Website sent to TV. Use ▲▼ on the remote to scroll it.', null);
-}
-
-function callTV(stream) {
-  if (call) { try{call.close();}catch(e){} }
-  call = peer.call(roomId, stream);
-}
-
-// ── remote (phone controls its own hidden video) ──
-let boundVideo = null;
-function bindRemoteVideo(v) {
-  boundVideo = v;
-  if (v) {
-    v.onplay = () => { $('r-playpause').textContent = '⏸'; };
-    v.onpause = () => { $('r-playpause').textContent = '▶'; };
-  }
-}
-function enterCasting(desc, previewStream) {
-  showScreen('screen-phone-cast');
-  $('cast-desc').textContent = desc;
-  const pw = $('cast-preview-wrap');
-  if (previewStream) { pw.style.display = 'block'; $('preview-video').srcObject = previewStream; $('preview-video').play().catch(()=>{}); }
-  else if (boundVideo) { pw.style.display = 'block'; $('preview-video').srcObject = null; $('preview-video').src = boundVideo.src; $('preview-video').muted = true; }
-  else { pw.style.display = 'none'; }
-  showRemote();
-}
-function backToSource() { if (boundVideo){try{boundVideo.pause();}catch(e){}} stopLocalTracksKeepConn(); showScreen('screen-phone-source'); hideRemote(); }
-
-function remote(action, arg) {
-  const v = boundVideo;
-  switch(action) {
-    case 'toggle': if (v){ v.paused ? v.play() : v.pause(); } send({t:'cmd',a:'toggle'}); break;
-    case 'rewind': if (v) v.currentTime = Math.max(0, v.currentTime - 10); break;
-    case 'forward': if (v) v.currentTime = v.currentTime + 10; break;
-    case 'restart': if (v){ v.currentTime = 0; v.play(); } break;
-    case 'loop': if (v){ v.loop = !v.loop; $('r-loop').classList.toggle('on', v.loop); toast(v.loop?'Loop on':'Loop off'); } break;
-    case 'nav': send({ t:'nav', d: arg }); break;
-  }
-}
-function sendRemoteText() {
-  const t = $('remote-text').value;
-  if (!t) return;
-  send({ t:'text', text: t });
-  $('remote-text').value = '';
-  toast('Sent to TV');
-}
-
-// ───────────────────────── Shared data channel ─────────────────────────
-function wireConn() {
-  conn.on('data', msg => handleData(msg));
-  conn.on('close', () => onPeerClosed());
-}
-function handleData(msg) {
-  if (!msg || !msg.t) return;
-  switch(msg.t) {
-    case 'confirm':           // phone -> TV : phone confirmed
-      if (role === 'tv') { $('tv-confirm-code').textContent = roomId; showScreen('screen-tv-confirm'); }
-      break;
-    case 'confirmed':         // TV -> phone : TV accepted
-      if (role === 'phone') toast('TV accepted the connection ✓');
-      break;
-    case 'cmd':               // TV -> phone : playback command
-      if (role === 'phone') applyCmd(msg.a);
-      break;
-    case 'url':               // phone -> TV : open website
-      if (role === 'tv') openUrlOnTV(msg.url);
-      break;
-    case 'text':              // phone -> TV : show text
-      if (role === 'tv') showTextOnTV(msg.text);
-      break;
-    case 'nav':               // phone -> TV : navigate iframe/page
-      if (role === 'tv') navTV(msg.d);
-      break;
-    case 'end':               // either -> other : session ended
-      onPeerClosed(true);
-      break;
-  }
-}
-function applyCmd(a) {  // phone applies command coming from TV's on-screen remote
-  const v = boundVideo;
-  if (!v) { if (a==='nav') {} return; }
-  if (a==='toggle') v.paused ? v.play() : v.pause();
-  else if (a==='rewind') v.currentTime = Math.max(0, v.currentTime - 10);
-  else if (a==='forward') v.currentTime += 10;
-  else if (a==='restart') { v.currentTime = 0; v.play(); }
-  else if (a==='loop') { v.loop = !v.loop; $('r-loop').classList.toggle('on', v.loop); }
-}
-
-// TV-side handlers
-function openUrlOnTV(url) {
-  $('tv-video').style.display = 'none';
-  const f = $('tv-iframe');
-  f.style.display = 'block';
-  f.src = url;
-  showScreen('screen-tv-play');
-  setPill('tv-play-status','tv-play-text','streaming','Showing website');
-  $('tv-text-bar').style.display = 'none';
-}
-function showTextOnTV(text) {
-  const bar = $('tv-text-bar');
-  bar.textContent = '⌨ ' + text;
-  bar.style.display = 'block';
-  // best-effort: type into a focused input inside a same-origin iframe
-  try {
-    const doc = $('tv-iframe').contentDocument;
-    const el = doc && doc.activeElement;
-    if (el && ('value' in el)) { el.value = text; el.dispatchEvent(new Event('input', {bubbles:true})); }
-  } catch(e) {}
-  clearTimeout(showTextOnTV._t);
-  showTextOnTV._t = setTimeout(()=> bar.style.display='none', 6000);
-}
-function navTV(dir) {
-  const f = $('tv-iframe');
-  const usingIframe = f.style.display === 'block';
-  try {
-    if (dir === 'up')      usingIframe ? f.contentWindow.scrollBy(0,-300) : window.scrollBy(0,-300);
-    else if (dir==='down') usingIframe ? f.contentWindow.scrollBy(0, 300) : window.scrollBy(0, 300);
-    else if (dir==='back') { if (usingIframe) f.contentWindow.history.back(); }
-    else if (dir==='reload'){ if (usingIframe) f.contentWindow.location.reload(); }
-  } catch(e) { toast('Cannot navigate this site (cross-origin)'); }
-}
-
-// ───────────────────────── Session end ─────────────────────────
-function endAll(notify) {
-  if (notify && conn && conn.open) { try { conn.send({ t:'end' }); } catch(e){} }
-  resetConn();
-  $('ended-title').textContent = 'Session ended';
-  $('ended-msg').textContent = 'You closed the connection. The other device has been notified.';
-  showScreen('screen-ended');
-  hideRemote(true);
-}
-function onPeerClosed(remoteEnded) {
-  resetConn();
-  $('ended-title').textContent = remoteEnded ? 'Session ended' : 'Disconnected';
-  $('ended-msg').textContent = remoteEnded ? 'The other device ended the session.' : 'The connection was lost.';
-  showScreen('screen-ended');
-  hideRemote(true);
-}
-
-function stopLocalTracksKeepConn() {
-  if (call) { try{call.close();}catch(e){} call = null; }
-  if (localStream) { localStream.getTracks().forEach(t=>t.stop()); localStream = null; }
-}
-function resetConn() {
-  if (call) { try{call.close();}catch(e){} call = null; }
-  if (conn) { try{conn.close();}catch(e){} conn = null; }
-  if (peer) { try{peer.destroy();}catch(e){} peer = null; }
-  if (localStream) { localStream.getTracks().forEach(t=>t.stop()); localStream = null; }
-  const hv = $('hidden-video'); try { hv.pause(); } catch(e){}
-  confirmed = false;
-}
-
-function send(obj) { if (conn && conn.open) { try { conn.send(obj); } catch(e){} } }
-
-// ───────────────────────── Floating remote UI ─────────────────────────
-function showRemote(){ $('remote').style.display='block'; $('remote-toggle').style.display='none'; }
-function hideRemote(full){ $('remote').style.display='none'; $('remote-toggle').style.display = full ? 'none' : (role==='phone' ? 'flex' : 'none'); }
-let pinned = false;
-function togglePin(){ pinned=!pinned; $('remote').classList.toggle('pinned',pinned); $('pin-btn').textContent = pinned?'📍':'📌'; toast(pinned?'Remote pinned':'Remote unpinned'); }
-
-(function dragRemote(){
-  const r = $('remote'), h = $('remote-head');
-  let sx, sy, ox, oy, drag=false;
-  h.addEventListener('pointerdown', e => {
-    drag=true; r.style.bottom='auto'; r.style.right='auto';
-    const rect=r.getBoundingClientRect(); ox=rect.left; oy=rect.top; sx=e.clientX; sy=e.clientY;
-    r.style.left=ox+'px'; r.style.top=oy+'px'; h.setPointerCapture(e.pointerId); h.style.cursor='grabbing';
-  });
-  h.addEventListener('pointermove', e => {
-    if(!drag) return;
-    let nx=ox+(e.clientX-sx), ny=oy+(e.clientY-sy);
-    nx=Math.max(4,Math.min(window.innerWidth-r.offsetWidth-4,nx));
-    ny=Math.max(4,Math.min(window.innerHeight-r.offsetHeight-4,ny));
-    r.style.left=nx+'px'; r.style.top=ny+'px';
-  });
-  h.addEventListener('pointerup', e => { drag=false; h.style.cursor='grab'; });
-})();
-
-// ───────────────────────── Helpers ─────────────────────────
-function genCode(){ return Math.floor(100000 + Math.random()*900000).toString(); }
-function setPill(pillId, textId, cls, text){ $(pillId).className='status-pill'+(cls?' '+cls:''); $(textId).textContent=text; }
-function drawQR(imgEl, url){
-  imgEl.onerror = () => { imgEl.src = `https://chart.googleapis.com/chart?chs=210x210&cht=qr&chl=${encodeURIComponent(url)}&choe=UTF-8`; };
-  imgEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=210x210&margin=0&data=${encodeURIComponent(url)}`;
-}
-function formatBytes(b){ if(b<1048576) return (b/1024).toFixed(1)+' KB'; if(b<1073741824) return (b/1048576).toFixed(1)+' MB'; return (b/1073741824).toFixed(2)+' GB'; }
+function genCode(){ return Math.floor(100000+Math.random()*900000).toString(); }
+function setPill(p,t,c,txt){ $(p).className='status-pill'+(c?' '+c:''); $(t).textContent=txt; }
+function drawQR(img,url){ img.onerror=()=>{ img.src='https://chart.googleapis.com/chart?chs=210x210&cht=qr&chl='+encodeURIComponent(url)+'&choe=UTF-8'; }; img.src='https://api.qrserver.com/v1/create-qr-code/?size=210x210&margin=0&data='+encodeURIComponent(url); }
+function formatBytes(b){ if(b<1048576)return (b/1024).toFixed(1)+' KB'; if(b<1073741824)return (b/1048576).toFixed(1)+' MB'; return (b/1073741824).toFixed(2)+' GB'; }
+function fmt(s){ s=+s; if(!s||isNaN(s))return '0:00'; const m=Math.floor(s/60),x=Math.floor(s%60).toString().padStart(2,'0'); return m+':'+x; }
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),3000); }
-
-// ───────────────────────── Auto-join from QR ─────────────────────────
-(function(){
-  const code = new URLSearchParams(location.search).get('join');
-  if (code && /^\d{6}$/.test(code)) {
-    goPhone();
-    $('phone-code-input').value = code;
-    setTimeout(()=> startPhonePeer(code), 250);
-  }
-})();
-window.addEventListener('beforeunload', () => { if (conn && conn.open) { try{ conn.send({t:'end'}); }catch(e){} } });
+(function(){ const c=new URLSearchParams(location.search).get('join'); if(c&&/^\d{6}$/.test(c)){ goPhone(); $('phone-code-input').value=c; setTimeout(()=>startPhonePeer(c),250); } })();
+window.addEventListener('beforeunload',()=>{ if(conn&&conn.open){ try{conn.send({t:'end'});}catch(e){} } });
 </script>
 </body>
 </html>
