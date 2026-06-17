@@ -137,7 +137,8 @@
     #tv-stage.idle { background-image: url('./Player%201.jpg?v=3'); background-size: cover; background-position: center center; }
     #tv-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
     #tv-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; display: none; }
-    #tv-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: #fff; }
+    #tv-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: #000; }
+    #tv-yt    { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; }
 
     /* Audio visualizer stage */
     #tv-audio-stage { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; overflow: hidden;
@@ -316,6 +317,20 @@
     .pl-item .pl-act button { flex:none; min-width:34px; width:34px; height:34px; min-height:34px; padding:0; font-size:14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); color:var(--gold-soft); border-radius:8px; }
     .pl-item .pl-act button.del { color: var(--danger); }
     .pl-item.selected { border-color: var(--gold); background: rgba(230,177,67,0.15); box-shadow: 0 0 0 2px rgba(230,177,67,0.3); }
+
+    /* URL presets + recents */
+    .preset-chip { display:inline-flex; align-items:center; gap:6px; padding:8px 12px; background:var(--surface2); border:1px solid rgba(230,177,67,0.3); border-radius:20px; font-size:13px; font-weight:600; color:var(--gold-soft); cursor:pointer; transition:background .15s,border-color .15s; max-width:200px; }
+    .preset-chip:hover { background:rgba(230,177,67,0.12); border-color:var(--gold); }
+    .preset-chip .chip-name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px; }
+    .preset-chip .chip-del { font-size:11px; color:var(--muted); flex:none; padding:2px; }
+    .preset-chip .chip-del:hover { color:var(--danger); }
+    .url-recent-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--surface2); border:1px solid rgba(255,255,255,0.06); border-radius:10px; margin-bottom:8px; cursor:pointer; transition:border-color .15s; }
+    .url-recent-item:hover { border-color:rgba(230,177,67,0.4); }
+    .url-recent-item .rec-type { font-size:18px; flex:none; }
+    .url-recent-item .rec-meta { flex:1; min-width:0; }
+    .url-recent-item .rec-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .url-recent-item .rec-url  { font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .url-recent-item .rec-play { font-size:18px; color:var(--gold-soft); flex:none; }
     .pl-item { cursor: pointer; }
     .pl-item.now { cursor: default; }
     #pl-confirm-bar { display: none; background: rgba(230,177,67,0.1); border: 1px solid rgba(230,177,67,0.35); border-radius: 12px; padding: 12px 14px; margin-top: 10px; display: none; align-items: center; gap: 10px; }
@@ -396,6 +411,7 @@
             <div id="tv-audio-note">♪ NOW PLAYING ♪</div>
           </div>
           <iframe id="tv-iframe" referrerpolicy="no-referrer"></iframe>
+          <div id="tv-yt"></div>
           <div id="tv-play-overlay"><div class="pbtn"></div></div>
           <div id="tv-spinner"><div class="spin-ring"></div></div>
           <div id="tv-transfer">
@@ -498,8 +514,30 @@
       <button class="btn-primary btn-wide" onclick="castScreen()">📲 Start screen mirror</button>
     </div>
     <div id="src-url" style="display:none;">
-      <div class="note">Some sites block embedding and may show blank.</div>
-      <div class="join-form"><input type="text" id="url-input" placeholder="https://example.com" style="font-size:15px;letter-spacing:0;text-align:left;" /><button class="btn-primary" onclick="castUrl()">🌐 Open on TV</button></div>
+      <!-- Presets -->
+      <div id="url-presets-wrap" style="margin-bottom:14px;display:none;">
+        <div class="section-title" style="margin-bottom:8px;">⭐ Presets</div>
+        <div id="url-presets-chips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      </div>
+      <!-- URL input -->
+      <div style="display:flex;gap:8px;margin-bottom:6px;align-items:stretch;">
+        <input type="text" id="url-input" placeholder="YouTube, .m3u8, .mp4, or any URL…" style="flex:1;background:var(--surface2);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:13px 14px;color:var(--text);font-size:15px;outline:none;" oninput="urlTypePreview()" />
+        <button class="btn-primary" style="flex:none;padding:13px 18px;" onclick="castUrl()">▶ Play</button>
+      </div>
+      <div id="url-type-label" style="font-size:11px;color:var(--muted);margin-bottom:8px;min-height:16px;"></div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button class="btn-ghost" style="flex:1;font-size:13px;padding:10px;" onclick="savePreset()">⭐ Save preset</button>
+        <button class="btn-secondary" style="flex:none;font-size:13px;padding:10px 14px;" onclick="castUrl()">🌐 Send to TV</button>
+      </div>
+      <div class="note" style="margin-bottom:14px;">✅ YouTube · direct video · HLS (.m3u8) · DASH (.mpd)<br>❌ Netflix, Hulu, Disney+ and other DRM services won't work.</div>
+      <!-- Recents -->
+      <div id="url-recents-wrap" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div class="section-title" style="margin-bottom:0;">🕐 Recent</div>
+          <button class="btn-ghost" style="font-size:11px;padding:5px 10px;min-height:0;" onclick="clearRecents()">Clear all</button>
+        </div>
+        <div id="url-recents-list"></div>
+      </div>
     </div>
     <div id="src-camera" style="display:none;"><button class="btn-primary btn-wide" onclick="castCamera()">📷 Start camera</button></div>
   </div>
@@ -712,10 +750,11 @@ var imgTimer = null, tvPartyMsg = '';
 var audioCtx = null, analyser = null, vizData = null, vizRAF = null, vizSrcNode = null;
 
 function showOnlyMedia(which){
-  $('tv-video').style.display = which==='video' ? 'block' : 'none';
-  $('tv-image').style.display = which==='image' ? 'block' : 'none';
+  $('tv-video').style.display   = which==='video'  ? 'block' : 'none';
+  $('tv-image').style.display   = which==='image'  ? 'block' : 'none';
   $('tv-audio-stage').classList.toggle('show', which==='audio');
-  $('tv-iframe').style.display = which==='iframe' ? 'block' : 'none';
+  $('tv-iframe').style.display  = which==='iframe' ? 'block' : 'none';
+  $('tv-yt').style.display      = which==='yt'     ? 'block' : 'none';
   if(which !== 'none') $('tv-stage').classList.remove('idle');
 }
 function curMedia(){ return (tvPlaying && tvPlaying.kind==='audio') ? $('tv-audio') : $('tv-video'); }
@@ -937,6 +976,21 @@ function tvIdle(){
 function tvOvCmd(a){ applyTVCmd(a); }
 function tvLocal(a){ applyTVCmd(a); }
 function applyTVCmd(a, val){
+  // YouTube IFrame player
+  if($('tv-yt').style.display === 'block' && ytPlayer){
+    switch(a){
+      case 'toggle':   ytPlayer.getPlayerState()===1 ? ytPlayer.pauseVideo() : ytPlayer.playVideo(); break;
+      case 'play':     ytPlayer.playVideo(); break;
+      case 'pause':    ytPlayer.pauseVideo(); break;
+      case 'rewind':   ytPlayer.seekTo(Math.max(0,(ytPlayer.getCurrentTime()||0)-10), true); break;
+      case 'forward':  ytPlayer.seekTo((ytPlayer.getCurrentTime()||0)+10, true); break;
+      case 'restart':  ytPlayer.seekTo(0, true); ytPlayer.playVideo(); break;
+      case 'seek':     if(val!=null) ytPlayer.seekTo(val, true); break;
+      case 'loop':     tvLoop=!tvLoop; break;
+      case 'fullscreen': tvFullscreen(); break;
+    }
+    updateTVIcons(); showTVOverlay(); return;
+  }
   if($('tv-iframe').style.display === 'block'){
     if(a==='rewind') navTV('up');
     else if(a==='forward') navTV('down');
@@ -1090,6 +1144,7 @@ function pickSource(s){
   document.querySelectorAll('.source-btn').forEach(function(b){ b.classList.remove('sel'); });
   ['file','screen','url','camera'].forEach(function(k){ $('src-'+k).style.display = (k===s)?'block':'none'; });
   document.querySelector('.source-btn[onclick*="\''+s+'\'"]') && document.querySelector('.source-btn[onclick*="\''+s+'\'"]').classList.add('sel');
+  if(s==='url'){ renderPresets(); renderRecents(); }
 }
 
 // ── Media kind detection ──
@@ -1334,14 +1389,102 @@ async function castCamera(){
   try{ localStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:true}); callTV(localStream); enterController(true); setPill('phone-cast-status','phone-cast-text','streaming','Live camera'); }
   catch(e){ toast('Camera access denied'); }
 }
+// ── Phone URL type icons ──
+var URL_ICONS = {youtube:'▶️ YouTube', hls:'📡 Live stream (HLS)', dash:'📡 Live stream (DASH)', video:'🎬 Direct video', iframe:'🌐 Web page'};
+function urlTypePreview(){
+  var u = ($('url-input').value||'').trim();
+  var lbl = $('url-type-label');
+  if(!lbl) return;
+  if(!u){ lbl.textContent=''; return; }
+  if(!/^https?:\/\//i.test(u)) u='https://'+u;
+  var t = detectUrlType(u);
+  lbl.textContent = URL_ICONS[t] || '';
+}
+
 function castUrl(){
-  var u = $('url-input').value.trim();
-  if(!u){ toast('Enter a URL'); return; }
-  if(!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  var u = ($('url-input').value||'').trim();
+  if(!u){ toast('Paste a URL first'); return; }
+  if(!/^https?:\/\//i.test(u)) u='https://'+u;
   send({t:'url', url:u});
+  addRecent(u);
   enterController(true);
-  setPill('phone-cast-status','phone-cast-text','streaming','Website on TV');
-  $('scrub-wrap').style.display = 'none';
+  var t = detectUrlType(u);
+  setPill('phone-cast-status','phone-cast-text','streaming', URL_ICONS[t]||'Playing on TV');
+  // Show scrubber for all types that report time; hide for iframe
+  $('scrub-wrap').style.display = (t==='iframe') ? 'none' : 'flex';
+}
+
+// ── Recents (localStorage, 8 items) ──
+var MAX_RECENTS = 8;
+function loadRecents(){ try{ return JSON.parse(localStorage.getItem('avtv_recents')||'[]'); }catch(e){ return []; } }
+function saveRecents(arr){ try{ localStorage.setItem('avtv_recents', JSON.stringify(arr)); }catch(e){} }
+function addRecent(url){
+  var arr = loadRecents().filter(function(r){ return r.url!==url; });
+  arr.unshift({url:url, type:detectUrlType(url), ts:Date.now()});
+  if(arr.length>MAX_RECENTS) arr.length=MAX_RECENTS;
+  saveRecents(arr); renderRecents();
+}
+function clearRecents(){ saveRecents([]); renderRecents(); }
+function renderRecents(){
+  var arr = loadRecents();
+  var wrap = $('url-recents-wrap'); if(!wrap) return;
+  wrap.style.display = arr.length ? 'block' : 'none';
+  var el = $('url-recents-list'); if(!el) return;
+  el.innerHTML = arr.map(function(r,i){
+    var icon = r.type==='youtube'?'▶️':r.type==='hls'||r.type==='dash'?'📡':r.type==='video'?'🎬':'🌐';
+    var label = URL_ICONS[r.type]||'Web page';
+    var short = r.url.replace(/^https?:\/\//,'').slice(0,60);
+    return '<div class="url-recent-item" onclick="castRecent('+i+')">'+
+      '<div class="rec-type">'+icon+'</div>'+
+      '<div class="rec-meta"><div class="rec-name">'+label+'</div><div class="rec-url">'+escapeHtml(short)+'</div></div>'+
+      '<div class="rec-play">▶</div></div>';
+  }).join('');
+}
+function castRecent(i){
+  var arr = loadRecents();
+  if(!arr[i]) return;
+  $('url-input').value = arr[i].url;
+  urlTypePreview();
+  castUrl();
+}
+
+// ── Presets (localStorage, 12 items) ──
+var MAX_PRESETS = 12;
+function loadPresets(){ try{ return JSON.parse(localStorage.getItem('avtv_presets')||'[]'); }catch(e){ return []; } }
+function savePresets(arr){ try{ localStorage.setItem('avtv_presets', JSON.stringify(arr)); }catch(e){} }
+function savePreset(){
+  var u = ($('url-input').value||'').trim();
+  if(!u){ toast('Enter a URL first'); return; }
+  if(!/^https?:\/\//i.test(u)) u='https://'+u;
+  var arr = loadPresets();
+  if(arr.find(function(p){ return p.url===u; })){ toast('Already saved'); return; }
+  if(arr.length>=MAX_PRESETS){ toast('Max 12 presets'); return; }
+  var domain = u.replace(/^https?:\/\//,'').split('/')[0];
+  var name = window.prompt('Name this preset:', domain) || domain;
+  if(!name) return;
+  arr.push({url:u, name:name.slice(0,30), type:detectUrlType(u)});
+  savePresets(arr); renderPresets(); toast('⭐ Saved: '+name);
+}
+function removePreset(i){
+  var arr = loadPresets(); arr.splice(i,1); savePresets(arr); renderPresets();
+}
+function renderPresets(){
+  var arr = loadPresets();
+  var wrap = $('url-presets-wrap'); if(!wrap) return;
+  wrap.style.display = arr.length ? 'block' : 'none';
+  var chips = $('url-presets-chips'); if(!chips) return;
+  chips.innerHTML = arr.map(function(p,i){
+    return '<div class="preset-chip" onclick="castPreset('+i+')">'+
+      '<span class="chip-name">'+escapeHtml(p.name)+'</span>'+
+      '<span class="chip-del" onclick="event.stopPropagation();removePreset('+i+')">✕</span></div>';
+  }).join('');
+}
+function castPreset(i){
+  var arr = loadPresets();
+  if(!arr[i]) return;
+  $('url-input').value = arr[i].url;
+  urlTypePreview();
+  castUrl();
 }
 function callTV(stream){ if(call){try{call.close();}catch(e){}} call=peer.call(roomId, stream); }
 function enterController(liveMode){
@@ -1468,8 +1611,145 @@ function onQueue(m){
   el.innerHTML = html;
 }
 
-// TV website
-function openUrlOnTV(url){ clearTimeout(imgTimer); stopViz(); tvPlaying=null; showOnlyMedia('iframe'); var f=$('tv-iframe'); f.src=url; $('tv-play-overlay').classList.add('hidden'); showScreen('screen-tv-play'); $('tv-textbar').style.display='none'; }
+// ── URL type detection ──
+var URL_TYPES = {
+  youtube: function(u){ return /youtu\.be\/|youtube\.com\/(watch|shorts|embed|live)/i.test(u); },
+  hls:     function(u){ return /\.m3u8(\?|$)/i.test(u); },
+  dash:    function(u){ return /\.mpd(\?|$)/i.test(u); },
+  video:   function(u){ return /\.(mp4|webm|mov|mkv|ogv|ogg|avi|m4v|ts)(\?|$)/i.test(u); }
+};
+function detectUrlType(u){
+  if(URL_TYPES.youtube(u)) return 'youtube';
+  if(URL_TYPES.hls(u))     return 'hls';
+  if(URL_TYPES.dash(u))    return 'dash';
+  if(URL_TYPES.video(u))   return 'video';
+  return 'iframe';
+}
+function ytVideoId(u){
+  var m = u.match(/youtu\.be\/([^?#&]+)/) || u.match(/[?&]v=([^?#&]+)/) || u.match(/\/embed\/([^?#&]+)/) || u.match(/\/shorts\/([^?#&]+)/) || u.match(/\/live\/([^?#&]+)/);
+  return m ? m[1] : null;
+}
+
+// ── YouTube IFrame player ──
+var ytPlayer = null, ytReady = false, ytPending = null;
+function loadYouTubeAPI(cb){
+  if(window.YT && YT.Player){ cb(); return; }
+  var tag = document.createElement('script');
+  tag.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(tag);
+  window.onYouTubeIframeAPIReady = function(){ ytReady=true; cb(); };
+}
+function openYouTube(url){
+  var vid = ytVideoId(url);
+  if(!vid){ toast('Could not parse YouTube link'); return; }
+  $('tv-spinner').classList.add('show');
+  loadYouTubeAPI(function(){
+    showOnlyMedia('yt');
+    $('tv-play-overlay').classList.add('hidden');
+    $('tv-stage').classList.remove('idle');
+    if(ytPlayer){ ytPlayer.destroy(); ytPlayer=null; }
+    $('tv-yt').innerHTML = '<div id="tv-yt-inner"></div>';
+    ytPlayer = new YT.Player('tv-yt-inner', {
+      width:'100%', height:'100%',
+      videoId: vid,
+      playerVars:{ autoplay:1, controls:0, modestbranding:1, rel:0, iv_load_policy:3, fs:0, playsinline:1 },
+      events:{
+        onReady: function(e){ $('tv-spinner').classList.remove('show'); e.target.setVolume(100); e.target.playVideo(); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); tvBroadcast({t:'ready'}); startYtSync(); },
+        onError: function(e){ $('tv-spinner').classList.remove('show'); toast('YouTube: video unavailable ('+e.data+')'); tvIdle(); }
+      }
+    });
+    tvPlaying = {id:Date.now(), name:'YouTube', kind:'video', url:url, isYt:true};
+    broadcastQueue();
+  });
+}
+
+var ytSyncIv = null;
+function startYtSync(){
+  stopYtSync();
+  ytSyncIv = setInterval(function(){
+    if(!ytPlayer||typeof ytPlayer.getCurrentTime!=='function') return;
+    try{
+      var ct=ytPlayer.getCurrentTime()||0, dur=ytPlayer.getDuration()||0, state=ytPlayer.getPlayerState();
+      tvBroadcast({t:'time', ct:ct, dur:dur, paused:state!==1, loop:tvLoop, kind:'video'});
+    }catch(e){}
+  }, 750);
+}
+function stopYtSync(){ if(ytSyncIv){ clearInterval(ytSyncIv); ytSyncIv=null; } }
+
+// ── HLS loader ──
+function openHLS(url){
+  var v = $('tv-video');
+  $('tv-spinner').classList.add('show');
+  function startHls(Hls){
+    var hls = new Hls({enableWorker:true, lowLatencyMode:true});
+    hls.loadSource(url); hls.attachMedia(v);
+    hls.on(Hls.Events.MANIFEST_PARSED, function(){ v.muted=false; v.volume=1; v.play().then(function(){ $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); tvBroadcast({t:'ready'}); }).catch(function(){ v.muted=true; v.play().then(function(){ setTimeout(function(){ v.muted=false; },600); $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); }).catch(function(){}); }); });
+    hls.on(Hls.Events.ERROR, function(e,d){ if(d.fatal){ $('tv-spinner').classList.remove('show'); toast('HLS error: '+d.type); tvIdle(); } });
+  }
+  if(window.Hls && Hls.isSupported()){
+    showOnlyMedia('video'); startHls(window.Hls);
+  } else if(v.canPlayType('application/vnd.apple.mpegurl')){
+    // Native HLS (Safari/Silk)
+    showOnlyMedia('video'); v.srcObject=null; v.src=url; v.muted=false; v.volume=1;
+    v.play().then(function(){ $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); tvBroadcast({t:'ready'}); }).catch(function(){});
+  } else {
+    // Load hls.js on demand
+    var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js';
+    s.onload=function(){ showOnlyMedia('video'); startHls(window.Hls); };
+    s.onerror=function(){ $('tv-spinner').classList.remove('show'); toast('HLS not supported'); };
+    document.head.appendChild(s);
+  }
+}
+
+// ── DASH loader ──
+function openDASH(url){
+  var v = $('tv-video');
+  $('tv-spinner').classList.add('show');
+  function startDash(dashjs){
+    var player = dashjs.MediaPlayer().create();
+    player.initialize(v, url, true);
+    player.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, function(){ $('tv-spinner').classList.remove('show'); v.muted=false; v.volume=1; playFadeIn(); tvFullscreenAuto(); showTVOverlay(); tvBroadcast({t:'ready'}); });
+    player.on(dashjs.MediaPlayer.events.ERROR, function(e){ $('tv-spinner').classList.remove('show'); toast('DASH error'); tvIdle(); });
+  }
+  showOnlyMedia('video');
+  if(window.dashjs){
+    startDash(window.dashjs);
+  } else {
+    var s=document.createElement('script'); s.src='https://cdn.dashjs.org/latest/dash.all.min.js';
+    s.onload=function(){ startDash(window.dashjs); };
+    s.onerror=function(){ $('tv-spinner').classList.remove('show'); toast('DASH not supported'); };
+    document.head.appendChild(s);
+  }
+}
+
+// ── Direct video ──
+function openDirectVideo(url){
+  var v = $('tv-video');
+  $('tv-spinner').classList.add('show');
+  showOnlyMedia('video');
+  v.srcObject=null; v.src=url; v.loop=tvLoop; v.muted=false; v.volume=1;
+  v.play().then(function(){ $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); tvBroadcast({t:'ready'}); })
+   .catch(function(){ v.muted=true; v.play().then(function(){ setTimeout(function(){ v.muted=false; },500); $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); }).catch(function(){ $('tv-spinner').classList.remove('show'); toast('Video could not play — try a different link'); }); });
+}
+
+// ── Main URL router ──
+function openUrlOnTV(url){
+  clearTimeout(imgTimer); stopViz(); stopYtSync();
+  $('tv-stage').classList.remove('idle');
+  $('tv-play-overlay').classList.add('hidden');
+  $('tv-textbar').style.display='none';
+  tvPlaying = {id:Date.now(), name:url, kind:'video', url:url};
+  showScreen('screen-tv-play');
+  var type = detectUrlType(url);
+  if(type === 'youtube'){ openYouTube(url); return; }
+  if(type === 'hls'){     openHLS(url);     return; }
+  if(type === 'dash'){    openDASH(url);    return; }
+  if(type === 'video'){   openDirectVideo(url); return; }
+  // Fallback: iframe
+  showOnlyMedia('iframe'); var f=$('tv-iframe'); f.src=url;
+  broadcastQueue();
+}
+
 function showTextOnTV(text){ var b=$('tv-textbar'); b.textContent='⌨ '+text; b.style.display='block'; try{ var d=$('tv-iframe').contentDocument; var el=d&&d.activeElement; if(el&&('value'in el)){ el.value=text; el.dispatchEvent(new Event('input',{bubbles:true})); } }catch(e){} clearTimeout(showTextOnTV._t); showTextOnTV._t=setTimeout(function(){ b.style.display='none'; },6000); }
 function navTV(dir){ var f=$('tv-iframe'); var ifr=f.style.display==='block'; try{ if(dir==='up') ifr?f.contentWindow.scrollBy(0,-300):scrollBy(0,-300); else if(dir==='down') ifr?f.contentWindow.scrollBy(0,300):scrollBy(0,300); else if(dir==='back'){ if(ifr)f.contentWindow.history.back(); } else if(dir==='reload'){ if(ifr)f.contentWindow.location.reload(); } }catch(e){ toast('Cannot navigate this site (cross-origin)'); } }
 
@@ -1483,6 +1763,8 @@ function endAll(notify){
 }
 function resetConn(){
   cleanupStreamVid();
+  stopYtSync();
+  if(ytPlayer){ try{ ytPlayer.destroy(); }catch(e){} ytPlayer=null; }
   if(call){try{call.close();}catch(e){}} call=null;
   connections.forEach(function(entry){ try{entry.conn.close();}catch(e){}});
   connections.clear();
