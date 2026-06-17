@@ -19,16 +19,22 @@
       color: var(--text); min-height: 100vh; min-height: 100dvh;
       display: flex; flex-direction: column; align-items: center; overflow-x: hidden;
     }
-    header { width: 100%; padding: 16px 22px 12px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(230,177,67,0.12); }
+    header { width: 100%; padding: 16px 22px 12px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(230,177,67,0.12); flex-shrink: 0; }
     header .logo { font-size: 21px; font-weight: 800; letter-spacing: 1px; color: var(--gold); }
     header .logo span { color: var(--text); font-weight: 300; }
     .subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    #app { width: 100%; max-width: 1100px; padding: 22px 18px 60px; flex: 1; }
+    #app { width: 100%; max-width: 1100px; padding: 22px 18px 60px; flex: 1; display: flex; flex-direction: column; }
 
     /* Screen transitions */
     .screen { display: none; }
-    .screen.active { display: block; animation: fadeUp .32s cubic-bezier(.22,.68,0,1.2) both; }
+    .screen.active { display: block; animation: fadeUp .32s cubic-bezier(.22,.68,0,1.2) both; min-height: calc(100dvh - 70px); width: 100%; }
     @keyframes fadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+
+    /* Home screen fills */
+    #screen-home.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    #screen-tv-wait.active { display: flex; flex-direction: column; justify-content: center; }
+    #screen-tv-confirm.active, #screen-phone-confirm.active, #screen-phone-join.active, #screen-ended.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    #screen-phone-source.active { display: flex; flex-direction: column; }
 
     /* Home grid */
     .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 620px; margin: 0 auto; }
@@ -91,12 +97,13 @@
 
     /* TV cinematic player */
     #screen-tv-play { display: none; }
-    #screen-tv-play.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    body.tv-playing { overflow: hidden; height: 100vh; }
+    #screen-tv-play.active { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100dvh; }
+    body.tv-playing { overflow: hidden; height: 100vh; height: 100dvh; }
     body.tv-playing header { display: none; }
-    body.tv-playing #app { padding: 10px; height: 100vh; display: flex; align-items: center; justify-content: center; }
+    body.tv-playing #app { padding: 0; height: 100vh; height: 100dvh; width: 100%; max-width: 100%; display: flex; align-items: center; justify-content: center; }
+    body.tv-playing #screen-tv-play.active { min-height: 0; width: 100%; height: 100dvh; }
     #tv-frame { width: 100%; max-width: 1024px; margin: 0 auto; }
-    body.tv-playing #tv-frame { max-width: min(1024px, calc((100vh - 200px) * 16 / 9)); }
+    body.tv-playing #tv-frame { max-width: 100%; width: 100%; height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
     /* TV monitor bezel */
     .tv-monitor-outer {
@@ -119,11 +126,14 @@
 
     #tv-stage {
       position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden;
-      background: #060806 center/cover no-repeat;
+      background: url('./Player%201.jpg') center/cover no-repeat #060806;
     }
+    body.tv-playing .tv-monitor-outer { padding: 0; border-radius: 0; border: none; background: #000; box-shadow: none; }
+    body.tv-playing .tv-monitor-outer::before { display: none; }
+    body.tv-playing #tv-stage { aspect-ratio: unset; width: 100vw; height: 100dvh; border-radius: 0; }
     #tv-stage.idle { background-image: url('./Trees%20WINDOW.png'); background-size: cover; background-position: center center; }
     #tv-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
-    #tv-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
+    #tv-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; display: none; }
     #tv-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: #fff; }
 
     /* Audio visualizer stage */
@@ -170,15 +180,15 @@
     /* TV floating overlay */
     #tv-overlay {
       position: absolute; inset: 0; display: flex; flex-direction: column;
-      align-items: center; justify-content: flex-end; padding-bottom: 30px;
+      align-items: center; justify-content: flex-end; padding-bottom: 40px;
       pointer-events: none; opacity: 0; transition: opacity .35s; z-index: 20;
     }
     #tv-overlay.visible { opacity: 1; pointer-events: auto; }
     #tv-overlay .ov-btns {
       display: flex; gap: 10px; align-items: center;
-      background: rgba(8,12,10,0.55); backdrop-filter: blur(14px);
-      border-radius: 20px; padding: 14px 22px; border: 1px solid rgba(255,255,255,0.14);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      background: rgba(8,12,10,0.72); backdrop-filter: blur(18px);
+      border-radius: 24px; padding: 16px 28px; border: 1px solid rgba(255,255,255,0.18);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.65);
     }
     #tv-overlay .ov-btn {
       background: transparent; border: none; color: rgba(255,255,255,0.9);
@@ -188,12 +198,14 @@
     #tv-overlay .ov-btn:hover, #tv-overlay .ov-btn:active { background: rgba(255,255,255,0.12); color: var(--gold-soft); }
     #tv-overlay .ov-btn.big { font-size: 34px; }
     #tv-overlay .ov-btn.on { color: var(--gold); }
+    #tv-overlay .ov-end { background: rgba(255,80,80,0.18); border: 1px solid rgba(255,100,100,0.3); color: var(--danger); font-size: 16px; padding: 10px 14px; border-radius: 10px; margin-left: 8px; }
 
     #tv-spinner { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(6,8,6,0.7); z-index: 15; }
     #tv-spinner.show { display: flex; }
     #tv-spinner .spin-ring { width: 64px; height: 64px; border: 5px solid rgba(255,255,255,0.12); border-top-color: var(--gold); border-radius: 50%; animation: spin .9s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    body.tv-playing .tv-bar, body.tv-playing .tv-end, body.tv-playing .avtv-badge { display: none !important; }
     .tv-bar { width: 100%; max-width: 1024px; display: flex; gap: 12px; margin-top: 16px; }
     .tv-bar button {
       background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;
@@ -361,7 +373,7 @@
     <div id="tv-frame">
       <div class="avtv-badge"><span class="live-dot"></span> AVTV — LIVE</div>
       <div class="tv-monitor-outer">
-        <div id="tv-stage" class="idle">
+        <div id="tv-stage" class="idle" onclick="showTVOverlay()" ondblclick="tvFullscreen()">
           <video id="tv-video" playsinline></video>
           <img id="tv-image" alt="" />
           <audio id="tv-audio"></audio>
@@ -386,6 +398,7 @@
               <button class="ov-btn" onclick="tvOvCmd('forward')" title="+10s">⏩</button>
               <button class="ov-btn" id="tv-ov-loop" onclick="tvOvCmd('loop')" title="Loop">↻</button>
               <button class="ov-btn" onclick="tvFullscreen()" title="Fullscreen">⛶</button>
+              <button class="ov-btn ov-end" onclick="endAll(true)" title="End session">⏻</button>
             </div>
           </div>
         </div>
@@ -592,6 +605,8 @@ function tvAutoAccept(cid){
     tvSendTo(entry.conn, {t:'confirmed', role:'primary'});
     showScreen('screen-tv-play');
     tvIdle();
+    // Attempt fullscreen immediately when entering TV play screen
+    setTimeout(function(){ tvFullscreenAuto(); }, 300);
   } else {
     tvSendTo(entry.conn, {t:'confirmed', role:'guest'});
   }
