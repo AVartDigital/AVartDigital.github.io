@@ -13,6 +13,8 @@
       --surface2: #252525;
       --accent: #e50914;
       --accent2: #ff6b6b;
+      --ok: #4ade80;
+      --info: #60a5fa;
       --text: #f0f0f0;
       --muted: #888;
       --radius: 12px;
@@ -26,398 +28,195 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      overflow-x: hidden;
     }
 
     header {
       width: 100%;
-      padding: 20px 24px 16px;
+      padding: 18px 24px 14px;
       display: flex;
       align-items: center;
       gap: 12px;
       border-bottom: 1px solid #222;
     }
 
-    header .logo {
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      color: var(--accent);
-    }
-
+    header .logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: var(--accent); }
     header .logo span { color: var(--text); }
+    .subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
-    .subtitle {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
+    #app { width: 100%; max-width: 620px; padding: 22px 18px; flex: 1; }
 
-    #app {
-      width: 100%;
-      max-width: 600px;
-      padding: 24px 20px;
-      flex: 1;
-    }
+    .screen { display: none; }
+    .screen.active { display: block; }
 
     /* Mode selector */
-    #mode-select {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      padding-top: 20px;
-    }
-
     .mode-card {
       background: var(--surface);
       border: 2px solid #2a2a2a;
       border-radius: var(--radius);
-      padding: 28px 24px;
+      padding: 26px 22px;
       cursor: pointer;
       transition: border-color 0.2s, transform 0.1s;
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 18px;
+      margin-bottom: 16px;
       text-align: left;
     }
-
-    .mode-card:hover, .mode-card:active {
-      border-color: var(--accent);
-      transform: scale(1.01);
-    }
-
-    .mode-icon {
-      font-size: 42px;
-      flex-shrink: 0;
-    }
-
-    .mode-card h2 {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .mode-card p {
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.4;
-    }
-
-    /* Sender UI */
-    #sender-ui, #receiver-ui { display: none; }
+    .mode-card:hover, .mode-card:active { border-color: var(--accent); transform: scale(1.01); }
+    .mode-icon { font-size: 40px; flex-shrink: 0; }
+    .mode-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .mode-card p { font-size: 13px; color: var(--muted); line-height: 1.4; }
 
     .section-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      margin-bottom: 12px;
+      font-size: 13px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px;
     }
 
-    .card {
-      background: var(--surface);
-      border-radius: var(--radius);
-      padding: 20px;
-      margin-bottom: 16px;
-    }
+    .card { background: var(--surface); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
 
     /* File picker */
     #file-drop-zone {
-      border: 2px dashed #333;
-      border-radius: var(--radius);
-      padding: 36px 20px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      margin-bottom: 16px;
+      border: 2px dashed #333; border-radius: var(--radius); padding: 30px 18px;
+      text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; margin-bottom: 14px;
     }
-
-    #file-drop-zone.dragover {
-      border-color: var(--accent);
-      background: rgba(229,9,20,0.05);
-    }
-
-    #file-drop-zone .drop-icon { font-size: 36px; margin-bottom: 10px; }
+    #file-drop-zone.dragover { border-color: var(--accent); background: rgba(229,9,20,0.05); }
+    #file-drop-zone .drop-icon { font-size: 34px; margin-bottom: 8px; }
     #file-drop-zone p { font-size: 14px; color: var(--muted); }
     #file-drop-zone strong { color: var(--text); }
+    #file-input, #hidden-video { display: none; }
 
-    #file-input { display: none; }
-
-    /* Video preview */
-    #video-preview-wrap {
-      display: none;
-      margin-bottom: 16px;
-      position: relative;
-      background: #000;
-      border-radius: var(--radius);
-      overflow: hidden;
-    }
-
-    #video-preview {
-      width: 100%;
-      max-height: 220px;
-      object-fit: contain;
-      display: block;
-    }
-
-    .video-info {
-      padding: 12px 16px;
-      background: var(--surface2);
-      font-size: 13px;
-    }
-
+    .video-info { padding: 10px 14px; background: var(--surface2); border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
     .video-info strong { display: block; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .video-info span { color: var(--muted); font-size: 12px; }
 
-    /* Controls */
-    .controls {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; }
 
     button {
-      padding: 12px 20px;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.15s, transform 0.1s;
-      flex: 1;
-      min-width: 120px;
+      padding: 12px 18px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.15s, transform 0.1s; flex: 1; min-width: 110px; color: var(--text);
     }
-
     button:disabled { opacity: 0.4; cursor: not-allowed; }
     button:not(:disabled):active { transform: scale(0.97); }
-
     .btn-primary { background: var(--accent); color: #fff; }
-    .btn-secondary { background: var(--surface2); color: var(--text); }
-    .btn-danger { background: #333; color: var(--accent2); }
+    .btn-secondary { background: var(--surface2); }
     .btn-ghost { background: transparent; border: 1px solid #333; color: var(--muted); }
+    .btn-ok { background: var(--ok); color: #08260f; }
+    .btn-wide { width: 100%; }
 
-    /* Room / QR */
-    #room-section { display: none; }
-
-    .room-id-display {
-      background: var(--surface2);
-      border-radius: 8px;
-      padding: 16px;
-      text-align: center;
-      margin: 12px 0;
+    /* QR / code */
+    .code-display {
+      background: var(--surface2); border-radius: 8px; padding: 14px; text-align: center; margin: 12px 0;
     }
-
-    .room-id-display .label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-    .room-id-display .code {
-      font-size: 32px;
-      font-weight: 900;
-      letter-spacing: 4px;
-      color: var(--accent);
-      font-variant-numeric: tabular-nums;
+    .code-display .label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .code-display .code {
+      font-size: 30px; font-weight: 900; letter-spacing: 5px; color: var(--accent); font-variant-numeric: tabular-nums;
     }
-
-    #qr-canvas {
-      display: block;
-      margin: 12px auto;
-      border-radius: 8px;
-      background: #fff;
-      padding: 8px;
-      image-rendering: pixelated;
+    #qr-img, #qr-img-phone {
+      display: block; margin: 14px auto; border-radius: 10px; background: #fff; padding: 10px;
+      width: 210px; height: 210px; object-fit: contain;
     }
+    .hint { font-size: 12.5px; color: var(--muted); text-align: center; line-height: 1.55; }
 
-    .hint {
-      font-size: 12px;
-      color: var(--muted);
-      text-align: center;
-      line-height: 1.5;
-    }
-
-    /* Status pill */
     .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      background: var(--surface2);
-      color: var(--muted);
-      margin-bottom: 12px;
+      display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px;
+      font-size: 12px; font-weight: 600; background: var(--surface2); color: var(--muted); margin-bottom: 12px;
     }
+    .status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+    .status-pill.connected { color: var(--ok); } .status-pill.connected .dot { background: var(--ok); animation: pulse 1.5s infinite; }
+    .status-pill.streaming { color: var(--info); } .status-pill.streaming .dot { background: var(--info); animation: pulse 1s infinite; }
+    .status-pill.error { color: var(--accent2); } .status-pill.error .dot { background: var(--accent2); }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.3;} }
 
-    .status-pill .dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: var(--muted);
-    }
-
-    .status-pill.connected { color: #4ade80; }
-    .status-pill.connected .dot { background: #4ade80; animation: pulse 1.5s infinite; }
-    .status-pill.streaming { color: #60a5fa; }
-    .status-pill.streaming .dot { background: #60a5fa; animation: pulse 1s infinite; }
-    .status-pill.error { color: var(--accent2); }
-    .status-pill.error .dot { background: var(--accent2); }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
-
-    /* Playback controls row */
-    #playback-controls { display: none; margin-top: 12px; }
-
-    .seek-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-
-    .time-label { font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
-
-    input[type=range] {
-      flex: 1;
-      -webkit-appearance: none;
-      height: 4px;
-      background: #333;
-      border-radius: 2px;
-      outline: none;
-    }
-
-    input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 16px; height: 16px;
-      border-radius: 50%;
-      background: var(--accent);
-      cursor: pointer;
-    }
-
-    /* Receiver UI */
-    #receiver-ui { flex-direction: column; }
-
-    #tv-video {
-      width: 100%;
-      background: #000;
-      border-radius: var(--radius);
-      display: block;
-      min-height: 200px;
-    }
-
-    .join-form {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
+    .join-form { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
     .join-form input {
-      background: var(--surface2);
-      border: 1px solid #333;
-      border-radius: 8px;
-      padding: 14px 16px;
-      color: var(--text);
-      font-size: 22px;
-      letter-spacing: 4px;
-      text-align: center;
-      font-weight: 700;
-      outline: none;
-      font-variant-numeric: tabular-nums;
-      transition: border-color 0.2s;
-      width: 100%;
+      background: var(--surface2); border: 1px solid #333; border-radius: 8px; padding: 14px;
+      color: var(--text); font-size: 22px; letter-spacing: 5px; text-align: center; font-weight: 700;
+      outline: none; font-variant-numeric: tabular-nums; transition: border-color .2s; width: 100%;
     }
-
     .join-form input:focus { border-color: var(--accent); }
 
     .back-btn {
-      background: none;
-      border: none;
-      color: var(--muted);
-      font-size: 13px;
-      cursor: pointer;
-      padding: 4px 0;
-      text-align: left;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex: none;
-      min-width: 0;
+      background: none; border: none; color: var(--muted); font-size: 13px; cursor: pointer;
+      padding: 4px 0; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 6px; flex: none; min-width: 0;
     }
 
-    /* Fullscreen overlay for TV */
-    #fs-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: #000;
-      z-index: 1000;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+    /* TV video */
+    #tv-stage { position: relative; background: #000; border-radius: var(--radius); overflow: hidden; }
+    #tv-video { width: 100%; display: block; min-height: 220px; background: #000; }
+    #tv-iframe { width: 100%; height: 60vh; border: 0; display: none; background: #fff; border-radius: var(--radius); }
+    #tv-text-bar {
+      display: none; position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 18px;
+      background: rgba(0,0,0,0.78); color: #fff; font-size: 20px; font-weight: 600; word-break: break-word;
     }
 
-    #fs-overlay.active { display: flex; }
+    /* TV on-screen remote */
+    .tv-remote { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .tv-remote button { min-width: 64px; font-size: 18px; padding: 14px 10px; }
 
-    #fs-video {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
+    /* Source picker */
+    .source-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .source-btn {
+      background: var(--surface); border: 2px solid #2a2a2a; border-radius: var(--radius); padding: 20px 12px;
+      text-align: center; cursor: pointer; transition: border-color .2s, transform .1s;
+    }
+    .source-btn:active { transform: scale(.97); }
+    .source-btn.sel { border-color: var(--accent); }
+    .source-btn .ic { font-size: 30px; margin-bottom: 8px; }
+    .source-btn .nm { font-size: 13px; font-weight: 600; }
+    .source-btn .ds { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    /* Floating remote (phone) */
+    #remote {
+      display: none; position: fixed; z-index: 900; width: 280px; max-width: 92vw;
+      background: rgba(26,26,26,0.97); border: 1px solid #333; border-radius: 16px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+      bottom: 18px; right: 14px; user-select: none;
+    }
+    #remote.pinned { box-shadow: 0 0 0 2px var(--accent), 0 12px 40px rgba(0,0,0,0.6); }
+    #remote-head {
+      display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: grab;
+      border-bottom: 1px solid #2a2a2a; touch-action: none;
+    }
+    #remote-head .grip { color: var(--muted); font-size: 16px; }
+    #remote-head .ttl { font-size: 12px; font-weight: 700; flex: 1; text-transform: uppercase; letter-spacing: .5px; }
+    #remote-head button { flex: none; min-width: 0; width: 30px; height: 30px; padding: 0; font-size: 14px; background: var(--surface2); border-radius: 7px; }
+    #remote-body { padding: 12px; }
+    .rbtn-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .rbtn-row button { padding: 12px 6px; font-size: 16px; min-width: 0; background: var(--surface2); }
+    .rbtn-row button.on { background: var(--accent); color: #fff; }
+    .rmini { font-size: 11px; color: var(--muted); margin: 8px 0 5px; text-transform: uppercase; letter-spacing: .5px; }
+    .send-row { display: flex; gap: 8px; }
+    .send-row input {
+      flex: 1; min-width: 0; background: var(--surface2); border: 1px solid #333; border-radius: 8px;
+      padding: 10px; color: var(--text); font-size: 14px; outline: none;
+    }
+    .send-row button { flex: none; min-width: 0; width: auto; padding: 10px 14px; }
+    .nav-row { display: flex; gap: 8px; margin-top: 8px; }
+    .nav-row button { background: var(--surface2); padding: 10px 6px; font-size: 15px; min-width: 0; }
+
+    #remote-toggle {
+      display: none; position: fixed; bottom: 18px; right: 14px; z-index: 899;
+      width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: #fff;
+      font-size: 22px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); min-width: 0; padding: 0;
     }
 
-    #fs-close {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      background: rgba(0,0,0,0.6);
-      border: none;
-      color: #fff;
-      font-size: 24px;
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex: none;
-      min-width: 0;
-    }
-
-    /* Spinner */
-    .spinner {
-      width: 32px; height: 32px;
-      border: 3px solid #333;
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 20px auto;
-    }
-
+    .spinner { width: 30px; height: 30px; border: 3px solid #333; border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin: 18px auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #222;
-      color: var(--text);
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 13px;
-      z-index: 2000;
-      opacity: 0;
-      transition: opacity 0.3s;
-      pointer-events: none;
-      white-space: nowrap;
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #222; color: var(--text);
+      padding: 11px 20px; border-radius: 8px; font-size: 13px; z-index: 3000; opacity: 0; transition: opacity .3s;
+      pointer-events: none; max-width: 90vw; text-align: center;
     }
-
     .toast.show { opacity: 1; }
 
-    @media (min-width: 480px) {
-      #tv-video { min-height: 300px; }
-    }
+    .big-confirm { text-align: center; padding: 30px 16px; }
+    .big-confirm .ic { font-size: 54px; margin-bottom: 14px; }
+    .big-confirm h2 { font-size: 22px; margin-bottom: 8px; }
+    .big-confirm p { color: var(--muted); font-size: 14px; line-height: 1.5; margin-bottom: 20px; }
+
+    .note { font-size: 12px; color: var(--muted); line-height: 1.5; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
   </style>
 </head>
 <body>
@@ -425,460 +224,592 @@
 <header>
   <div>
     <div class="logo">Video<span>Mirror</span></div>
-    <div class="subtitle">Cast videos to your TV over Wi-Fi</div>
+    <div class="subtitle">Cast & mirror to your TV over Wi-Fi</div>
   </div>
 </header>
 
 <div id="app">
 
-  <!-- MODE SELECTION -->
-  <div id="mode-select">
-    <p style="color:var(--muted);font-size:13px;margin-bottom:8px;">What device are you on?</p>
-
-    <div class="mode-card" onclick="startSender()">
+  <!-- ============ HOME ============ -->
+  <div id="screen-home" class="screen active">
+    <p style="color:var(--muted);font-size:13px;margin-bottom:14px;">What device are you on?</p>
+    <div class="mode-card" onclick="goPhone()">
       <div class="mode-icon">📱</div>
-      <div>
-        <h2>Phone / Sender</h2>
-        <p>Choose a video from your Samsung Galaxy and cast it to your TV.</p>
-      </div>
+      <div><h2>Phone / Sender</h2><p>Scan the TV's QR code, then cast videos, mirror your screen, or send a website.</p></div>
     </div>
-
-    <div class="mode-card" onclick="startReceiver()">
+    <div class="mode-card" onclick="goTV()">
       <div class="mode-icon">📺</div>
-      <div>
-        <h2>TV / Receiver</h2>
-        <p>Open this on your Philips TV's Silk browser to receive and play the video.</p>
-      </div>
+      <div><h2>TV / Receiver</h2><p>Open on your Philips TV's Silk browser. Shows a QR code for your phone to scan.</p></div>
     </div>
   </div>
 
-  <!-- SENDER UI -->
-  <div id="sender-ui">
-    <button class="back-btn" onclick="goHome()">← Back</button>
-
-    <div class="section-title">1 — Pick a video</div>
-
-    <div id="file-drop-zone" onclick="document.getElementById('file-input').click()">
-      <div class="drop-icon">🎬</div>
-      <p><strong>Tap to choose a video</strong></p>
-      <p>MP4, MKV, MOV, AVI, WebM…</p>
-    </div>
-    <input type="file" id="file-input" accept="video/*" />
-
-    <div id="video-preview-wrap">
-      <video id="video-preview" controls playsinline></video>
-      <div class="video-info">
-        <strong id="video-name"></strong>
-        <span id="video-meta"></span>
-      </div>
-    </div>
-
-    <div id="playback-controls">
-      <div class="seek-row">
-        <span class="time-label" id="time-current">0:00</span>
-        <input type="range" id="seek-bar" min="0" step="0.1" value="0" />
-        <span class="time-label" id="time-total">0:00</span>
-      </div>
-      <div class="controls">
-        <button class="btn-secondary" id="btn-play-pause" onclick="togglePlay()">▶ Play</button>
-        <button class="btn-danger" id="btn-mute" onclick="toggleMute()">🔇 Mute src</button>
-      </div>
-    </div>
-
-    <div class="section-title" style="margin-top:20px;">2 — Start casting</div>
-
+  <!-- ============ TV: WAITING / QR ============ -->
+  <div id="screen-tv-wait" class="screen">
+    <button class="back-btn" onclick="endAll(true)">← Back</button>
+    <div class="section-title">Scan to connect your phone</div>
     <div class="card">
-      <div id="cast-status" class="status-pill">
-        <span class="dot"></span>
-        <span id="cast-status-text">Not connected</span>
+      <img id="qr-img" alt="QR code" />
+      <div class="code-display">
+        <div class="label">PAIRING CODE</div>
+        <div class="code" id="tv-code">——</div>
       </div>
+      <div id="tv-wait-status" class="status-pill"><span class="dot"></span><span id="tv-wait-text">Waiting for phone…</span></div>
+      <p class="hint">Open your <strong>Samsung camera</strong> and point it at this QR code, then tap the link.<br>Or in the phone's browser choose <em>Phone / Sender</em> and enter the code above.</p>
+    </div>
+  </div>
 
+  <!-- ============ TV: CONFIRM PAIRING ============ -->
+  <div id="screen-tv-confirm" class="screen">
+    <div class="big-confirm">
+      <div class="ic">🔗</div>
+      <h2>Phone wants to connect</h2>
+      <p>Make sure this code matches the one shown on your phone:</p>
+      <div class="code-display"><div class="label">PAIRING CODE</div><div class="code" id="tv-confirm-code">——</div></div>
       <div class="controls">
-        <button class="btn-primary" id="btn-cast" onclick="startCast()" disabled>📡 Start Cast</button>
-        <button class="btn-ghost" id="btn-stop-cast" onclick="stopCast()" style="display:none;">Stop</button>
-      </div>
-    </div>
-
-    <div id="room-section">
-      <div class="section-title">3 — Connect your TV</div>
-      <div class="card">
-        <div class="room-id-display">
-          <div class="label">ROOM CODE — enter this on your TV</div>
-          <div class="code" id="room-code-display">——</div>
-        </div>
-        <canvas id="qr-canvas" width="180" height="180"></canvas>
-        <p class="hint">Open <strong>this same page</strong> on your Philips TV's Amazon Silk browser,<br>choose <em>TV / Receiver</em>, and enter the code above.</p>
+        <button class="btn-ghost" onclick="endAll(true)">Reject</button>
+        <button class="btn-ok" onclick="tvAccept()">✓ Accept</button>
       </div>
     </div>
   </div>
 
-  <!-- RECEIVER UI -->
-  <div id="receiver-ui">
+  <!-- ============ TV: PLAYING ============ -->
+  <div id="screen-tv-play" class="screen">
+    <div id="tv-play-status" class="status-pill streaming"><span class="dot"></span><span id="tv-play-text">Connected</span></div>
+    <div id="tv-stage">
+      <video id="tv-video" autoplay playsinline></video>
+      <iframe id="tv-iframe" referrerpolicy="no-referrer"></iframe>
+      <div id="tv-text-bar"></div>
+    </div>
+    <div class="tv-remote">
+      <button class="btn-secondary" onclick="tvCmd('rewind')" title="Rewind 10s">⏪</button>
+      <button class="btn-secondary" id="tv-playpause" onclick="tvCmd('toggle')">⏸</button>
+      <button class="btn-secondary" onclick="tvCmd('forward')" title="Forward 10s">⏩</button>
+      <button class="btn-secondary" onclick="tvCmd('restart')" title="Replay from start">🔁</button>
+      <button class="btn-secondary" id="tv-loopbtn" onclick="tvCmd('loop')" title="Loop">↻ Loop</button>
+      <button class="btn-secondary" onclick="tvFullscreen()" title="Fullscreen">⛶</button>
+    </div>
+    <button class="btn-ghost btn-wide" style="margin-top:14px;" onclick="endAll(true)">⏻ End session</button>
+  </div>
+
+  <!-- ============ PHONE: JOIN ============ -->
+  <div id="screen-phone-join" class="screen">
     <button class="back-btn" onclick="goHome()">← Back</button>
+    <div class="section-title">Connect to your TV</div>
+    <div class="note">📷 Easiest: on the TV choose <strong>TV / Receiver</strong>, then scan its QR code with your Samsung camera — it opens this page already connected.</div>
+    <div class="section-title">…or enter the TV's code</div>
+    <div class="join-form">
+      <input type="text" id="phone-code-input" maxlength="6" placeholder="123456" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/\D/g,'')" />
+      <button class="btn-primary" onclick="phoneConnect()">Connect to TV</button>
+    </div>
+    <div id="phone-join-status" class="status-pill" style="display:none;"><span class="dot"></span><span id="phone-join-text">Connecting…</span></div>
+    <div id="phone-join-spinner" style="display:none;"><div class="spinner"></div></div>
+  </div>
 
-    <div id="join-section">
-      <div class="section-title">Enter the room code from the phone</div>
-      <div class="join-form">
-        <input type="text" id="room-input" maxlength="6" placeholder="123456"
-               inputmode="numeric" pattern="[0-9]*"
-               oninput="this.value=this.value.replace(/\D/g,'').toUpperCase()" />
-        <button class="btn-primary" onclick="joinRoom()">📺 Join &amp; Watch</button>
+  <!-- ============ PHONE: CONFIRM ============ -->
+  <div id="screen-phone-confirm" class="screen">
+    <div class="big-confirm">
+      <div class="ic">📺</div>
+      <h2>Connect to this TV?</h2>
+      <p>Check that this code matches the one shown on your TV screen:</p>
+      <div class="code-display"><div class="label">PAIRING CODE</div><div class="code" id="phone-confirm-code">——</div></div>
+      <div class="controls">
+        <button class="btn-ghost" onclick="endAll(true)">Cancel</button>
+        <button class="btn-ok" onclick="phoneConfirm()">✓ Confirm & continue</button>
       </div>
-      <div id="receiver-status" class="status-pill" style="display:none;">
-        <span class="dot"></span>
-        <span id="receiver-status-text">Connecting…</span>
-      </div>
-      <div id="receiver-spinner" style="display:none;"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- ============ PHONE: SOURCE PICKER ============ -->
+  <div id="screen-phone-source" class="screen">
+    <button class="back-btn" onclick="endAll(true)">← End session</button>
+    <div id="phone-src-status" class="status-pill connected"><span class="dot"></span><span>Paired with TV</span></div>
+    <div class="section-title">What do you want to show?</div>
+    <div class="source-grid">
+      <div class="source-btn" onclick="pickSource('file')"><div class="ic">🎬</div><div class="nm">Video file</div><div class="ds">Movie from your phone</div></div>
+      <div class="source-btn" onclick="pickSource('screen')"><div class="ic">📲</div><div class="nm">Screen / app</div><div class="ds">Mirror your screen</div></div>
+      <div class="source-btn" onclick="pickSource('url')"><div class="ic">🌐</div><div class="nm">Website</div><div class="ds">Open a URL on TV</div></div>
+      <div class="source-btn" onclick="pickSource('camera')"><div class="ic">📷</div><div class="nm">Camera</div><div class="ds">Live phone camera</div></div>
     </div>
 
-    <div id="tv-player-section" style="display:none;">
-      <div id="receiver-status2" class="status-pill streaming">
-        <span class="dot"></span>
-        <span id="receiver-status2-text">Receiving stream…</span>
+    <!-- file sub-panel -->
+    <div id="src-file" style="display:none;">
+      <div id="file-drop-zone" onclick="document.getElementById('file-input').click()">
+        <div class="drop-icon">🎬</div><p><strong>Tap to choose a video</strong></p><p>MP4, MKV, MOV, WebM…</p>
       </div>
-      <video id="tv-video" autoplay playsinline controls></video>
-      <div style="margin-top:12px;">
-        <button class="btn-primary" onclick="goFullscreen()" style="width:100%;">⛶ Fullscreen</button>
+      <input type="file" id="file-input" accept="video/*" />
+      <div id="file-info" class="video-info" style="display:none;"><strong id="file-name"></strong><span id="file-meta"></span></div>
+      <button class="btn-primary btn-wide" id="btn-cast-file" onclick="castFile()" disabled>📡 Cast to TV</button>
+    </div>
+
+    <!-- screen sub-panel -->
+    <div id="src-screen" style="display:none;">
+      <div class="note">⚠️ Mirroring native apps isn't possible from a browser on Android — the OS doesn't allow it. Screen capture works on desktop browsers and some devices only. Tap below to try; if your phone doesn't support it you'll see an error.</div>
+      <button class="btn-primary btn-wide" onclick="castScreen()">📲 Start screen mirror</button>
+    </div>
+
+    <!-- url sub-panel -->
+    <div id="src-url" style="display:none;">
+      <div class="note">Some sites (YouTube, Google…) block being embedded and may show blank. Try it — most articles, dashboards and custom pages work.</div>
+      <div class="join-form">
+        <input type="text" id="url-input" placeholder="https://example.com" style="font-size:15px;letter-spacing:0;text-align:left;" />
+        <button class="btn-primary" onclick="castUrl()">🌐 Open on TV</button>
       </div>
+    </div>
+
+    <!-- camera sub-panel -->
+    <div id="src-camera" style="display:none;">
+      <button class="btn-primary btn-wide" onclick="castCamera()">📷 Start camera</button>
+    </div>
+
+    <video id="hidden-video" playsinline></video>
+  </div>
+
+  <!-- ============ PHONE: CASTING (remote lives here) ============ -->
+  <div id="screen-phone-cast" class="screen">
+    <div id="phone-cast-status" class="status-pill streaming"><span class="dot"></span><span id="phone-cast-text">Casting to TV…</span></div>
+    <div class="card">
+      <div id="cast-preview-wrap" style="background:#000;border-radius:8px;overflow:hidden;margin-bottom:12px;display:none;">
+        <video id="preview-video" playsinline muted style="width:100%;max-height:200px;object-fit:contain;display:block;"></video>
+      </div>
+      <p class="hint" id="cast-desc">Use the floating remote to control playback. It stays pinned over everything.</p>
+    </div>
+    <div class="controls">
+      <button class="btn-secondary" onclick="backToSource()">↩ Change source</button>
+      <button class="btn-ghost" onclick="endAll(true)">⏻ End session</button>
+    </div>
+  </div>
+
+  <!-- ============ ENDED ============ -->
+  <div id="screen-ended" class="screen">
+    <div class="big-confirm">
+      <div class="ic">✅</div>
+      <h2 id="ended-title">Session ended</h2>
+      <p id="ended-msg">The connection has been closed on both devices.</p>
+      <button class="btn-primary btn-wide" onclick="location.href=location.pathname">Start over</button>
     </div>
   </div>
 
 </div>
 
-<!-- FULLSCREEN OVERLAY -->
-<div id="fs-overlay">
-  <video id="fs-video" autoplay playsinline></video>
-  <button id="fs-close" onclick="exitFullscreen()">✕</button>
+<!-- ============ FLOATING REMOTE (phone) ============ -->
+<div id="remote">
+  <div id="remote-head">
+    <span class="grip">⠿</span>
+    <span class="ttl">TV Remote</span>
+    <button id="pin-btn" onclick="togglePin()" title="Pin">📌</button>
+    <button onclick="hideRemote()" title="Minimize">—</button>
+  </div>
+  <div id="remote-body">
+    <div class="rbtn-row">
+      <button onclick="remote('rewind')" title="-10s">⏪</button>
+      <button id="r-playpause" onclick="remote('toggle')">⏸</button>
+      <button onclick="remote('forward')" title="+10s">⏩</button>
+    </div>
+    <div class="rbtn-row">
+      <button onclick="remote('restart')" title="Replay">🔁 Replay</button>
+      <button id="r-loop" onclick="remote('loop')" title="Loop">↻ Loop</button>
+    </div>
+    <div class="rmini">Send text to TV</div>
+    <div class="send-row">
+      <input type="text" id="remote-text" placeholder="Type for TV…" onkeydown="if(event.key==='Enter')sendRemoteText()" />
+      <button class="btn-primary" onclick="sendRemoteText()">Send</button>
+    </div>
+    <div class="rmini">TV page navigation</div>
+    <div class="nav-row">
+      <button onclick="remote('nav','up')" title="Scroll up">▲</button>
+      <button onclick="remote('nav','down')" title="Scroll down">▼</button>
+      <button onclick="remote('nav','back')" title="Back">↩</button>
+      <button onclick="remote('nav','reload')" title="Reload">⟳</button>
+    </div>
+  </div>
 </div>
+<button id="remote-toggle" onclick="showRemote()">🎮</button>
 
 <div class="toast" id="toast"></div>
 
-<!-- PeerJS from CDN (free signaling + STUN/TURN) -->
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-
 <script>
-// ─── State ───────────────────────────────────────────────────────────────────
-let mode = null;          // 'sender' | 'receiver'
+// ───────────────────────── State ─────────────────────────
+let role = null;            // 'tv' | 'phone'
 let peer = null;
-let conn = null;          // DataConnection (for metadata)
-let call = null;          // MediaConnection
-let localStream = null;
-let videoFile = null;
+let conn = null;            // data connection
+let call = null;            // media connection
+let localStream = null;     // phone's outgoing stream
 let roomId = null;
-let isMuted = true;
-
+let confirmed = false;
+let currentSource = null;   // 'file'|'screen'|'url'|'camera'
 const $ = id => document.getElementById(id);
 
-// ─── Navigation ──────────────────────────────────────────────────────────────
-function goHome() {
-  cleanup();
-  show('mode-select');
-  hide('sender-ui');
-  hide('receiver-ui');
+const ICE = { iceServers: [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' }
+]};
+
+// ───────────────────────── Screen routing ─────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
 }
+function goHome() { resetConn(); showScreen('screen-home'); hideRemote(true); }
 
-function startSender() {
-  mode = 'sender';
-  hide('mode-select');
-  show('sender-ui');
-}
+// ───────────────────────── Role: TV ─────────────────────────
+function goTV() {
+  role = 'tv';
+  roomId = genCode();
+  showScreen('screen-tv-wait');
+  $('tv-code').textContent = roomId;
+  drawQR($('qr-img'), `${location.origin}${location.pathname}?join=${roomId}`);
 
-function startReceiver() {
-  mode = 'receiver';
-  hide('mode-select');
-  show('receiver-ui');
-  $('receiver-ui').style.display = 'flex';
-}
-
-// ─── File handling ────────────────────────────────────────────────────────────
-$('file-input').addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (file) loadVideo(file);
-});
-
-const dz = $('file-drop-zone');
-dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
-dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-dz.addEventListener('drop', e => {
-  e.preventDefault();
-  dz.classList.remove('dragover');
-  const file = e.dataTransfer.files[0];
-  if (file && file.type.startsWith('video/')) loadVideo(file);
-});
-
-function loadVideo(file) {
-  videoFile = file;
-  const url = URL.createObjectURL(file);
-  const vid = $('video-preview');
-  vid.src = url;
-  vid.muted = true; // muted by default so autoplay works
-  isMuted = true;
-  $('video-name').textContent = file.name;
-  $('video-meta').textContent = formatBytes(file.size);
-  show('video-preview-wrap');
-  hide('file-drop-zone');
-  show('playback-controls');
-  $('btn-cast').disabled = false;
-  $('btn-play-pause').textContent = '▶ Play';
-
-  vid.addEventListener('timeupdate', updateSeek);
-  vid.addEventListener('loadedmetadata', () => {
-    $('seek-bar').max = vid.duration;
-    $('time-total').textContent = formatTime(vid.duration);
+  peer = new Peer(roomId, { config: ICE });
+  peer.on('open', () => setPill('tv-wait-status','tv-wait-text','','Waiting for phone…'));
+  peer.on('connection', dc => {
+    conn = dc;
+    wireConn();
+    dc.on('open', () => {
+      // Show confirm prompt on TV
+      $('tv-confirm-code').textContent = roomId;
+      showScreen('screen-tv-confirm');
+    });
   });
-  $('seek-bar').addEventListener('input', () => { vid.currentTime = $('seek-bar').value; });
-}
-
-function updateSeek() {
-  const vid = $('video-preview');
-  $('seek-bar').value = vid.currentTime;
-  $('time-current').textContent = formatTime(vid.currentTime);
-}
-
-function togglePlay() {
-  const vid = $('video-preview');
-  if (vid.paused) { vid.play(); $('btn-play-pause').textContent = '⏸ Pause'; }
-  else { vid.pause(); $('btn-play-pause').textContent = '▶ Play'; }
-}
-
-function toggleMute() {
-  const vid = $('video-preview');
-  isMuted = !isMuted;
-  vid.muted = isMuted;
-  $('btn-mute').textContent = isMuted ? '🔇 Mute src' : '🔊 Unmute src';
-}
-
-// ─── Sender / Cast ────────────────────────────────────────────────────────────
-async function startCast() {
-  if (!videoFile) { toast('Pick a video first'); return; }
-
-  $('btn-cast').disabled = true;
-  setStatus('cast-status', 'cast-status-text', 'creating', 'Creating room…');
-
-  // Capture the video stream from the preview element
-  const vid = $('video-preview');
-  try {
-    localStream = vid.captureStream ? vid.captureStream() : vid.mozCaptureStream();
-  } catch(e) {
-    toast('Could not capture video stream: ' + e.message);
-    $('btn-cast').disabled = false;
-    return;
-  }
-
-  // Create peer with a 6-digit room ID
-  roomId = Math.floor(100000 + Math.random() * 900000).toString();
-  peer = new Peer(roomId, {
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-      ]
-    }
+  peer.on('call', incoming => {
+    call = incoming;
+    incoming.answer();
+    incoming.on('stream', remoteStream => {
+      const v = $('tv-video');
+      $('tv-iframe').style.display = 'none';
+      v.style.display = 'block';
+      v.srcObject = remoteStream;
+      v.play().catch(()=>{});
+      showScreen('screen-tv-play');
+      setPill('tv-play-status','tv-play-text','streaming','Streaming live');
+    });
+    incoming.on('close', () => setPill('tv-play-status','tv-play-text','error','Stream ended'));
   });
-
-  peer.on('open', id => {
-    $('room-code-display').textContent = id;
-    show('room-section');
-    drawQR(id);
-    setStatus('cast-status', 'cast-status-text', 'connected', 'Waiting for TV…');
-    show('btn-stop-cast');
-  });
-
-  peer.on('connection', dataConn => {
-    conn = dataConn;
-    setStatus('cast-status', 'cast-status-text', 'streaming', 'TV connected — streaming');
-    // Send the video stream
-    call = peer.call(dataConn.peer, localStream);
-    vid.play().catch(() => {});
-  });
-
-  peer.on('error', err => {
-    toast('Connection error: ' + err.type);
-    setStatus('cast-status', 'cast-status-text', 'error', 'Error: ' + err.type);
-    $('btn-cast').disabled = false;
-  });
+  peer.on('error', e => toast('Connection error: ' + e.type));
 }
 
-function stopCast() {
-  cleanup();
-  setStatus('cast-status', 'cast-status-text', '', 'Not connected');
-  hide('room-section');
-  hide('btn-stop-cast');
-  $('btn-cast').disabled = false;
-  toast('Cast stopped');
+function tvAccept() {
+  confirmed = true;
+  send({ t: 'confirmed' });
+  showScreen('screen-tv-play');
+  setPill('tv-play-status','tv-play-text','connected','Paired — waiting for content…');
 }
 
-// ─── Receiver ────────────────────────────────────────────────────────────────
-function joinRoom() {
-  const code = $('room-input').value.trim();
-  if (code.length !== 6) { toast('Enter the 6-digit room code'); return; }
+// TV sends a playback command back to the phone (which owns the video)
+function tvCmd(action) { send({ t: 'cmd', a: action }); if(action==='toggle'){ /* optimistic */ } }
+function tvFullscreen() {
+  const el = $('tv-iframe').style.display === 'block' ? $('tv-iframe') : $('tv-video');
+  if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  else if (el.webkitEnterFullscreen) el.webkitEnterFullscreen();
+}
 
-  show('receiver-status');
-  show('receiver-spinner');
-  setStatus('receiver-status', 'receiver-status-text', '', 'Connecting…');
+// ───────────────────────── Role: Phone ─────────────────────────
+function goPhone() { role = 'phone'; showScreen('screen-phone-join'); }
 
-  peer = new Peer(undefined, {
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-      ]
-    }
-  });
+function phoneConnect() {
+  const code = $('phone-code-input').value.trim();
+  if (code.length !== 6) { toast('Enter the 6-digit code from your TV'); return; }
+  startPhonePeer(code);
+}
 
-  peer.on('open', myId => {
-    // Connect to sender via data channel (triggers sender to call us)
-    conn = peer.connect(code);
+function startPhonePeer(code) {
+  role = 'phone';
+  roomId = code;
+  $('phone-join-status').style.display = 'inline-flex';
+  $('phone-join-spinner').style.display = 'block';
+  setPill('phone-join-status','phone-join-text','','Connecting to TV…');
+
+  peer = new Peer(undefined, { config: ICE });
+  peer.on('open', () => {
+    conn = peer.connect(code, { reliable: true });
+    wireConn();
     conn.on('open', () => {
-      setStatus('receiver-status', 'receiver-status-text', 'connected', 'Connected — waiting for stream…');
+      $('phone-join-spinner').style.display = 'none';
+      $('phone-confirm-code').textContent = code;
+      showScreen('screen-phone-confirm');
     });
-    conn.on('error', err => {
-      toast('Could not reach room: ' + code);
-      hide('receiver-spinner');
-    });
+    conn.on('error', () => { toast('Could not reach TV ' + code); $('phone-join-spinner').style.display='none'; });
   });
-
-  peer.on('call', incomingCall => {
-    call = incomingCall;
-    incomingCall.answer(); // no local stream needed
-    incomingCall.on('stream', remoteStream => {
-      hide('receiver-spinner');
-      hide('join-section');
-      show('tv-player-section');
-      const vid = $('tv-video');
-      vid.srcObject = remoteStream;
-      vid.play().catch(() => {});
-      setStatus('receiver-status2', 'receiver-status2-text', 'streaming', 'Streaming live');
-    });
-    incomingCall.on('close', () => {
-      setStatus('receiver-status2', 'receiver-status2-text', 'error', 'Stream ended');
-    });
-  });
-
-  peer.on('error', err => {
-    hide('receiver-spinner');
-    toast('Error: ' + err.type + '. Check the room code and try again.');
-    hide('receiver-status');
+  peer.on('error', e => {
+    $('phone-join-spinner').style.display = 'none';
+    toast('Error: ' + e.type + '. Check the code / Wi-Fi.');
   });
 }
 
-// ─── Fullscreen ───────────────────────────────────────────────────────────────
-function goFullscreen() {
-  const tvVid = $('tv-video');
-  const fsVid = $('fs-video');
-  const overlay = $('fs-overlay');
+function phoneConfirm() {
+  confirmed = true;
+  send({ t: 'confirm' });
+  showScreen('screen-phone-source');
+}
 
-  // Try native fullscreen API first (works well in Silk)
-  if (tvVid.requestFullscreen) {
-    tvVid.requestFullscreen().catch(() => silkFullscreen(tvVid, fsVid, overlay));
-  } else if (tvVid.webkitRequestFullscreen) {
-    tvVid.webkitRequestFullscreen();
-  } else {
-    silkFullscreen(tvVid, fsVid, overlay);
+// ── source selection ──
+function pickSource(s) {
+  currentSource = s;
+  document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('sel'));
+  ['file','screen','url','camera'].forEach(k => $('src-'+k).style.display = (k===s)?'block':'none');
+  event.currentTarget.classList.add('sel');
+}
+
+// file
+$('file-input').addEventListener('change', e => { const f = e.target.files[0]; if (f) loadFile(f); });
+(function(){
+  const dz = $('file-drop-zone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('video/')) loadFile(f); });
+})();
+function loadFile(file) {
+  const v = $('hidden-video');
+  v.src = URL.createObjectURL(file);
+  v.loop = false;
+  $('file-name').textContent = file.name;
+  $('file-meta').textContent = formatBytes(file.size);
+  $('file-info').style.display = 'block';
+  $('btn-cast-file').disabled = false;
+}
+function castFile() {
+  const v = $('hidden-video');
+  v.muted = true;
+  v.play().then(startStreamFromVideo).catch(()=>startStreamFromVideo());
+}
+function startStreamFromVideo() {
+  const v = $('hidden-video');
+  try { localStream = v.captureStream ? v.captureStream() : v.mozCaptureStream(); }
+  catch(e){ toast('Capture failed: ' + e.message); return; }
+  callTV(localStream);
+  bindRemoteVideo(v);
+  enterCasting('Movie is playing on the TV. Control it with the remote below.', null);
+}
+
+// screen
+async function castScreen() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+    toast('Screen capture not supported on this browser/device'); return;
+  }
+  try {
+    localStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+    callTV(localStream);
+    localStream.getVideoTracks()[0].addEventListener('ended', () => { toast('Screen sharing stopped'); });
+    bindRemoteVideo(null);
+    enterCasting('Your screen is mirroring to the TV.', localStream);
+  } catch(e) { toast('Screen mirror cancelled / unsupported'); }
+}
+
+// camera
+async function castCamera() {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: true });
+    callTV(localStream);
+    bindRemoteVideo(null);
+    enterCasting('Live camera is showing on the TV.', localStream);
+  } catch(e) { toast('Camera access denied'); }
+}
+
+// url
+function castUrl() {
+  let u = $('url-input').value.trim();
+  if (!u) { toast('Enter a URL'); return; }
+  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  send({ t: 'url', url: u });
+  enterCasting('Website sent to TV. Use ▲▼ on the remote to scroll it.', null);
+}
+
+function callTV(stream) {
+  if (call) { try{call.close();}catch(e){} }
+  call = peer.call(roomId, stream);
+}
+
+// ── remote (phone controls its own hidden video) ──
+let boundVideo = null;
+function bindRemoteVideo(v) {
+  boundVideo = v;
+  if (v) {
+    v.onplay = () => { $('r-playpause').textContent = '⏸'; };
+    v.onpause = () => { $('r-playpause').textContent = '▶'; };
   }
 }
+function enterCasting(desc, previewStream) {
+  showScreen('screen-phone-cast');
+  $('cast-desc').textContent = desc;
+  const pw = $('cast-preview-wrap');
+  if (previewStream) { pw.style.display = 'block'; $('preview-video').srcObject = previewStream; $('preview-video').play().catch(()=>{}); }
+  else if (boundVideo) { pw.style.display = 'block'; $('preview-video').srcObject = null; $('preview-video').src = boundVideo.src; $('preview-video').muted = true; }
+  else { pw.style.display = 'none'; }
+  showRemote();
+}
+function backToSource() { if (boundVideo){try{boundVideo.pause();}catch(e){}} stopLocalTracksKeepConn(); showScreen('screen-phone-source'); hideRemote(); }
 
-function silkFullscreen(tvVid, fsVid, overlay) {
-  // Fallback: clone stream into our overlay
-  if (tvVid.srcObject) {
-    fsVid.srcObject = tvVid.srcObject;
-  } else {
-    fsVid.src = tvVid.src;
+function remote(action, arg) {
+  const v = boundVideo;
+  switch(action) {
+    case 'toggle': if (v){ v.paused ? v.play() : v.pause(); } send({t:'cmd',a:'toggle'}); break;
+    case 'rewind': if (v) v.currentTime = Math.max(0, v.currentTime - 10); break;
+    case 'forward': if (v) v.currentTime = v.currentTime + 10; break;
+    case 'restart': if (v){ v.currentTime = 0; v.play(); } break;
+    case 'loop': if (v){ v.loop = !v.loop; $('r-loop').classList.toggle('on', v.loop); toast(v.loop?'Loop on':'Loop off'); } break;
+    case 'nav': send({ t:'nav', d: arg }); break;
   }
-  fsVid.play().catch(() => {});
-  overlay.classList.add('active');
+}
+function sendRemoteText() {
+  const t = $('remote-text').value;
+  if (!t) return;
+  send({ t:'text', text: t });
+  $('remote-text').value = '';
+  toast('Sent to TV');
 }
 
-function exitFullscreen() {
-  if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
-  $('fs-overlay').classList.remove('active');
-  $('fs-video').srcObject = null;
+// ───────────────────────── Shared data channel ─────────────────────────
+function wireConn() {
+  conn.on('data', msg => handleData(msg));
+  conn.on('close', () => onPeerClosed());
 }
-
-// ─── QR Code ─────────────────────────────────────────────────────────────────
-// Renders a QR that points to the TV page with the room code pre-filled.
-function drawQR(roomCode) {
-  const canvas = $('qr-canvas');
-  const ctx = canvas.getContext('2d');
-  const url = `${location.origin}${location.pathname}?tv=${roomCode}`;
-
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload = () => {
-    canvas.width = 180; canvas.height = 180;
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0,0,180,180);
-    ctx.drawImage(img, 0, 0, 180, 180);
-  };
-  img.onerror = () => {
-    // Fallback: just show URL text
-    canvas.style.display = 'none';
-    const p = document.createElement('p');
-    p.style.cssText = 'font-size:10px;word-break:break-all;color:var(--muted);text-align:center;margin:8px 0;';
-    p.textContent = url;
-    canvas.parentNode.insertBefore(p, canvas.nextSibling);
-  };
-  img.src = `https://chart.googleapis.com/chart?chs=180x180&cht=qr&chl=${encodeURIComponent(url)}&choe=UTF-8`;
-}
-
-// ─── URL param auto-fill (scan QR on TV) ─────────────────────────────────────
-(function autoFillFromURL() {
-  const params = new URLSearchParams(location.search);
-  const tv = params.get('tv');
-  if (tv) {
-    startReceiver();
-    setTimeout(() => {
-      $('room-input').value = tv;
-      joinRoom();
-    }, 300);
+function handleData(msg) {
+  if (!msg || !msg.t) return;
+  switch(msg.t) {
+    case 'confirm':           // phone -> TV : phone confirmed
+      if (role === 'tv') { $('tv-confirm-code').textContent = roomId; showScreen('screen-tv-confirm'); }
+      break;
+    case 'confirmed':         // TV -> phone : TV accepted
+      if (role === 'phone') toast('TV accepted the connection ✓');
+      break;
+    case 'cmd':               // TV -> phone : playback command
+      if (role === 'phone') applyCmd(msg.a);
+      break;
+    case 'url':               // phone -> TV : open website
+      if (role === 'tv') openUrlOnTV(msg.url);
+      break;
+    case 'text':              // phone -> TV : show text
+      if (role === 'tv') showTextOnTV(msg.text);
+      break;
+    case 'nav':               // phone -> TV : navigate iframe/page
+      if (role === 'tv') navTV(msg.d);
+      break;
+    case 'end':               // either -> other : session ended
+      onPeerClosed(true);
+      break;
   }
+}
+function applyCmd(a) {  // phone applies command coming from TV's on-screen remote
+  const v = boundVideo;
+  if (!v) { if (a==='nav') {} return; }
+  if (a==='toggle') v.paused ? v.play() : v.pause();
+  else if (a==='rewind') v.currentTime = Math.max(0, v.currentTime - 10);
+  else if (a==='forward') v.currentTime += 10;
+  else if (a==='restart') { v.currentTime = 0; v.play(); }
+  else if (a==='loop') { v.loop = !v.loop; $('r-loop').classList.toggle('on', v.loop); }
+}
+
+// TV-side handlers
+function openUrlOnTV(url) {
+  $('tv-video').style.display = 'none';
+  const f = $('tv-iframe');
+  f.style.display = 'block';
+  f.src = url;
+  showScreen('screen-tv-play');
+  setPill('tv-play-status','tv-play-text','streaming','Showing website');
+  $('tv-text-bar').style.display = 'none';
+}
+function showTextOnTV(text) {
+  const bar = $('tv-text-bar');
+  bar.textContent = '⌨ ' + text;
+  bar.style.display = 'block';
+  // best-effort: type into a focused input inside a same-origin iframe
+  try {
+    const doc = $('tv-iframe').contentDocument;
+    const el = doc && doc.activeElement;
+    if (el && ('value' in el)) { el.value = text; el.dispatchEvent(new Event('input', {bubbles:true})); }
+  } catch(e) {}
+  clearTimeout(showTextOnTV._t);
+  showTextOnTV._t = setTimeout(()=> bar.style.display='none', 6000);
+}
+function navTV(dir) {
+  const f = $('tv-iframe');
+  const usingIframe = f.style.display === 'block';
+  try {
+    if (dir === 'up')      usingIframe ? f.contentWindow.scrollBy(0,-300) : window.scrollBy(0,-300);
+    else if (dir==='down') usingIframe ? f.contentWindow.scrollBy(0, 300) : window.scrollBy(0, 300);
+    else if (dir==='back') { if (usingIframe) f.contentWindow.history.back(); }
+    else if (dir==='reload'){ if (usingIframe) f.contentWindow.location.reload(); }
+  } catch(e) { toast('Cannot navigate this site (cross-origin)'); }
+}
+
+// ───────────────────────── Session end ─────────────────────────
+function endAll(notify) {
+  if (notify && conn && conn.open) { try { conn.send({ t:'end' }); } catch(e){} }
+  resetConn();
+  $('ended-title').textContent = 'Session ended';
+  $('ended-msg').textContent = 'You closed the connection. The other device has been notified.';
+  showScreen('screen-ended');
+  hideRemote(true);
+}
+function onPeerClosed(remoteEnded) {
+  resetConn();
+  $('ended-title').textContent = remoteEnded ? 'Session ended' : 'Disconnected';
+  $('ended-msg').textContent = remoteEnded ? 'The other device ended the session.' : 'The connection was lost.';
+  showScreen('screen-ended');
+  hideRemote(true);
+}
+
+function stopLocalTracksKeepConn() {
+  if (call) { try{call.close();}catch(e){} call = null; }
+  if (localStream) { localStream.getTracks().forEach(t=>t.stop()); localStream = null; }
+}
+function resetConn() {
+  if (call) { try{call.close();}catch(e){} call = null; }
+  if (conn) { try{conn.close();}catch(e){} conn = null; }
+  if (peer) { try{peer.destroy();}catch(e){} peer = null; }
+  if (localStream) { localStream.getTracks().forEach(t=>t.stop()); localStream = null; }
+  const hv = $('hidden-video'); try { hv.pause(); } catch(e){}
+  confirmed = false;
+}
+
+function send(obj) { if (conn && conn.open) { try { conn.send(obj); } catch(e){} } }
+
+// ───────────────────────── Floating remote UI ─────────────────────────
+function showRemote(){ $('remote').style.display='block'; $('remote-toggle').style.display='none'; }
+function hideRemote(full){ $('remote').style.display='none'; $('remote-toggle').style.display = full ? 'none' : (role==='phone' ? 'flex' : 'none'); }
+let pinned = false;
+function togglePin(){ pinned=!pinned; $('remote').classList.toggle('pinned',pinned); $('pin-btn').textContent = pinned?'📍':'📌'; toast(pinned?'Remote pinned':'Remote unpinned'); }
+
+(function dragRemote(){
+  const r = $('remote'), h = $('remote-head');
+  let sx, sy, ox, oy, drag=false;
+  h.addEventListener('pointerdown', e => {
+    drag=true; r.style.bottom='auto'; r.style.right='auto';
+    const rect=r.getBoundingClientRect(); ox=rect.left; oy=rect.top; sx=e.clientX; sy=e.clientY;
+    r.style.left=ox+'px'; r.style.top=oy+'px'; h.setPointerCapture(e.pointerId); h.style.cursor='grabbing';
+  });
+  h.addEventListener('pointermove', e => {
+    if(!drag) return;
+    let nx=ox+(e.clientX-sx), ny=oy+(e.clientY-sy);
+    nx=Math.max(4,Math.min(window.innerWidth-r.offsetWidth-4,nx));
+    ny=Math.max(4,Math.min(window.innerHeight-r.offsetHeight-4,ny));
+    r.style.left=nx+'px'; r.style.top=ny+'px';
+  });
+  h.addEventListener('pointerup', e => { drag=false; h.style.cursor='grab'; });
 })();
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-function show(id) {
-  const el = $(id);
-  if (!el) return;
-  if (el.tagName === 'BUTTON') el.style.display = 'inline-flex';
-  else el.style.display = 'block';
+// ───────────────────────── Helpers ─────────────────────────
+function genCode(){ return Math.floor(100000 + Math.random()*900000).toString(); }
+function setPill(pillId, textId, cls, text){ $(pillId).className='status-pill'+(cls?' '+cls:''); $(textId).textContent=text; }
+function drawQR(imgEl, url){
+  imgEl.onerror = () => { imgEl.src = `https://chart.googleapis.com/chart?chs=210x210&cht=qr&chl=${encodeURIComponent(url)}&choe=UTF-8`; };
+  imgEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=210x210&margin=0&data=${encodeURIComponent(url)}`;
 }
+function formatBytes(b){ if(b<1048576) return (b/1024).toFixed(1)+' KB'; if(b<1073741824) return (b/1048576).toFixed(1)+' MB'; return (b/1073741824).toFixed(2)+' GB'; }
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),3000); }
 
-function hide(id) {
-  const el = $(id);
-  if (el) el.style.display = 'none';
-}
-
-function setStatus(pillId, textId, cls, text) {
-  const pill = $(pillId);
-  pill.className = 'status-pill' + (cls ? ' ' + cls : '');
-  $(textId).textContent = text;
-}
-
-function formatTime(s) {
-  if (!s || isNaN(s)) return '0:00';
-  const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60).toString().padStart(2, '0');
-  return `${m}:${sec}`;
-}
-
-function formatBytes(b) {
-  if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
-  if (b < 1024 ** 3) return (b / 1024 ** 2).toFixed(1) + ' MB';
-  return (b / 1024 ** 3).toFixed(2) + ' GB';
-}
-
-function toast(msg) {
-  const t = $('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-function cleanup() {
-  if (call) { try { call.close(); } catch(e){} call = null; }
-  if (conn) { try { conn.close(); } catch(e){} conn = null; }
-  if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
-  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-}
+// ───────────────────────── Auto-join from QR ─────────────────────────
+(function(){
+  const code = new URLSearchParams(location.search).get('join');
+  if (code && /^\d{6}$/.test(code)) {
+    goPhone();
+    $('phone-code-input').value = code;
+    setTimeout(()=> startPhonePeer(code), 250);
+  }
+})();
+window.addEventListener('beforeunload', () => { if (conn && conn.open) { try{ conn.send({t:'end'}); }catch(e){} } });
 </script>
 </body>
 </html>
