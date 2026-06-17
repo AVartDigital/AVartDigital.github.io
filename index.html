@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>AVTV — VideoMirror</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -126,12 +129,12 @@
 
     #tv-stage {
       position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden;
-      background: url('./Player%201.jpg') center/cover no-repeat #060806;
+      background: url('./Player%201.jpg?v=3') center/cover no-repeat #060806;
     }
     body.tv-playing .tv-monitor-outer { padding: 0; border-radius: 0; border: none; background: #000; box-shadow: none; }
     body.tv-playing .tv-monitor-outer::before { display: none; }
     body.tv-playing #tv-stage { aspect-ratio: unset; width: 100vw; height: 100dvh; border-radius: 0; }
-    #tv-stage.idle { background-image: url('./Player%201.jpg'); background-size: cover; background-position: center center; }
+    #tv-stage.idle { background-image: url('./Player%201.jpg?v=3'); background-size: cover; background-position: center center; }
     #tv-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
     #tv-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; display: none; }
     #tv-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: #fff; }
@@ -311,6 +314,15 @@
     .pl-item .pl-act { display:flex; gap:4px; flex:none; }
     .pl-item .pl-act button { flex:none; min-width:34px; width:34px; height:34px; min-height:34px; padding:0; font-size:14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); color:var(--gold-soft); border-radius:8px; }
     .pl-item .pl-act button.del { color: var(--danger); }
+    .pl-item.selected { border-color: var(--gold); background: rgba(230,177,67,0.15); box-shadow: 0 0 0 2px rgba(230,177,67,0.3); }
+    .pl-item { cursor: pointer; }
+    .pl-item.now { cursor: default; }
+    #pl-confirm-bar { display: none; background: rgba(230,177,67,0.1); border: 1px solid rgba(230,177,67,0.35); border-radius: 12px; padding: 12px 14px; margin-top: 10px; display: none; align-items: center; gap: 10px; }
+    #pl-confirm-bar.show { display: flex; }
+    #pl-confirm-bar .pl-conf-name { flex: 1; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--gold-soft); }
+    #pl-confirm-bar button { flex: none; padding: 8px 14px; font-size: 13px; min-height: 36px; border-radius: 8px; }
+    #pl-confirm-bar .conf-play { background: linear-gradient(180deg, var(--gold-soft), var(--gold)); color: #2a1c00; border: none; }
+    #pl-confirm-bar .conf-cancel { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: var(--muted); }
   </style>
 </head>
 <body>
@@ -469,9 +481,14 @@
           <button class="btn-primary btn-wide" id="btn-cast-file" onclick="sendPlaylist()" disabled>📡 Send playlist to TV &amp; play</button>
           <p class="hint" style="margin-top:10px;">Items play in order. Add more anytime — they queue behind what's playing.</p>
         </div>
-        <div class="playlist-panel">
-          <h3>Playlist <span class="count" id="pl-count">0 items</span></h3>
-          <div id="playlist-items"><div class="pl-empty">No media yet.<br>Tap “Add media” to build your playlist.</div></div>
+        <div class=”playlist-panel”>
+          <h3>Playlist <span class=”count” id=”pl-count”>0 items</span></h3>
+          <div id=”playlist-items”><div class=”pl-empty”>No media yet.<br>Tap “Add media” to build your playlist.</div></div>
+          <div id=”pl-confirm-bar”>
+            <span class=”pl-conf-name” id=”pl-conf-name”></span>
+            <button class=”conf-play” onclick=”plConfirmPlay()”>▶ Play first</button>
+            <button class=”conf-cancel” onclick=”plCancelSelect()”>✕</button>
+          </div>
         </div>
       </div>
     </div>
@@ -538,6 +555,10 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
+// Clear any stale caches on load
+if('caches' in window){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }
+if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(function(regs){ regs.forEach(function(r){ r.unregister(); }); }); }
+
 // ───────── State ─────────
 var role = null, peer = null, conn = null, call = null, localStream = null, roomId = null, confirmed = false, currentSource = null;
 var connections = new Map(); // TV: connId -> {conn, isPrimary}
@@ -1034,6 +1055,7 @@ function kindIcon(k){ return k==='image'?'🖼️':(k==='audio'?'🎵':'🎬'); 
 // ── Phone playlist ──
 var playlist = [];   // {file, name, kind, size, sent}
 var partyMsg = '';
+var selectedPlIdx = -1;
 var sending = false;
 
 function fileInputChange(e){
@@ -1045,7 +1067,7 @@ function fileInputChange(e){
 function addToPlaylist(f){
   playlist.push({ file:f, name:f.name, kind:mediaKind(f.type,f.name), size:f.size, sent:false });
 }
-function removeFromPlaylist(i){ if(playlist[i] && playlist[i].sent){ toast('Already sent'); return; } playlist.splice(i,1); renderPlaylist(); }
+function removeFromPlaylist(i){ if(playlist[i] && playlist[i].sent){ toast('Already sent'); return; } playlist.splice(i,1); if(selectedPlIdx===i) selectedPlIdx=-1; else if(selectedPlIdx>i) selectedPlIdx--; renderPlaylist(); }
 function movePl(i, dir){
   var j=i+dir; if(j<0||j>=playlist.length) return;
   if(playlist[i].sent || playlist[j].sent){ toast('Can’t reorder sent items'); return; }
@@ -1055,21 +1077,58 @@ function renderPlaylist(){
   var el=$('playlist-items');
   $('pl-count').textContent = playlist.length+' item'+(playlist.length===1?'':'s');
   $('btn-cast-file').disabled = playlist.length===0;
-  if(playlist.length===0){ el.innerHTML='<div class="pl-empty">No media yet.<br>Tap “Add media” to build your playlist.</div>'; return; }
+  if(playlist.length===0){ el.innerHTML='<div class=”pl-empty”>No media yet.<br>Tap “Add media” to build your playlist.</div>'; plCancelSelect(); return; }
   var html='';
   for(var i=0;i<playlist.length;i++){
     var it=playlist[i];
-    html += '<div class="pl-item'+(it.sent?' now':'')+'">'+
-      '<div class="pl-ic">'+kindIcon(it.kind)+'</div>'+
-      '<div class="pl-meta"><div class="pl-name">'+escapeHtml(it.name)+'</div>'+
-      '<div class="pl-sub">'+it.kind+' · '+formatBytes(it.size)+(it.sent?' · sent ✓':'')+'</div></div>'+
-      '<div class="pl-act">'+
-        '<button onclick="movePl('+i+',-1)" title="Up">↑</button>'+
-        '<button onclick="movePl('+i+',1)" title="Down">↓</button>'+
-        '<button class="del" onclick="removeFromPlaylist('+i+')" title="Remove">✕</button>'+
+    var isSel = (i===selectedPlIdx && !it.sent);
+    html += '<div class=”pl-item'+(it.sent?' now':'')+(isSel?' selected':'')+'” onclick=”plItemClick(event,'+i+')”>'+
+      '<div class=”pl-ic”>'+kindIcon(it.kind)+'</div>'+
+      '<div class=”pl-meta”><div class=”pl-name”>'+escapeHtml(it.name)+'</div>'+
+      '<div class=”pl-sub”>'+it.kind+' · '+formatBytes(it.size)+(it.sent?' · sent ✓':'')+'</div></div>'+
+      '<div class=”pl-act”>'+
+        '<button onclick=”event.stopPropagation();movePl('+i+',-1)” title=”Up”>↑</button>'+
+        '<button onclick=”event.stopPropagation();movePl('+i+',1)” title=”Down”>↓</button>'+
+        '<button class=”del” onclick=”event.stopPropagation();removeFromPlaylist('+i+')” title=”Remove”>✕</button>'+
       '</div></div>';
   }
   el.innerHTML=html;
+  updatePlConfirmBar();
+}
+function plItemClick(e, i){
+  var it = playlist[i];
+  if(!it || it.sent) return; // can't select already-sent items
+  // Only show confirm bar when there are multiple unsent items
+  var unsent = playlist.filter(function(p){ return !p.sent; });
+  if(unsent.length <= 1){ return; } // only one unsent item — no ambiguity
+  selectedPlIdx = (selectedPlIdx === i) ? -1 : i;
+  renderPlaylist();
+}
+function updatePlConfirmBar(){
+  var bar = $('pl-confirm-bar');
+  if(!bar) return;
+  if(selectedPlIdx >= 0 && playlist[selectedPlIdx] && !playlist[selectedPlIdx].sent){
+    $('pl-conf-name').textContent = playlist[selectedPlIdx].name;
+    bar.classList.add('show');
+  } else {
+    bar.classList.remove('show');
+  }
+}
+function plConfirmPlay(){
+  if(selectedPlIdx < 0 || !playlist[selectedPlIdx] || playlist[selectedPlIdx].sent){ plCancelSelect(); return; }
+  // Move selected item to the front of unsent items
+  var firstUnsentIdx = playlist.findIndex(function(p){ return !p.sent; });
+  if(firstUnsentIdx < 0 || firstUnsentIdx === selectedPlIdx){ plCancelSelect(); return; }
+  var item = playlist.splice(selectedPlIdx, 1)[0];
+  playlist.splice(firstUnsentIdx, 0, item);
+  toast('▶ “' + item.name + '” will play next');
+  selectedPlIdx = -1;
+  renderPlaylist();
+}
+function plCancelSelect(){
+  selectedPlIdx = -1;
+  var bar = $('pl-confirm-bar');
+  if(bar) bar.classList.remove('show');
 }
 function onPartyInput(){ partyMsg = $('party-msg-input').value.slice(0,100); $('party-count').textContent = partyMsg.length; if(role==='phone' && primaryConn) send({t:'partymsg', text:partyMsg}); }
 
