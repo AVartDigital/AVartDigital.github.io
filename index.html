@@ -236,7 +236,8 @@
     #file-drop-zone .drop-icon { font-size: 32px; margin-bottom: 8px; }
     #file-drop-zone p { font-size: 14px; color: var(--muted); }
     #file-drop-zone strong { color: var(--text); }
-    #file-input, #hidden-file-holder { display: none; }
+    /* Visually hidden (NOT display:none) so programmatic .click() works on mobile WebViews/Silk */
+    #file-input, #hidden-file-holder { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; clip: rect(0 0 0 0); pointer-events: none; }
     .video-info { padding: 10px 14px; background: var(--surface2); border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
     .video-info strong { display: block; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .video-info span { color: var(--muted); font-size: 12px; }
@@ -472,7 +473,7 @@
           <div id="file-drop-zone" onclick="document.getElementById('file-input').click()">
             <div class="drop-icon">🎬🖼️🎵</div><p><strong>Tap to add media</strong></p><p>Videos · Photos · Music (MP3, M4A, WAV)</p>
           </div>
-          <input type="file" id="file-input" accept="video/*,image/*,audio/*,.mp3,.m4a,.wav" multiple />
+          <input type="file" id="file-input" accept="video/*,image/*,audio/*" multiple />
           <div class="party-input-wrap">
             <label for="party-msg-input">🎉 Party message (shows during music)</label>
             <input type="text" id="party-msg-input" maxlength="100" placeholder="e.g. Happy Birthday Nalan" oninput="onPartyInput()" />
@@ -550,7 +551,7 @@
   </div>
 </div>
 
-<input type="file" id="hidden-file-holder" accept="video/*,image/*,audio/*,.mp3,.m4a,.wav" multiple />
+<input type="file" id="hidden-file-holder" accept="video/*,image/*,audio/*" multiple />
 <div class="toast" id="toast"></div>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -568,6 +569,12 @@ var tvQueue = [];
 var tvPlaying = null;
 var tvLoop = false;
 var rx = null; // current receive state
+
+// Stream mode state
+var streamVid = null;        // hidden source video (phone side, stream mode)
+var streamSyncIv = null;     // interval for scrubber sync in stream mode
+var tvStreamPendingMeta = null; // TV: metadata from stream-start, consumed by tvShowStream
+var STREAM_THRESHOLD = 50 * 1024 * 1024; // 50 MB — files larger than this are streamed
 var scrubbing = false;
 
 var ICE = { iceServers: [{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}] };
@@ -658,17 +665,46 @@ function regenQR(){
   toast('New code generated');
 }
 
-// TV: live stream
+// TV: live stream (screen mirror, camera, OR captureStream file)
 function tvShowStream(stream){
-  var v = $('tv-video');
-  $('tv-iframe').style.display = 'none';
-  v.srcObject = stream; v.src = '';
-  v.style.display = 'block';
-  $('tv-stage').classList.remove('idle');
-  $('tv-play-overlay').classList.add('hidden');
-  v.muted = false; v.volume = 1;
-  v.play().catch(function(){ v.muted = true; v.play().catch(function(){}); setTimeout(function(){ v.muted=false; },500); });
+  var meta = tvStreamPendingMeta || {};
+  tvStreamPendingMeta = null;
+  var kind = meta.kind || 'video';
+
+  $('tv-spinner').classList.remove('show');
+  stopViz(); clearTimeout(imgTimer);
+  tvPlaying = {id: Date.now(), name: meta.name || 'Live stream', kind: kind, url: null, isStream: true};
+  if(meta.partyMsg != null) tvPartyMsg = meta.partyMsg;
+
+  if(kind === 'audio'){
+    // Route audio stream through <audio> element for visualizer
+    var a = $('tv-audio');
+    a.srcObject = stream; a.src = '';
+    showOnlyMedia('audio');
+    $('tv-party-msg').textContent = tvPartyMsg || '';
+    a.muted = false; a.volume = 1;
+    a.play().then(function(){ startViz(a); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); })
+     .catch(function(){ a.muted=true; a.play().then(function(){ setTimeout(function(){ a.muted=false; },500); startViz(a); playFadeIn(); tvFullscreenAuto(); }).catch(function(){}); });
+  } else {
+    var v = $('tv-video');
+    v.srcObject = stream; v.src = '';
+    showOnlyMedia('video');
+    $('tv-play-overlay').classList.add('hidden');
+    v.muted = false; v.volume = 1;
+    v.play().then(function(){ playFadeIn(); tvFullscreenAuto(); showTVOverlay(); })
+     .catch(function(){ v.muted=true; v.play().then(function(){ setTimeout(function(){ v.muted=false; },500); playFadeIn(); tvFullscreenAuto(); }).catch(function(){}); });
+  }
+
+  // When the stream closes naturally (phone ended), advance to next queued item
+  stream.getTracks().forEach(function(t){
+    t.addEventListener('ended', function(){
+      // wait briefly for a 'stream-end' message which handles queue; fallback if it doesn't arrive
+      setTimeout(function(){ if(tvPlaying && tvPlaying.isStream){ tvPlaying=null; if(tvQueue.length>0) playNext(); else tvIdle(); broadcastQueue(); } }, 800);
+    });
+  });
+
   showScreen('screen-tv-play');
+  broadcastQueue();
 }
 
 // TV: incoming media (file transfer) — kind-aware + queue-aware
@@ -742,15 +778,27 @@ function tvFileEnd(){
   var item = {id: Date.now()+'-'+Math.random(), name:name, kind:kind, url:url, partyMsg:pmsg};
 
   if(wasProgressive){
-    // already playing this video from a partial blob — swap to the full url seamlessly
+    // already playing (or attempted) this video from a partial blob — swap to the full url
     var v = $('tv-video');
-    var savedTime = v.currentTime || 0, wasPaused = v.paused;
+    var savedTime = v.currentTime || 0;
     if(v._url){ try{ URL.revokeObjectURL(v._url); }catch(e){} }
     if(oldPartial){ try{ URL.revokeObjectURL(oldPartial); }catch(e){} }
-    v._url = url; v.src = url; v.loop = tvLoop; v.currentTime = savedTime;
-    if(!wasPaused){ v.muted=false; v.volume=1; v.play().catch(function(){}); }
+    v._url = url; v.src = url; v.loop = tvLoop;
+    // Restore position once the full file's metadata is ready (covers moov-at-end MP4s
+    // where the partial blob never became playable), then always resume playback.
+    var onMeta = function(){
+      v.removeEventListener('loadedmetadata', onMeta);
+      try{ if(savedTime > 0 && savedTime < (v.duration||1e9)) v.currentTime = savedTime; }catch(e){}
+      v.muted=false; v.volume=1;
+      v.play().catch(function(){ v.muted=true; v.play().then(function(){ setTimeout(function(){ v.muted=false; },500); }).catch(function(){}); });
+      playFadeIn();
+    };
+    v.addEventListener('loadedmetadata', onMeta);
+    v.load();
+    showOnlyMedia('video');
     if(tvPlaying){ tvPlaying.url = url; tvPlaying.partial = false; }
     $('tv-transfer').classList.remove('show');
+    tvFullscreenAuto();
     tvBroadcast({t:'ready'}); broadcastQueue(); sendTime();
     return;
   }
@@ -1140,6 +1188,79 @@ async function sendPlaylist(){
   send({t:'partymsg', text:partyMsg});
   await drainPlaylist();
 }
+function startStreamSync(){
+  stopStreamSync();
+  streamSyncIv = setInterval(function(){
+    if(!streamVid || !scrubEl) return;
+    var dur = streamVid.duration || 0;
+    var ct  = streamVid.currentTime || 0;
+    if(dur && !scrubbing){ scrubEl.max = dur; scrubEl.value = ct; }
+    $('cur-time').textContent = fmt(ct);
+    $('dur-time').textContent = fmt(dur);
+    $('ph-playpause').textContent = streamVid.paused ? '▶' : '⏸';
+  }, 400);
+}
+function stopStreamSync(){ if(streamSyncIv){ clearInterval(streamSyncIv); streamSyncIv=null; } }
+
+function cleanupStreamVid(){
+  stopStreamSync();
+  if(streamVid){
+    try{ streamVid.pause(); var u=streamVid.src; streamVid.src=''; URL.revokeObjectURL(u); }catch(e){}
+    try{ if(streamVid.parentNode) streamVid.parentNode.removeChild(streamVid); }catch(e){}
+    streamVid = null;
+  }
+}
+
+function streamFile(file, name){
+  return new Promise(function(resolve){
+    // Signal TV: stream is coming, here is its metadata
+    send({t:'stream-start', name: name||file.name, kind:'video', size:file.size, mime:file.type||'video/mp4', partyMsg:partyMsg});
+
+    cleanupStreamVid();
+    if(call){ try{call.close();}catch(e){} call=null; }
+
+    var vid = document.createElement('video');
+    vid.src = URL.createObjectURL(file);
+    vid.muted = true;       // must be muted to autoplay
+    vid.playsInline = true;
+    vid.loop = false;
+    vid.style.cssText = 'position:fixed;top:-4px;left:-4px;width:1px;height:1px;opacity:0;pointer-events:none;';
+    document.body.appendChild(vid);
+    streamVid = vid;
+
+    var done = false;
+    function finish(){
+      if(done) return; done = true;
+      send({t:'stream-end'});
+      cleanupStreamVid();
+      resolve();
+    }
+
+    function onError(){
+      if(done) return; done = true;
+      send({t:'stream-cancel'});
+      cleanupStreamVid();
+      // Transparent fallback to DataChannel
+      toast('⚠ Streaming unsupported — sending via transfer');
+      transferFile(file, 'video', name).then(resolve);
+    }
+
+    vid.addEventListener('loadedmetadata', function(){
+      var stream = vid.captureStream ? vid.captureStream() : vid.mozCaptureStream();
+      call = peer.call(roomId, stream);
+      call.on('error', onError);
+      vid.play().then(function(){
+        startStreamSync();
+        $('scrub-wrap').style.display = 'flex';
+        setPill('phone-cast-status','phone-cast-text','streaming','⚡ Streaming ' + (name||file.name) + '…');
+      }).catch(onError);
+    }, {once:true});
+
+    vid.addEventListener('ended', finish, {once:true});
+    vid.addEventListener('error', onError, {once:true});
+  });
+}
+
 // added during a live session (from controller) – just append + drain
 function changeVideo(){ $('hidden-file-holder').value=''; $('hidden-file-holder').click(); }
 function hiddenFileChange(e){
@@ -1151,14 +1272,24 @@ function hiddenFileChange(e){
   drainPlaylist();
 }
 
+function supportsCapture(){
+  var v = document.createElement('video');
+  return !!(v.captureStream || v.mozCaptureStream);
+}
+
 async function drainPlaylist(){
   if(sending) return;
   sending = true;
   for(var i=0;i<playlist.length;i++){
     if(playlist[i].sent) continue;
     var it = playlist[i];
-    setPill('phone-cast-status','phone-cast-text','streaming','Sending '+it.name+'…');
-    await transferFile(it.file, it.kind, it.name);
+    var useStream = it.kind === 'video' && it.size >= STREAM_THRESHOLD && supportsCapture();
+    setPill('phone-cast-status','phone-cast-text','streaming', (useStream ? '⚡ Streaming ' : '📤 Sending ') + it.name + '…');
+    if(useStream){
+      await streamFile(it.file, it.name);
+    } else {
+      await transferFile(it.file, it.kind, it.name);
+    }
     it.sent = true;
     renderPlaylist();
   }
@@ -1226,6 +1357,21 @@ function initScrubber(){
   scrubEl.addEventListener('change', function(){ ctrl('seek', parseFloat(scrubEl.value)); scrubbing=false; });
 }
 function ctrl(a, val){
+  if(streamVid){
+    // In stream mode phone controls drive the hidden source video; TV follows the stream
+    switch(a){
+      case 'toggle':   streamVid.paused ? streamVid.play() : streamVid.pause(); break;
+      case 'play':     streamVid.play(); break;
+      case 'pause':    streamVid.pause(); break;
+      case 'rewind':   streamVid.currentTime = Math.max(0, streamVid.currentTime - 10); break;
+      case 'forward':  streamVid.currentTime = Math.min(streamVid.duration||1e9, streamVid.currentTime + 10); break;
+      case 'restart':  streamVid.currentTime = 0; streamVid.play(); break;
+      case 'seek':     if(val != null) streamVid.currentTime = val; break;
+      case 'loop':     tvLoop = !tvLoop; streamVid.loop = tvLoop; $('ph-loop').classList.toggle('on', tvLoop); break;
+      case 'fullscreen': send({t:'pb', a:'fullscreen'}); break;
+    }
+    return;
+  }
   if(a === 'seek'){ send({t:'pb', a:'seek', v:val}); return; }
   send({t:'pb', a:a, v:val});
 }
@@ -1261,6 +1407,9 @@ function handleData(msg, dc, cid){
       break;
     case 'fstart': if(role==='tv') tvFileStart(msg); break;
     case 'fend': if(role==='tv') tvFileEnd(); break;
+    case 'stream-start': if(role==='tv'){ tvStreamPendingMeta=msg; $('tv-spinner').classList.add('show'); } break;
+    case 'stream-end': if(role==='tv'){ $('tv-spinner').classList.remove('show'); if(tvPlaying&&tvPlaying.isStream){ tvPlaying=null; if(tvQueue.length>0){playNext();}else{tvIdle();} broadcastQueue(); } } break;
+    case 'stream-cancel': if(role==='tv'){ tvStreamPendingMeta=null; $('tv-spinner').classList.remove('show'); } break;
     case 'ready': if(role==='phone'){ setPill('phone-cast-status','phone-cast-text','streaming','Playing on TV'); } break;
     case 'pb': if(role==='tv'){ applyTVCmd(msg.a, msg.v); } break;
     case 'time': if(role==='phone') onTime(msg); break;
@@ -1333,6 +1482,7 @@ function endAll(notify){
   showScreen('screen-ended');
 }
 function resetConn(){
+  cleanupStreamVid();
   if(call){try{call.close();}catch(e){}} call=null;
   connections.forEach(function(entry){ try{entry.conn.close();}catch(e){}});
   connections.clear();
@@ -1341,8 +1491,8 @@ function resetConn(){
   if(localStream){localStream.getTracks().forEach(function(t){t.stop();}); localStream=null;}
   var v = $('tv-video');
   try{ v.pause(); v.removeAttribute('src'); v.srcObject=null; }catch(e){}
-  try{ clearTimeout(imgTimer); if(vizRAF){ cancelAnimationFrame(vizRAF); vizRAF=null; } var a=$('tv-audio'); a.pause(); a.removeAttribute('src'); }catch(e){}
-  confirmed=false; rx=null; tvQueue=[]; tvPlaying=null;
+  try{ clearTimeout(imgTimer); if(vizRAF){ cancelAnimationFrame(vizRAF); vizRAF=null; } var a=$('tv-audio'); a.pause(); a.removeAttribute('src'); a.srcObject=null; }catch(e){}
+  confirmed=false; rx=null; tvQueue=[]; tvPlaying=null; tvStreamPendingMeta=null;
   playlist=[]; partyMsg=''; sending=false;
   $('phone-ctrl').classList.remove('visible');
 }
