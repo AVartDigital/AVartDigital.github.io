@@ -513,6 +513,7 @@
           </div>
           <button class="btn-primary btn-wide" id="btn-cast-file" onclick="sendPlaylist()" disabled>📡 Send playlist to TV &amp; play</button>
           <p class="hint" style="margin-top:10px;">Items play in order. Add more anytime — they queue behind what's playing.</p>
+          <p id="cloud-status-note" class="hint" style="margin-top:6px;"></p>
         </div>
         <div class="playlist-panel">
           <h3>Playlist <span class="count" id="pl-count">0 items</span></h3>
@@ -613,6 +614,8 @@
 // Clear any stale caches on load
 if('caches' in window){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }
 if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(function(regs){ regs.forEach(function(r){ r.unregister(); }); }); }
+// Snapchat-style: also purge temp cloud uploads if the tab is closed/backgrounded
+window.addEventListener('pagehide', function(){ try{ cloudCleanup(); }catch(e){} });
 
 // ───────── State ─────────
 var role = null, peer = null, conn = null, call = null, localStream = null, roomId = null, confirmed = false, currentSource = null;
@@ -630,6 +633,19 @@ var streamSyncIv = null;     // interval for scrubber sync in stream mode
 var tvStreamPendingMeta = null; // TV: metadata from stream-start, consumed by tvShowStream
 var STREAM_THRESHOLD = 40 * 1024 * 1024; // 40 MB — files larger than this are streamed (no receiver RAM buffering)
 var scrubbing = false;
+
+/* ═══════════════ SUPABASE EPHEMERAL CLOUD CAST ═══════════════
+   Fill these in from your Supabase project (Settings → API).
+   Create a Storage bucket named below, set it PUBLIC, and add anon
+   INSERT + DELETE policies. Videos are uploaded here temporarily and
+   DELETED when the session ends (Snapchat-style). See setup notes at end. */
+var SUPABASE_URL      = 'https://pbmazmlzxwqsysozxxpe.supabase.co';
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBibWF6bWx6eHdxc3lzb3p4eHBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1OTc2ODAsImV4cCI6MjA5ODE3MzY4MH0.vbkKogJZ2bcuUpp7HK3pPZCZFV2rZEOqNLTB_AhZeCo';
+var SUPABASE_BUCKET   = 'cast';
+var CLOUD_THRESHOLD   = 40 * 1024 * 1024; // videos ≥40MB go to cloud when enabled
+function cloudEnabled(){ return !!(SUPABASE_URL && SUPABASE_ANON_KEY); }
+var sessionUploads = [];   // object paths uploaded this session (for cleanup)
+var tusLoaded = false;
 
 var ICE = { iceServers: [{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}] };
 var $ = function(id){ return document.getElementById(id); };
@@ -1184,6 +1200,14 @@ function pickSource(s){
   ['file','screen','url','camera'].forEach(function(k){ $('src-'+k).style.display = (k===s)?'block':'none'; });
   document.querySelector('.source-btn[onclick*="\''+s+'\'"]') && document.querySelector('.source-btn[onclick*="\''+s+'\'"]').classList.add('sel');
   if(s==='url'){ renderPresets(); renderRecents(); }
+  if(s==='file'){
+    var note = $('cloud-status-note');
+    if(note){
+      note.innerHTML = cloudEnabled()
+        ? '☁ Large videos (≥40MB) upload to temporary cloud storage for fast, seekable playback — auto-deleted when you end the session.'
+        : '⚡ Large videos stream live to the TV. (Add Supabase keys in the code to enable cloud upload for full seek + replay.)';
+    }
+  }
 }
 
 // ── Media kind detection ──
@@ -1378,18 +1402,90 @@ async function drainPlaylist(){
   for(var i=0;i<playlist.length;i++){
     if(playlist[i].sent) continue;
     var it = playlist[i];
-    var useStream = it.kind === 'video' && it.size >= STREAM_THRESHOLD && supportsCapture();
-    setPill('phone-cast-status','phone-cast-text','streaming', (useStream ? '⚡ Streaming ' : '📤 Sending ') + it.name + '…');
-    if(useStream){
-      await streamFile(it.file, it.name);
+    var bigVideo = it.kind === 'video' && it.size >= CLOUD_THRESHOLD;
+    var useCloud  = bigVideo && cloudEnabled();
+    var useStream = bigVideo && !useCloud && supportsCapture();
+    if(useCloud){
+      try{
+        await cloudCastVideo(it);
+      }catch(e){
+        toast('Cloud upload failed — falling back');
+        if(supportsCapture()) await streamFile(it.file, it.name);
+        else await transferFile(it.file, it.kind, it.name);
+      }
     } else {
-      await transferFile(it.file, it.kind, it.name);
+      setPill('phone-cast-status','phone-cast-text','streaming', (useStream ? '⚡ Streaming ' : '📤 Sending ') + it.name + '…');
+      if(useStream) await streamFile(it.file, it.name);
+      else await transferFile(it.file, it.kind, it.name);
     }
     it.sent = true;
     renderPlaylist();
   }
   sending = false;
   setPill('phone-cast-status','phone-cast-text','streaming','Playing on TV');
+}
+
+// ═══════════ Supabase ephemeral cloud cast ═══════════
+function loadTus(){
+  return new Promise(function(res, rej){
+    if(tusLoaded && window.tus){ res(); return; }
+    var s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/tus-js-client@3/dist/tus.min.js';
+    s.onload=function(){ tusLoaded=true; res(); };
+    s.onerror=function(){ rej(new Error('tus load failed')); };
+    document.head.appendChild(s);
+  });
+}
+function safeName(n){ return String(n||'video').replace(/[^a-zA-Z0-9._-]/g,'_').slice(-60); }
+
+function cloudCastVideo(item){
+  return new Promise(async function(resolve, reject){
+    try{ await loadTus(); }catch(e){ return reject(e); }
+    var objectName = 'sessions/' + (roomId||'x') + '/' + Date.now() + '_' + safeName(item.name);
+    var endpoint = SUPABASE_URL.replace(/\/$/,'') + '/storage/v1/upload/resumable';
+    setPill('phone-cast-status','phone-cast-text','streaming','☁ Uploading '+item.name+'… 0%');
+    var upload = new tus.Upload(item.file, {
+      endpoint: endpoint,
+      retryDelays: [0, 1000, 3000, 5000, 10000],
+      headers: { authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY, 'x-upsert': 'true' },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      chunkSize: 6 * 1024 * 1024, // Supabase requires 6MB chunks
+      metadata: { bucketName: SUPABASE_BUCKET, objectName: objectName, contentType: item.file.type || 'video/mp4', cacheControl: '3600' },
+      onError: function(err){ reject(err); },
+      onProgress: function(sent, total){
+        var pct = total ? Math.round(sent/total*100) : 0;
+        setPill('phone-cast-status','phone-cast-text','streaming','☁ Uploading '+item.name+'… '+pct+'%');
+      },
+      onSuccess: function(){
+        sessionUploads.push(objectName);
+        var publicUrl = SUPABASE_URL.replace(/\/$/,'') + '/storage/v1/object/public/' + SUPABASE_BUCKET + '/' + objectName;
+        // Hand the URL to the TV as a normal queue item (full transport + auto-advance)
+        send({t:'enqueue-url', name:item.name, url:publicUrl, kind:'video', partyMsg:partyMsg});
+        setPill('phone-cast-status','phone-cast-text','streaming','▶ Casting '+item.name);
+        resolve();
+      }
+    });
+    // Resume if a previous attempt was interrupted
+    upload.findPreviousUploads().then(function(prev){
+      if(prev && prev.length) upload.resumeFromPreviousUpload(prev[0]);
+      upload.start();
+    }).catch(function(){ upload.start(); });
+  });
+}
+
+// Delete all of this session's uploaded objects (Snapchat-style cleanup)
+function cloudCleanup(){
+  if(!cloudEnabled() || !sessionUploads.length) return;
+  var base = SUPABASE_URL.replace(/\/$/,'') + '/storage/v1/object/' + SUPABASE_BUCKET + '/';
+  var paths = sessionUploads.slice();
+  sessionUploads = [];
+  paths.forEach(function(p){
+    try{
+      fetch(base + p, { method:'DELETE', keepalive:true,
+        headers:{ authorization:'Bearer '+SUPABASE_ANON_KEY, apikey:SUPABASE_ANON_KEY } }).catch(function(){});
+    }catch(e){}
+  });
 }
 
 async function transferFile(file, kind, name){
@@ -1597,6 +1693,11 @@ function handleData(msg, dc, cid){
     case 'pb': if(role==='tv'){ applyTVCmd(msg.a, msg.v); } break;
     case 'time': if(role==='phone') onTime(msg); break;
     case 'url': if(role==='tv') openUrlOnTV(msg.url); break;
+    case 'enqueue-url': if(role==='tv'){
+      var citem = {id: Date.now()+'-'+Math.random(), name: msg.name||'Video', kind: msg.kind||'video', url: msg.url, partyMsg: msg.partyMsg||'', isCloud:true};
+      if(tvPlaying === null){ showScreen('screen-tv-play'); playItem(citem); }
+      else { tvQueue.push(citem); broadcastQueue(); }
+    } break;
     case 'text': if(role==='tv') showTextOnTV(msg.text); break;
     case 'nav': if(role==='tv') navTV(msg.d); break;
     case 'partymsg': if(role==='tv'){ tvPartyMsg = msg.text||''; var pm=$('tv-party-msg'); if(pm) pm.textContent = tvPartyMsg; } break;
@@ -1802,6 +1903,7 @@ function endAll(notify){
   showScreen('screen-ended');
 }
 function resetConn(){
+  cloudCleanup();        // Snapchat-style: delete this session's temp cloud videos
   cleanupStreamVid();
   stopYtSync();
   if(ytPlayer){ try{ ytPlayer.destroy(); }catch(e){} ytPlayer=null; }
@@ -1886,5 +1988,47 @@ window.addEventListener('beforeunload', function(){
   if(primaryConn && primaryConn.open){ try{primaryConn.send({t:'end'});}catch(e){} }
 });
 </script>
+
+<!--
+═══════════════════════════════════════════════════════════════════════════
+  SUPABASE EPHEMERAL CLOUD CAST — ONE-TIME SETUP (≈5 min)
+═══════════════════════════════════════════════════════════════════════════
+  1. Open your Supabase project → Settings → API. Copy:
+       • Project URL   → paste into  SUPABASE_URL      (top of <script>)
+       • anon public key → paste into SUPABASE_ANON_KEY
+  2. Storage → New bucket:
+       • Name: cast   • Public bucket: ON
+       • (optional) File size limit: 2 GB   • Allowed MIME: video/*
+  3. Storage → Policies → on the 'cast' bucket, add policies for the
+     anon role (or "public") allowing INSERT and DELETE. Quick SQL
+     (Supabase → SQL Editor):
+
+       create policy "anon upload cast"   on storage.objects
+         for insert to anon with check (bucket_id = 'cast');
+       create policy "anon delete cast"   on storage.objects
+         for delete to anon using (bucket_id = 'cast');
+       -- public read is automatic for a public bucket
+
+  4. (Safety net — auto-purge anything older than 2h in case a session
+     never ends cleanly). Enable pg_cron + run in SQL Editor:
+
+       select cron.schedule('purge-cast','*/30 * * * *', $$
+         delete from storage.objects
+         where bucket_id = 'cast' and created_at < now() - interval '2 hours';
+       $$);
+
+  HOW IT BEHAVES
+    • Videos ≥40 MB picked on the phone upload to bucket 'cast' (resumable,
+      survives flaky Wi-Fi), then the TV streams the public URL with full
+      scrub / pause / FF / rewind / replay (HTTP range requests).
+    • Files are DELETED the moment the user ends the session (or closes the
+      tab); the cron above is only a backstop.
+    • Leave the keys blank to disable cloud and fall back to live streaming.
+
+  SECURITY NOTE: the anon key is public by design and locked to the 'cast'
+  bucket by the policies above. For stricter control, move uploads behind a
+  small serverless function that mints short-lived signed upload URLs.
+═══════════════════════════════════════════════════════════════════════════
+-->
 </body>
 </html>
