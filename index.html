@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>AVTV — VideoMirror</title>
+  <title>CastParty — cast & stream to your TV</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -355,14 +355,58 @@
     #pl-confirm-bar button { flex: none; padding: 8px 14px; font-size: 13px; min-height: 36px; border-radius: 8px; }
     #pl-confirm-bar .conf-play { background: linear-gradient(180deg, var(--gold-soft), var(--gold)); color: #042038; border: none; }
     #pl-confirm-bar .conf-cancel { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: var(--muted); }
+
+    /* ═══════════ RESPONSIVE HARDENING — no content bleeds off-screen ═══════════ */
+    html, body { max-width: 100%; overflow-x: hidden; }
+    #app { overflow-x: hidden; }
+    /* Let every flex child shrink instead of forcing horizontal overflow */
+    .controls > *, .source-grid > *, .mode-grid > *, .ctrl-row > *, .transport > *,
+    .tv-bar > *, .extra-row > *, .scrub-row > *, .join-form > * { min-width: 0; }
+    /* Buttons never spill their text */
+    button, .ctrl-btn, .source-btn, .home-card, .preset-chip { max-width: 100%; }
+    .ctrl-btn { padding-left: 4px; padding-right: 4px; overflow: hidden; }
+    .ctrl-btn .lbl { display: none; }                  /* icon-only on phones avoids overflow */
+    @media (min-width: 380px){ .ctrl-btn .lbl { display: inline; } } /* labels only when room */
+    /* Long names/urls wrap instead of pushing layout wide */
+    .pl-name, .rec-name, .rec-url, .video-info strong, #ended-msg, #ended-title { overflow-wrap: anywhere; word-break: break-word; }
+    img, video, canvas, iframe { max-width: 100%; }
+    /* Phone controller fits any device, respects safe areas, never taller than 45vh */
+    #phone-ctrl { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); max-height: 45vh; overflow-y: auto; }
+    /* Give the cast screen enough clearance for the fixed controller on small screens */
+    @media (max-height: 680px){ #screen-phone-cast.active { padding-bottom: 200px; } }
+
+    /* ═══════════ CASTPARTY SCI-FI BRAND — consistent panel/button identity ═══════════ */
+    :root { --edge: rgba(109,184,255,0.30); --edge-soft: rgba(109,184,255,0.16); --glow: 0 0 14px rgba(109,184,255,0.25); }
+    /* Tech-panel surfaces: cards, source tiles, home tiles, playlist, notes share one identity */
+    .card, .source-btn, .home-card, .playlist-panel, #file-drop-zone, .video-info, .code-display, #pl-confirm-bar, .url-recent-item {
+      border-color: var(--edge-soft) !important;
+      background-image: linear-gradient(180deg, rgba(109,184,255,0.05), rgba(109,184,255,0));
+    }
+    /* Secondary / ghost buttons read as cyan-edged tech chips */
+    .btn-secondary, .btn-ghost, .ctrl-btn, .transport button, .tv-bar button, .extra-row button, .source-btn, .preset-chip, .back-btn {
+      border: 1px solid var(--edge) !important;
+      box-shadow: inset 0 0 0 1px rgba(109,184,255,0.04);
+    }
+    .btn-secondary { background: linear-gradient(180deg, rgba(109,184,255,0.12), rgba(109,184,255,0.04)); color: var(--gold-soft); }
+    /* Primary actions: glowing blue energy bar */
+    .btn-primary, #pl-confirm-bar .conf-play { box-shadow: var(--glow); letter-spacing: .3px; }
+    /* Focus/selected states glow consistently */
+    .home-card.focused, .source-btn.sel, .ctrl-btn.on, .tv-bar button.on, .transport button.on { box-shadow: 0 0 0 2px var(--edge), var(--glow); }
+    /* Section titles + logo get a subtle techno treatment */
+    .logo { text-shadow: 0 0 18px rgba(109,184,255,0.45); }
+    .section-title { color: var(--gold-soft); }
+    /* Status pills + badges glow in-brand */
+    .avtv-badge { border-color: var(--edge) !important; box-shadow: 0 0 24px rgba(109,184,255,0.2); }
+    /* TV monitor bezel reads as brushed-metal sci-fi frame */
+    .tv-monitor-outer { border-color: #20303f; box-shadow: inset 0 0 0 1px rgba(109,184,255,0.12), 0 0 0 1px #060a0f, 0 40px 100px rgba(0,0,0,0.9), 0 0 40px rgba(109,184,255,0.08); }
   </style>
 </head>
 <body>
 
 <header>
   <div>
-    <div class="logo">AV<span>-TV</span></div>
-    <div class="subtitle">Cast & mirror to your TV over Wi-Fi</div>
+    <div class="logo">Cast<span>Party</span></div>
+    <div class="subtitle">Cast & stream to your TV over Wi-Fi</div>
   </div>
 </header>
 
@@ -415,7 +459,7 @@
   <!-- TV: CINEMATIC PLAYER -->
   <div id="screen-tv-play" class="screen">
     <div id="tv-frame">
-      <div class="avtv-badge"><span class="live-dot"></span> AV-TV — STREAMING LIVE</div>
+      <div class="avtv-badge"><span class="live-dot"></span> CASTPARTY — STREAMING LIVE</div>
       <div class="tv-monitor-outer">
         <div id="tv-stage" class="idle" onclick="showTVOverlay()" ondblclick="tvFullscreen()">
           <video id="tv-video" playsinline></video>
@@ -578,7 +622,7 @@
     <div class="big-confirm">
       <div class="ic">✅</div><h2 id="ended-title">Session ended</h2>
       <p id="ended-msg">The connection has been closed.</p>
-      <button class="btn-primary btn-wide" style="max-width:280px;margin:0 auto;" onclick="location.href=location.pathname">Start over</button>
+      <button class="btn-primary btn-wide" style="max-width:280px;margin:0 auto;" onclick="startOver()">Start over</button>
     </div>
   </div>
 
@@ -664,6 +708,21 @@ function showScreen(id){
 }
 
 function goHome(){ resetConn(); showScreen('screen-home'); }
+
+// Robust "Start over" — resets everything in place (no page reload, which can
+// silently fail inside Silk / fullscreen). Returns the user to the home screen.
+function startOver(){
+  try{ if(document.fullscreenElement||document.webkitFullscreenElement){ (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); } }catch(e){}
+  try{ resetConn(); }catch(e){}
+  role = null; confirmed = false; currentSource = null;
+  tvQueue = []; tvPlaying = null; playlist = []; partyMsg = '';
+  document.body.classList.remove('tv-playing');
+  $('phone-ctrl').classList.remove('visible');
+  // reset home focus to the first card
+  var f = document.querySelector('.home-card.focused'); if(f) f.classList.remove('focused');
+  var hp = $('home-phone'); if(hp) hp.classList.add('focused');
+  showScreen('screen-home');
+}
 
 // ───────── TV role ─────────
 function goTV(){
