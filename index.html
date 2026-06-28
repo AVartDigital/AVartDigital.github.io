@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -182,15 +183,19 @@
     #tv-play-overlay.hidden { display: none; }
 
     /* Transfer progress */
-    #tv-transfer { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; background: rgba(6,8,6,0.82); z-index: 10; }
+    #tv-transfer { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10;
+      background: radial-gradient(ellipse 90% 70% at 50% 50%, rgba(13,26,42,0.92), rgba(4,8,14,0.96)); }
     #tv-transfer.show { display: flex; }
-    .progress-track { position: relative; width: 60%; max-width: 420px; height: 8px; border-radius: 6px; background: rgba(255,255,255,0.12); overflow: hidden; }
-    .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--gold), var(--gold-soft)); transition: width .15s; }
-    /* indeterminate shimmer rides on top of the determinate fill */
+    #tv-transfer .xfer-title { font-size: clamp(16px,2.4vw,24px); font-weight: 800; letter-spacing: 4px; text-transform: uppercase; color: var(--gold-soft); text-shadow: 0 0 18px rgba(109,184,255,0.6); margin-bottom: 18px; }
+    #tv-transfer .xfer-pct { font-size: clamp(28px,5vw,56px); font-weight: 900; color: var(--gold); font-variant-numeric: tabular-nums; text-shadow: 0 0 24px rgba(109,184,255,0.7); margin-top: 16px; letter-spacing: 1px; }
+    .progress-track { position: relative; width: 64%; max-width: 520px; height: 12px; border-radius: 8px;
+      background: rgba(109,184,255,0.12); overflow: hidden; border: 1px solid var(--edge); box-shadow: 0 0 24px rgba(109,184,255,0.18) inset; }
+    .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #2b6cff, var(--gold), var(--gold-soft)); box-shadow: 0 0 18px rgba(109,184,255,0.8); transition: width .2s; }
+    /* indeterminate scan-line rides on top of the determinate fill */
     .progress-track::after { content:''; position:absolute; top:0; left:-40%; width:40%; height:100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent); animation: shimmer 1.1s linear infinite; }
+      background: linear-gradient(90deg, transparent, rgba(174,212,255,0.7), transparent); animation: shimmer 1.1s linear infinite; }
     @keyframes shimmer { to { left: 100%; } }
-    .spin-gold { width: 42px; height: 42px; border: 4px solid rgba(109,184,255,0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin .9s linear infinite; margin-bottom: 14px; }
+    .spin-gold { width: 48px; height: 48px; border: 3px solid rgba(109,184,255,0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin .9s linear infinite; margin-bottom: 18px; box-shadow: 0 0 24px rgba(109,184,255,0.4); }
 
     #tv-textbar { position: absolute; left: 0; right: 0; bottom: 0; padding: 16px 20px; background: rgba(0,0,0,0.8); color: #fff; font-size: 22px; font-weight: 600; word-break: break-word; display: none; }
 
@@ -259,35 +264,66 @@
     .video-info strong { display: block; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .video-info span { color: var(--muted); font-size: 12px; }
 
-    /* Phone fixed controller */
-    #phone-ctrl {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
-      background: rgba(8,11,9,0.97); backdrop-filter: blur(24px);
-      border-top: 1px solid rgba(109,184,255,0.18);
-      padding: 12px 16px env(safe-area-inset-bottom, 12px);
-      display: none;
+    /* Floating remote launcher (FAB) */
+    #remote-fab {
+      position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 260;
+      width: 60px; height: 60px; min-height: 60px; padding: 0; border-radius: 50%; flex: none;
+      background: radial-gradient(circle at 35% 30%, #2b4a6b, #0d1a28);
+      border: 1px solid var(--edge); color: var(--gold-soft);
+      box-shadow: 0 0 0 1px rgba(109,184,255,0.25), 0 8px 28px rgba(0,0,0,0.6), 0 0 26px rgba(109,184,255,0.3);
+      display: none; align-items: center; justify-content: center; cursor: pointer;
     }
-    #phone-ctrl.visible { display: block; }
-    #screen-phone-cast.active { padding-bottom: 180px; }
+    #remote-fab.show { display: flex; }
+    #remote-fab .fab-glyph { font-size: 26px; line-height: 1; filter: drop-shadow(0 0 6px rgba(109,184,255,0.8)); }
+    #remote-fab .fab-ring { position: absolute; inset: 6px; border-radius: 50%; border: 1px dashed rgba(109,184,255,0.45); animation: fabspin 8s linear infinite; }
+    @keyframes fabspin { to { transform: rotate(360deg); } }
+    #remote-fab:active { transform: scale(0.92); }
+
+    /* Phone floating sci-fi controller (slide-up panel) */
+    #phone-ctrl {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 250;
+      background: linear-gradient(180deg, rgba(13,22,34,0.98), rgba(8,12,20,0.99));
+      backdrop-filter: blur(26px);
+      border-top: 1px solid var(--edge);
+      box-shadow: 0 -8px 40px rgba(0,0,0,0.6), 0 0 40px rgba(109,184,255,0.12) inset;
+      padding: 6px 14px calc(12px + env(safe-area-inset-bottom));
+      padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right));
+      transform: translateY(112%); transition: transform .28s cubic-bezier(.2,.7,.2,1);
+      max-height: 80vh; overflow-y: auto;
+    }
+    #phone-ctrl.open { transform: translateY(0); }
+    .ctrl-handle { display: flex; justify-content: center; padding: 6px 0 8px; cursor: pointer; }
+    .ctrl-handle span { width: 44px; height: 4px; border-radius: 3px; background: rgba(109,184,255,0.5); box-shadow: 0 0 8px rgba(109,184,255,0.5); }
+    .ctrl-titlebar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 11px; letter-spacing: 2px; font-weight: 800; color: var(--gold-soft); text-transform: uppercase; }
+    .ctrl-titlebar .ctrl-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); animation: pulse 1.4s infinite; }
+    .ctrl-titlebar #ctrl-now { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ctrl-close { flex: none; min-width: 32px; width: 32px; height: 32px; min-height: 32px; padding: 0; border-radius: 8px; background: transparent; border: 1px solid var(--edge); color: var(--gold-soft); font-size: 16px; }
 
     .scrub-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
     .time-label { font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; min-width: 40px; }
-    input[type=range].scrub { flex: 1; -webkit-appearance: none; height: 6px; background: rgba(255,255,255,0.15); border-radius: 4px; outline: none; }
-    input[type=range].scrub::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--gold); cursor: pointer; box-shadow: 0 0 8px rgba(109,184,255,0.6); }
+    input[type=range].scrub { flex: 1; -webkit-appearance: none; height: 6px; background: rgba(109,184,255,0.18); border-radius: 4px; outline: none; }
+    input[type=range].scrub::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--gold); cursor: pointer; box-shadow: 0 0 10px rgba(109,184,255,0.9); }
     input[type=range].scrub::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; background: var(--gold); }
     .ctrl-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
     .ctrl-row:last-child { margin-bottom: 0; }
     .ctrl-btn {
-      background: var(--surface2); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
-      padding: 10px 8px; font-size: 18px; color: var(--gold-soft); flex: 1; min-height: 44px;
-      display: flex; align-items: center; justify-content: center; cursor: pointer;
-      transition: background .15s, transform .1s;
+      background: linear-gradient(180deg, rgba(109,184,255,0.12), rgba(109,184,255,0.04));
+      border: 1px solid var(--edge); border-radius: 11px;
+      padding: 10px 6px; font-size: 19px; color: var(--gold-soft); flex: 1; min-width: 0; min-height: 48px;
+      display: flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; overflow: hidden;
+      box-shadow: inset 0 0 12px rgba(109,184,255,0.06);
+      transition: background .15s, transform .1s, box-shadow .15s;
     }
-    .ctrl-btn:active { transform: scale(0.94); background: rgba(109,184,255,0.1); }
-    .ctrl-btn.big { flex: 1.5; font-size: 24px; }
-    .ctrl-btn.on { background: rgba(109,184,255,0.2); border-color: var(--gold); color: var(--gold); }
-    .ctrl-btn.danger { color: var(--danger); border-color: rgba(255,100,100,0.25); }
+    .ctrl-btn:active { transform: scale(0.94); background: rgba(109,184,255,0.2); box-shadow: 0 0 16px rgba(109,184,255,0.4); }
+    .ctrl-btn.big { flex: 1.6; font-size: 26px; color: var(--gold); }
+    .ctrl-btn.on { background: rgba(109,184,255,0.25); border-color: var(--gold); color: var(--gold); box-shadow: 0 0 16px rgba(109,184,255,0.45); }
+    .ctrl-btn.danger { color: var(--danger); border-color: rgba(255,120,120,0.4); }
     .ctrl-btn .lbl { font-size: 11px; color: var(--muted); }
+    /* Party message quick-input inside controller */
+    .ctrl-party { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+    .ctrl-party input { flex: 1; min-width: 0; background: rgba(109,184,255,0.08); border: 1px solid var(--edge); border-radius: 10px; padding: 11px 12px; color: var(--text); font-size: 14px; outline: none; }
+    .ctrl-party input:focus { border-color: var(--gold); box-shadow: 0 0 12px rgba(109,184,255,0.3); }
+    .ctrl-party-count { flex: none; font-size: 11px; color: var(--muted); min-width: 28px; text-align: right; }
 
     /* Scrubber hidden in live mode */
     .scrub-row.hidden-ctrl { display: none; }
@@ -330,8 +366,11 @@
     .pl-item .pl-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .pl-item .pl-sub { font-size:11px; color:var(--muted); }
     .pl-item .pl-act { display:flex; gap:4px; flex:none; }
-    .pl-item .pl-act button { flex:none; min-width:34px; width:34px; height:34px; min-height:34px; padding:0; font-size:14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); color:var(--gold-soft); border-radius:8px; }
-    .pl-item .pl-act button.del { color: var(--danger); }
+    .pl-item .pl-act { display:flex; gap:5px; flex:none; flex-wrap:wrap; justify-content:flex-end; }
+    .pl-item .pl-act button { flex:none; min-width:34px; width:34px; height:34px; min-height:34px; padding:0; font-size:13px; background:rgba(109,184,255,0.08); border:1px solid var(--edge); color:var(--gold-soft); border-radius:8px; }
+    .pl-item .pl-act button.play { background:linear-gradient(180deg, var(--gold-soft), var(--gold)); color:#042038; border:none; box-shadow:0 0 10px rgba(109,184,255,0.35); }
+    .pl-item .pl-act button.del { color: var(--danger); border-color:rgba(255,120,120,0.35); }
+    #screen-phone-cast.active { padding-bottom: 96px; }
     .pl-item.selected { border-color: var(--gold); background: rgba(109,184,255,0.15); box-shadow: 0 0 0 2px rgba(109,184,255,0.3); }
 
     /* URL presets + recents */
@@ -406,7 +445,7 @@
 <header>
   <div>
     <div class="logo">Cast<span>Party</span></div>
-    <div class="subtitle">Cast & stream to your TV over Wi-Fi</div>
+    <div class="subtitle">Cast & stream over Wi-Fi</div>
   </div>
 </header>
 
@@ -476,7 +515,9 @@
           <div id="tv-spinner"><div class="spin-ring"></div></div>
           <div id="tv-transfer">
             <div class="spin-gold"></div>
+            <div class="xfer-title" id="tv-xfer-title">Loading</div>
             <div class="progress-track"><div class="progress-fill" id="tv-transfer-fill"></div></div>
+            <div class="xfer-pct" id="tv-xfer-pct"></div>
           </div>
           <div id="tv-textbar"></div>
           <div id="tv-fade"></div>
@@ -614,7 +655,7 @@
       <h3>On the TV</h3>
       <div id="cast-queue"><div class="pl-empty">Nothing queued yet.</div></div>
     </div>
-    <p style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center;">Use the controls pinned below ↓</p>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center;">Tap the ⦿ remote button anytime to open playback controls.</p>
   </div>
 
   <!-- ENDED -->
@@ -628,25 +669,36 @@
 
 </div><!-- #app -->
 
-<!-- PHONE FIXED CONTROLLER -->
+<!-- FLOATING REMOTE LAUNCHER (always available once paired) -->
+<button id="remote-fab" onclick="toggleRemote()" title="Remote control" aria-label="Remote control">
+  <span class="fab-ring"></span><span class="fab-glyph">⦿</span>
+</button>
+
+<!-- PHONE FLOATING CONTROLLER -->
 <div id="phone-ctrl">
+  <div class="ctrl-handle" onclick="toggleRemote()"><span></span></div>
+  <div class="ctrl-titlebar"><span class="ctrl-dot"></span><span id="ctrl-now">REMOTE</span><button class="ctrl-close" onclick="closeRemote()" aria-label="Close">▾</button></div>
   <div class="scrub-row" id="scrub-wrap">
     <span class="time-label" id="cur-time">0:00</span>
     <input type="range" class="scrub" id="scrubber" min="0" max="100" value="0" step="0.1" />
     <span class="time-label" id="dur-time">0:00</span>
   </div>
   <div class="ctrl-row">
-    <button class="ctrl-btn" onclick="ctrl('rewind')">⏪</button>
+    <button class="ctrl-btn" onclick="ctrl('rewind')" title="Back 10s">⏮</button>
     <button class="ctrl-btn big" id="ph-playpause" onclick="ctrl('toggle')">⏸</button>
-    <button class="ctrl-btn" onclick="ctrl('forward')">⏩</button>
-    <button class="ctrl-btn" id="ph-loop" onclick="ctrl('loop')" title="Loop">↻</button>
+    <button class="ctrl-btn" onclick="ctrl('forward')" title="Forward 10s">⏭</button>
+    <button class="ctrl-btn" id="ph-loop" onclick="ctrl('loop')" title="Loop">⟲</button>
     <button class="ctrl-btn" onclick="ctrl('fullscreen')" title="Fullscreen">⛶</button>
   </div>
   <div class="ctrl-row">
-    <button class="ctrl-btn" onclick="ctrl('restart')" title="Replay">⟲<span class="lbl"> Replay</span></button>
+    <button class="ctrl-btn" onclick="ctrl('restart')" title="Replay">↺<span class="lbl"> Replay</span></button>
     <button class="ctrl-btn" onclick="ctrl('reload')" title="Refresh TV">⟳<span class="lbl"> Refresh</span></button>
-    <button class="ctrl-btn" onclick="changeVideo()">🎬<span class="lbl"> Change</span></button>
-    <button class="ctrl-btn danger" onclick="endAll(true)">⏻<span class="lbl"> End</span></button>
+    <button class="ctrl-btn" onclick="changeVideo()" title="Add media">⊕<span class="lbl"> Add</span></button>
+    <button class="ctrl-btn danger" onclick="endAll(true)" title="End session">⏻<span class="lbl"> End</span></button>
+  </div>
+  <div class="ctrl-party">
+    <input type="text" id="party-msg-input2" maxlength="100" placeholder="🎉 Party message on TV…" oninput="onPartyInput2()" />
+    <span class="ctrl-party-count" id="party-count2">0</span>
   </div>
 </div>
 
@@ -699,13 +751,22 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
   $(id).classList.add('active');
   document.body.classList.toggle('tv-playing', id === 'screen-tv-play');
-  // Show/hide phone controller
-  if(id === 'screen-phone-cast'){
-    $('phone-ctrl').classList.add('visible');
-  } else {
-    $('phone-ctrl').classList.remove('visible');
-  }
+  updateRemoteUI(id);
 }
+
+// Floating remote: FAB visible on phone once casting is available; auto-open on cast screen
+function updateRemoteUI(id){
+  var fab = $('remote-fab');
+  var ctrl = $('phone-ctrl');
+  var canRemote = (role === 'phone') && (id === 'screen-phone-cast' || id === 'screen-phone-source');
+  if(fab) fab.classList.toggle('show', !!canRemote);
+  if(!ctrl) return;
+  if(id === 'screen-phone-cast'){ ctrl.classList.add('open'); }
+  else { ctrl.classList.remove('open'); }
+}
+function toggleRemote(){ $('phone-ctrl').classList.toggle('open'); }
+function openRemote(){ $('phone-ctrl').classList.add('open'); }
+function closeRemote(){ $('phone-ctrl').classList.remove('open'); }
 
 function goHome(){ resetConn(); showScreen('screen-home'); }
 
@@ -717,7 +778,7 @@ function startOver(){
   role = null; confirmed = false; currentSource = null;
   tvQueue = []; tvPlaying = null; playlist = []; partyMsg = '';
   document.body.classList.remove('tv-playing');
-  $('phone-ctrl').classList.remove('visible');
+  $('phone-ctrl').classList.remove('open');
   // reset home focus to the first card
   var f = document.querySelector('.home-card.focused'); if(f) f.classList.remove('focused');
   var hp = $('home-phone'); if(hp) hp.classList.add('focused');
@@ -1308,13 +1369,15 @@ function renderPlaylist(){
   for(var i=0;i<playlist.length;i++){
     var it=playlist[i];
     var isSel = (i===selectedPlIdx && !it.sent);
-    html += '<div class="pl-item'+(it.sent?' now':'')+(isSel?' selected':'')+'" onclick="plItemClick(event,'+i+')">'+
+    html += '<div class="pl-item'+(it.sent?' now':'')+(isSel?' selected':'')+'">'+
       '<div class="pl-ic">'+kindIcon(it.kind)+'</div>'+
       '<div class="pl-meta"><div class="pl-name">'+escapeHtml(it.name)+'</div>'+
       '<div class="pl-sub">'+it.kind+' · '+formatBytes(it.size)+(it.sent?' · sent ✓':'')+'</div></div>'+
       '<div class="pl-act">'+
-        '<button onclick="event.stopPropagation();movePl('+i+',-1)" title="Up">↑</button>'+
-        '<button onclick="event.stopPropagation();movePl('+i+',1)" title="Down">↓</button>'+
+        (it.sent ? '' :
+          '<button class="play" onclick="event.stopPropagation();playNowFromPlaylist('+i+')" title="Play now">▶</button>'+
+          '<button onclick="event.stopPropagation();movePl('+i+',-1)" title="Move up">▲</button>'+
+          '<button onclick="event.stopPropagation();movePl('+i+',1)" title="Move down">▼</button>')+
         '<button class="del" onclick="event.stopPropagation();removeFromPlaylist('+i+')" title="Remove">✕</button>'+
       '</div></div>';
   }
@@ -1356,7 +1419,33 @@ function plCancelSelect(){
   var bar = $('pl-confirm-bar');
   if(bar) bar.classList.remove('show');
 }
-function onPartyInput(){ partyMsg = $('party-msg-input').value.slice(0,100); $('party-count').textContent = partyMsg.length; if(role==='phone' && primaryConn) send({t:'partymsg', text:partyMsg}); }
+// Per-item "Play now": jump this item to the front of the unsent queue and start casting
+function playNowFromPlaylist(i){
+  if(!playlist[i] || playlist[i].sent){ return; }
+  var firstUnsentIdx = playlist.findIndex(function(p){ return !p.sent; });
+  if(firstUnsentIdx >= 0 && firstUnsentIdx !== i){
+    var item = playlist.splice(i, 1)[0];
+    playlist.splice(firstUnsentIdx, 0, item);
+  }
+  selectedPlIdx = -1;
+  renderPlaylist();
+  if(!sending){
+    sendPlaylist();           // enters controller + starts draining from the front
+  } else {
+    toast('▶ Will play next');
+  }
+}
+function setPartyMsg(val){
+  partyMsg = String(val||'').slice(0,100);
+  var a=$('party-msg-input'), b=$('party-msg-input2');
+  if(a && a.value!==partyMsg) a.value=partyMsg;
+  if(b && b.value!==partyMsg) b.value=partyMsg;
+  if($('party-count'))  $('party-count').textContent  = partyMsg.length;
+  if($('party-count2')) $('party-count2').textContent = partyMsg.length;
+  if(role==='phone' && primaryConn) send({t:'partymsg', text:partyMsg});
+}
+function onPartyInput(){ setPartyMsg($('party-msg-input').value); }
+function onPartyInput2(){ setPartyMsg($('party-msg-input2').value); }
 
 async function sendPlaylist(){
   if(sending){ return; }
@@ -1511,10 +1600,11 @@ function cloudCastVideo(item){
       removeFingerprintOnSuccess: true,
       chunkSize: 6 * 1024 * 1024, // Supabase requires 6MB chunks
       metadata: { bucketName: SUPABASE_BUCKET, objectName: objectName, contentType: item.file.type || 'video/mp4', cacheControl: '3600' },
-      onError: function(err){ reject(err); },
+      onError: function(err){ send({t:'load-hide'}); reject(err); },
       onProgress: function(sent, total){
         var pct = total ? Math.round(sent/total*100) : 0;
         setPill('phone-cast-status','phone-cast-text','streaming','☁ Uploading '+item.name+'… '+pct+'%');
+        send({t:'uploading', pct:pct, name:item.name}); // drive the TV's sci-fi loading bar
       },
       onSuccess: function(){
         sessionUploads.push(objectName);
@@ -1572,7 +1662,7 @@ function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt
 function drain(dc, target){ return new Promise(function(res){ var i=setInterval(function(){ if(!dc||dc.bufferedAmount<=target){ clearInterval(i); res(); } },30); }); }
 function tick(){ return new Promise(function(r){ setTimeout(r,0); }); }
 
-function backToSource(){ if(call){try{call.close();}catch(e){}call=null;} if(localStream){localStream.getTracks().forEach(function(t){t.stop();}); localStream=null;} showScreen('screen-phone-source'); $('phone-ctrl').classList.remove('visible'); }
+function backToSource(){ if(call){try{call.close();}catch(e){}call=null;} if(localStream){localStream.getTracks().forEach(function(t){t.stop();}); localStream=null;} showScreen('screen-phone-source'); $('phone-ctrl').classList.remove('open'); }
 
 // Screen/Camera/URL
 async function castScreen(){
@@ -1752,7 +1842,18 @@ function handleData(msg, dc, cid){
     case 'pb': if(role==='tv'){ applyTVCmd(msg.a, msg.v); } break;
     case 'time': if(role==='phone') onTime(msg); break;
     case 'url': if(role==='tv') openUrlOnTV(msg.url); break;
+    case 'uploading': if(role==='tv'){
+      showScreen('screen-tv-play');
+      if(tvPlaying === null){
+        var tt=$('tv-transfer'); if($('tv-xfer-title')) $('tv-xfer-title').textContent='Loading';
+        if($('tv-transfer-fill')) $('tv-transfer-fill').style.width=(msg.pct||0)+'%';
+        if($('tv-xfer-pct')) $('tv-xfer-pct').textContent=(msg.pct!=null?msg.pct+'%':'');
+        tt.classList.add('show');
+      }
+    } break;
+    case 'load-hide': if(role==='tv'){ $('tv-transfer').classList.remove('show'); } break;
     case 'enqueue-url': if(role==='tv'){
+      $('tv-transfer').classList.remove('show');
       var citem = {id: Date.now()+'-'+Math.random(), name: msg.name||'Video', kind: msg.kind||'video', url: msg.url, partyMsg: msg.partyMsg||'', isCloud:true};
       if(tvPlaying === null){ showScreen('screen-tv-play'); playItem(citem); }
       else { tvQueue.push(citem); broadcastQueue(); }
@@ -1977,7 +2078,7 @@ function resetConn(){
   try{ clearTimeout(imgTimer); if(vizRAF){ cancelAnimationFrame(vizRAF); vizRAF=null; } var a=$('tv-audio'); a.pause(); a.removeAttribute('src'); a.srcObject=null; }catch(e){}
   confirmed=false; rx=null; tvQueue=[]; tvPlaying=null; tvStreamPendingMeta=null;
   playlist=[]; partyMsg=''; sending=false;
-  $('phone-ctrl').classList.remove('visible');
+  $('phone-ctrl').classList.remove('open');
 }
 
 // Phone side send uses primaryConn
