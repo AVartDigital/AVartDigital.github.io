@@ -1,15 +1,21 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#070a11" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>CastParty — cast & stream to your TV</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    /* Cross-device: smooth scrolling + iOS Safari dynamic-height fallback */
+    @supports (-webkit-touch-callout: none) { body { min-height: -webkit-fill-available; } }
+    img, video { -webkit-user-select: none; user-select: none; }
     :root {
       /* AV-TV sci-fi silver/blue brand (matches Player 1.jpg) */
       --bg: #070a11; --bg2: #0b101a; --surface: rgba(255,255,255,0.04);
@@ -41,7 +47,7 @@
     #screen-home.active { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
     #screen-home.active::before {
       content: ''; position: fixed; inset: 0; z-index: -1;
-      background: url('./Player%201.jpg?v=3') center/cover no-repeat;
+      background: url('./Player%202.jpg?v=1') center/cover no-repeat;
       opacity: 0.18; filter: saturate(1.1) blur(1px);
       -webkit-mask-image: radial-gradient(120% 90% at 50% 30%, #000 30%, transparent 85%);
       mask-image: radial-gradient(120% 90% at 50% 30%, #000 30%, transparent 85%);
@@ -143,12 +149,12 @@
 
     #tv-stage {
       position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden;
-      background: url('./Player%201.jpg?v=3') center/cover no-repeat #060806;
+      background: url('./Player%202.jpg?v=1') center/cover no-repeat #060806;
     }
     body.tv-playing .tv-monitor-outer { padding: 0; border-radius: 0; border: none; background: #000; box-shadow: none; }
     body.tv-playing .tv-monitor-outer::before { display: none; }
     body.tv-playing #tv-stage { aspect-ratio: unset; width: 100vw; height: 100dvh; border-radius: 0; }
-    #tv-stage.idle { background-image: url('./Player%201.jpg?v=3'); background-size: cover; background-position: center center; }
+    #tv-stage.idle { background-image: url('./Player%202.jpg?v=1'); background-size: cover; background-position: center center; }
     #tv-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
     #tv-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
     #tv-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: #000; }
@@ -201,6 +207,18 @@
 
     /* TV fade-in overlay */
     #tv-fade { position: absolute; inset: 0; background: #000; z-index: 30; opacity: 0; pointer-events: none; transition: opacity 2.5s ease; }
+    /* Flash party message overlay — shows for 5s then fades */
+    #tv-flash { position: absolute; left: 0; right: 0; bottom: 12%; display: flex; justify-content: center; padding: 0 6%; z-index: 25; opacity: 0; pointer-events: none; transition: opacity .6s ease; }
+    #tv-flash.show { opacity: 1; }
+    #tv-flash #tv-flash-text {
+      font-weight: 900; letter-spacing: 1px; line-height: 1.15; text-align: center;
+      font-size: clamp(28px, 6vw, 80px); color: #fff;
+      padding: 18px 36px; border-radius: 18px;
+      background: rgba(10,18,30,0.55); backdrop-filter: blur(8px);
+      border: 1px solid var(--edge);
+      text-shadow: 0 0 24px rgba(109,184,255,0.7), 0 2px 8px rgba(0,0,0,0.6);
+      box-shadow: 0 0 40px rgba(109,184,255,0.35);
+    }
 
     /* TV floating overlay */
     #tv-overlay {
@@ -268,9 +286,9 @@
     #remote-fab {
       position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 260;
       width: 60px; height: 60px; min-height: 60px; padding: 0; border-radius: 50%; flex: none;
-      background: radial-gradient(circle at 35% 30%, #2b4a6b, #0d1a28);
-      border: 1px solid var(--edge); color: var(--gold-soft);
-      box-shadow: 0 0 0 1px rgba(109,184,255,0.25), 0 8px 28px rgba(0,0,0,0.6), 0 0 26px rgba(109,184,255,0.3);
+      background: radial-gradient(circle at 35% 28%, #eef5fc, #9fc0db 45%, #2b4a6b);
+      border: 1px solid rgba(200,225,250,0.7); color: #0c2238;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 8px 28px rgba(0,0,0,0.55), 0 0 26px rgba(109,184,255,0.45);
       display: none; align-items: center; justify-content: center; cursor: pointer;
     }
     #remote-fab.show { display: flex; }
@@ -279,13 +297,13 @@
     @keyframes fabspin { to { transform: rotate(360deg); } }
     #remote-fab:active { transform: scale(0.92); }
 
-    /* Phone floating sci-fi controller (slide-up panel) */
+    /* Phone floating sci-fi controller (slide-up panel) — Player 2 brushed-chrome glass */
     #phone-ctrl {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 250;
-      background: linear-gradient(180deg, rgba(13,22,34,0.98), rgba(8,12,20,0.99));
-      backdrop-filter: blur(26px);
-      border-top: 1px solid var(--edge);
-      box-shadow: 0 -8px 40px rgba(0,0,0,0.6), 0 0 40px rgba(109,184,255,0.12) inset;
+      background: linear-gradient(180deg, rgba(150,178,205,0.22), rgba(26,40,58,0.96) 38%, rgba(10,16,26,0.98));
+      backdrop-filter: blur(30px) saturate(1.2);
+      border-top: 1px solid rgba(180,210,240,0.45);
+      box-shadow: 0 -8px 40px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.18) inset, 0 0 40px rgba(109,184,255,0.14) inset;
       padding: 6px 14px calc(12px + env(safe-area-inset-bottom));
       padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right));
       transform: translateY(112%); transition: transform .28s cubic-bezier(.2,.7,.2,1);
@@ -307,11 +325,11 @@
     .ctrl-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
     .ctrl-row:last-child { margin-bottom: 0; }
     .ctrl-btn {
-      background: linear-gradient(180deg, rgba(109,184,255,0.12), rgba(109,184,255,0.04));
-      border: 1px solid var(--edge); border-radius: 11px;
-      padding: 10px 6px; font-size: 19px; color: var(--gold-soft); flex: 1; min-width: 0; min-height: 48px;
+      background: linear-gradient(180deg, rgba(220,235,250,0.22), rgba(120,150,180,0.10) 60%, rgba(109,184,255,0.05));
+      border: 1px solid rgba(180,210,240,0.4); border-radius: 11px;
+      padding: 10px 6px; font-size: 19px; color: #e9f3ff; flex: 1; min-width: 0; min-height: 48px;
       display: flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; overflow: hidden;
-      box-shadow: inset 0 0 12px rgba(109,184,255,0.06);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset, inset 0 0 12px rgba(109,184,255,0.06);
       transition: background .15s, transform .1s, box-shadow .15s;
     }
     .ctrl-btn:active { transform: scale(0.94); background: rgba(109,184,255,0.2); box-shadow: 0 0 16px rgba(109,184,255,0.4); }
@@ -324,6 +342,7 @@
     .ctrl-party input { flex: 1; min-width: 0; background: rgba(109,184,255,0.08); border: 1px solid var(--edge); border-radius: 10px; padding: 11px 12px; color: var(--text); font-size: 14px; outline: none; }
     .ctrl-party input:focus { border-color: var(--gold); box-shadow: 0 0 12px rgba(109,184,255,0.3); }
     .ctrl-party-count { flex: none; font-size: 11px; color: var(--muted); min-width: 28px; text-align: right; }
+    .ctrl-flash { flex: none; min-width: 44px; width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 10px; font-size: 18px; background: linear-gradient(180deg, var(--gold-soft), var(--gold)); color: #042038; border: none; box-shadow: 0 0 12px rgba(109,184,255,0.4); }
 
     /* Scrubber hidden in live mode */
     .scrub-row.hidden-ctrl { display: none; }
@@ -371,6 +390,11 @@
     .pl-item .pl-act button.play { background:linear-gradient(180deg, var(--gold-soft), var(--gold)); color:#042038; border:none; box-shadow:0 0 10px rgba(109,184,255,0.35); }
     .pl-item .pl-act button.del { color: var(--danger); border-color:rgba(255,120,120,0.35); }
     #screen-phone-cast.active { padding-bottom: 96px; }
+    /* Live preview mirror on the phone */
+    #phone-preview-wrap { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 14px; overflow: hidden; background: #05080d; border: 1px solid var(--edge); box-shadow: 0 0 30px rgba(109,184,255,0.15), inset 0 0 0 1px rgba(109,184,255,0.06); margin-bottom: 14px; }
+    #phone-preview, #phone-preview-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #05080d; display: none; }
+    #phone-preview-none { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--gold-soft); font-weight: 700; letter-spacing: 1px; font-size: clamp(14px,3.6vw,20px); text-shadow: 0 0 16px rgba(109,184,255,0.5); }
+    #phone-preview-tag { position: absolute; top: 8px; left: 8px; z-index: 3; font-size: 10px; letter-spacing: 2px; font-weight: 800; color: var(--gold-soft); background: rgba(8,14,24,0.7); border: 1px solid var(--edge); padding: 3px 8px; border-radius: 20px; }
     .pl-item.selected { border-color: var(--gold); background: rgba(109,184,255,0.15); box-shadow: 0 0 0 2px rgba(109,184,255,0.3); }
 
     /* URL presets + recents */
@@ -520,6 +544,7 @@
             <div class="xfer-pct" id="tv-xfer-pct"></div>
           </div>
           <div id="tv-textbar"></div>
+          <div id="tv-flash"><span id="tv-flash-text"></span></div>
           <div id="tv-fade"></div>
           <div id="tv-overlay">
             <div class="ov-btns">
@@ -592,9 +617,10 @@
           </div>
           <input type="file" id="file-input" accept="video/*,image/*,audio/*" multiple />
           <div class="party-input-wrap">
-            <label for="party-msg-input">🎉 Party message (shows during music)</label>
+            <label for="party-msg-input">🎉 On-screen message</label>
             <input type="text" id="party-msg-input" maxlength="100" placeholder="e.g. Happy Birthday Nalan" oninput="onPartyInput()" />
             <div class="party-count"><span id="party-count">0</span>/100</div>
+            <button class="btn-secondary btn-wide" style="margin-top:8px;" onclick="flashMessageToTV()">💬 Display on Screen (5s)</button>
           </div>
           <button class="btn-primary btn-wide" id="btn-cast-file" onclick="sendPlaylist()" disabled>📡 Send playlist to TV &amp; play</button>
           <p class="hint" style="margin-top:10px;">Items play in order. Add more anytime — they queue behind what's playing.</p>
@@ -647,6 +673,13 @@
   <!-- PHONE: CAST/CONTROLLER SCREEN -->
   <div id="screen-phone-cast" class="screen">
     <div id="phone-cast-status" class="status-pill streaming"><span class="dot"></span><span id="phone-cast-text">Playing on TV</span></div>
+    <!-- Live mirror of what's on the TV (muted) — scrub here -->
+    <div id="phone-preview-wrap">
+      <video id="phone-preview" muted playsinline webkit-playsinline></video>
+      <img id="phone-preview-img" alt="" />
+      <div id="phone-preview-none"><span>▶ Playing on TV</span></div>
+      <div id="phone-preview-tag">LIVE PREVIEW · muted</div>
+    </div>
     <div class="controls" style="margin-bottom:12px;">
       <button class="btn-secondary" onclick="backToSource()">↩ Other source</button>
       <button class="btn-primary" onclick="changeVideo()">＋ Add media</button>
@@ -670,7 +703,7 @@
 </div><!-- #app -->
 
 <!-- FLOATING REMOTE LAUNCHER (always available once paired) -->
-<button id="remote-fab" onclick="toggleRemote()" title="Remote control" aria-label="Remote control">
+<button id="remote-fab" title="Remote control (drag to move)" aria-label="Remote control">
   <span class="fab-ring"></span><span class="fab-glyph">⦿</span>
 </button>
 
@@ -697,7 +730,8 @@
     <button class="ctrl-btn danger" onclick="endAll(true)" title="End session">⏻<span class="lbl"> End</span></button>
   </div>
   <div class="ctrl-party">
-    <input type="text" id="party-msg-input2" maxlength="100" placeholder="🎉 Party message on TV…" oninput="onPartyInput2()" />
+    <input type="text" id="party-msg-input2" maxlength="100" placeholder="🎉 On-screen message…" oninput="onPartyInput2()" />
+    <button class="ctrl-flash" onclick="flashMessageToTV()" title="Display on screen for 5s">💬</button>
     <span class="ctrl-party-count" id="party-count2">0</span>
   </div>
 </div>
@@ -767,6 +801,31 @@ function updateRemoteUI(id){
 function toggleRemote(){ $('phone-ctrl').classList.toggle('open'); }
 function openRemote(){ $('phone-ctrl').classList.add('open'); }
 function closeRemote(){ $('phone-ctrl').classList.remove('open'); }
+
+// Draggable remote FAB — tap toggles, drag repositions (position persisted)
+function initFabDrag(){
+  var fab = $('remote-fab'); if(!fab) return;
+  var sx, sy, ox, oy, moved=false, dragging=false;
+  try{ var p=JSON.parse(localStorage.getItem('avtv_fabpos')||'null');
+    if(p){ fab.style.left=p.left+'px'; fab.style.top=p.top+'px'; fab.style.right='auto'; fab.style.bottom='auto'; } }catch(e){}
+  function pt(e){ return e.touches&&e.touches[0] ? e.touches[0] : e; }
+  function down(e){ dragging=true; moved=false; var p=pt(e); sx=p.clientX; sy=p.clientY; var r=fab.getBoundingClientRect(); ox=r.left; oy=r.top; fab.style.transition='none'; }
+  function move(e){ if(!dragging) return; var p=pt(e); var dx=p.clientX-sx, dy=p.clientY-sy;
+    if(Math.abs(dx)>5||Math.abs(dy)>5) moved=true;
+    if(moved){ if(e.cancelable) e.preventDefault();
+      var nl=Math.min(window.innerWidth-fab.offsetWidth, Math.max(0, ox+dx));
+      var nt=Math.min(window.innerHeight-fab.offsetHeight, Math.max(0, oy+dy));
+      fab.style.left=nl+'px'; fab.style.top=nt+'px'; fab.style.right='auto'; fab.style.bottom='auto'; } }
+  function up(){ if(!dragging) return; dragging=false; fab.style.transition='';
+    if(moved){ var r=fab.getBoundingClientRect(); try{ localStorage.setItem('avtv_fabpos', JSON.stringify({left:Math.round(r.left), top:Math.round(r.top)})); }catch(e){} }
+    else { toggleRemote(); } }
+  fab.addEventListener('touchstart', down, {passive:true});
+  fab.addEventListener('touchmove', move, {passive:false});
+  fab.addEventListener('touchend', up);
+  fab.addEventListener('mousedown', down);
+  window.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', up);
+}
 
 function goHome(){ resetConn(); showScreen('screen-home'); }
 
@@ -1446,6 +1505,23 @@ function setPartyMsg(val){
 }
 function onPartyInput(){ setPartyMsg($('party-msg-input').value); }
 function onPartyInput2(){ setPartyMsg($('party-msg-input2').value); }
+// "Display on Screen": flash the current message on the TV for 5s, then fade
+function flashMessageToTV(){
+  var t = (partyMsg||'').trim();
+  if(!t){ toast('Type a message first'); return; }
+  send({t:'flashmsg', text:t});
+  toast('💬 Shown on TV for 5s');
+}
+// TV side: show centered message, then fade after 5s
+var _flashTimer = null;
+function flashMessageOnTV(text){
+  var f=$('tv-flash'), ft=$('tv-flash-text');
+  if(!f||!ft) return;
+  ft.textContent = text;
+  f.classList.add('show');
+  clearTimeout(_flashTimer);
+  _flashTimer = setTimeout(function(){ f.classList.remove('show'); }, 5000);
+}
 
 async function sendPlaylist(){
   if(sending){ return; }
@@ -1550,6 +1626,7 @@ async function drainPlaylist(){
   for(var i=0;i<playlist.length;i++){
     if(playlist[i].sent) continue;
     var it = playlist[i];
+    setPhonePreview({kind: it.kind, file: it.file}); // mirror current item on phone
     var bigVideo = it.kind === 'video' && it.size >= CLOUD_THRESHOLD;
     var useCloud  = bigVideo && cloudEnabled();
     var useStream = bigVideo && !useCloud && supportsCapture();
@@ -1662,7 +1739,7 @@ function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt
 function drain(dc, target){ return new Promise(function(res){ var i=setInterval(function(){ if(!dc||dc.bufferedAmount<=target){ clearInterval(i); res(); } },30); }); }
 function tick(){ return new Promise(function(r){ setTimeout(r,0); }); }
 
-function backToSource(){ if(call){try{call.close();}catch(e){}call=null;} if(localStream){localStream.getTracks().forEach(function(t){t.stop();}); localStream=null;} showScreen('screen-phone-source'); $('phone-ctrl').classList.remove('open'); }
+function backToSource(){ if(call){try{call.close();}catch(e){}call=null;} if(localStream){localStream.getTracks().forEach(function(t){t.stop();}); localStream=null;} setPhonePreview(null); showScreen('screen-phone-source'); $('phone-ctrl').classList.remove('open'); }
 
 // Screen/Camera/URL
 async function castScreen(){
@@ -1695,6 +1772,7 @@ function castUrl(){
   enterController(true);
   var t = detectUrlType(u);
   setPill('phone-cast-status','phone-cast-text','streaming', URL_ICONS[t]||'Playing on TV');
+  setPhonePreview(t==='video' ? {kind:'video', url:u} : null); // direct video previews; YouTube/HLS show placeholder
   // Show scrubber for all types that report time; hide for iframe
   $('scrub-wrap').style.display = (t==='iframe') ? 'none' : 'flex';
 }
@@ -1781,7 +1859,8 @@ function enterController(liveMode){
 var scrubEl;
 function initScrubber(){
   scrubEl = $('scrubber');
-  scrubEl.addEventListener('input', function(){ scrubbing=true; $('cur-time').textContent=fmt(scrubEl.value); });
+  scrubEl.addEventListener('input', function(){ scrubbing=true; $('cur-time').textContent=fmt(scrubEl.value);
+    var pv=$('phone-preview'); if(phonePreviewKind==='video' && pv){ try{ pv.currentTime=parseFloat(scrubEl.value); }catch(e){} } });
   scrubEl.addEventListener('change', function(){ ctrl('seek', parseFloat(scrubEl.value)); scrubbing=false; });
 }
 function ctrl(a, val){
@@ -1861,6 +1940,7 @@ function handleData(msg, dc, cid){
     case 'text': if(role==='tv') showTextOnTV(msg.text); break;
     case 'nav': if(role==='tv') navTV(msg.d); break;
     case 'partymsg': if(role==='tv'){ tvPartyMsg = msg.text||''; var pm=$('tv-party-msg'); if(pm) pm.textContent = tvPartyMsg; } break;
+    case 'flashmsg': if(role==='tv') flashMessageOnTV(msg.text||''); break;
     case 'queue': if(role==='phone') onQueue(msg); break;
     case 'end': onRemoteEnd(); break;
   }
@@ -1887,8 +1967,38 @@ function onDisconnect(){
 }
 
 // Phone scrubber sync
+// Live preview on the phone of what's playing on the TV (muted mirror)
+var phonePreviewKind = 'none';
+function setPhonePreview(opts){
+  var v=$('phone-preview'), img=$('phone-preview-img'), none=$('phone-preview-none');
+  if(!v) return;
+  if(v._url){ try{ URL.revokeObjectURL(v._url); }catch(e){} v._url=null; }
+  if(img._url){ try{ URL.revokeObjectURL(img._url); }catch(e){} img._url=null; }
+  try{ v.pause(); v.removeAttribute('src'); v.load(); }catch(e){}
+  v.style.display='none'; img.style.display='none'; none.style.display='flex'; phonePreviewKind='none';
+  if(!opts) return;
+  if(opts.kind==='image'){
+    var iu = opts.file ? URL.createObjectURL(opts.file) : opts.url;
+    if(opts.file) img._url=iu;
+    img.src=iu; img.style.display='block'; none.style.display='none'; phonePreviewKind='image'; return;
+  }
+  if(opts.kind==='video'){
+    var src=null;
+    if(opts.file){ src=URL.createObjectURL(opts.file); v._url=src; }
+    else if(opts.url && /\.(mp4|webm|mov|m4v|ogv)(\?|$)/i.test(opts.url)){ src=opts.url; }
+    if(src){ v.src=src; v.muted=true; v.style.display='block'; none.style.display='none'; phonePreviewKind='video'; v.play().catch(function(){}); return; }
+  }
+  // audio / youtube / hls / screen-mirror → placeholder ("Playing on TV")
+}
+
 function onTime(m){
   if(!scrubEl) return;
+  // Mirror TV playback position in the phone's muted preview
+  var pv=$('phone-preview');
+  if(phonePreviewKind==='video' && pv && pv.readyState>0){
+    if(!scrubbing && m.dur && Math.abs((pv.currentTime||0)-m.ct)>0.7){ try{ pv.currentTime=m.ct; }catch(e){} }
+    if(m.paused){ if(!pv.paused) pv.pause(); } else { if(pv.paused) pv.play().catch(function(){}); }
+  }
   // images have no timeline — hide scrubber
   if(m.kind === 'image'){ $('scrub-wrap').style.display='none'; }
   else if(currentSource==='file'){ $('scrub-wrap').style.display='flex'; }
@@ -2064,6 +2174,7 @@ function endAll(notify){
 }
 function resetConn(){
   cloudCleanup();        // Snapchat-style: delete this session's temp cloud videos
+  try{ setPhonePreview(null); }catch(e){}
   cleanupStreamVid();
   stopYtSync();
   if(ytPlayer){ try{ ytPlayer.destroy(); }catch(e){} ytPlayer=null; }
@@ -2093,6 +2204,7 @@ function send(obj){
 // ───────── TV video events ─────────
 document.addEventListener('DOMContentLoaded', function(){
   initScrubber();
+  initFabDrag();
   var evs = ['timeupdate','play','pause','seeked','ended','loadedmetadata','durationchange'];
   ['tv-video','tv-audio'].forEach(function(mid){
     var el = $(mid);
