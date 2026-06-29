@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#070a11" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -346,6 +347,9 @@
     .ctrl-party input:focus { border-color: var(--gold); box-shadow: 0 0 12px rgba(109,184,255,0.3); }
     .ctrl-party-count { flex: none; font-size: 11px; color: var(--muted); min-width: 28px; text-align: right; }
     .ctrl-flash { flex: none; min-width: 44px; width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 10px; font-size: 18px; background: linear-gradient(180deg, var(--gold-soft), var(--gold)); color: #042038; border: none; box-shadow: 0 0 12px rgba(109,184,255,0.4); }
+    .ctrl-resync { width: 100%; margin-top: 10px; min-height: 46px; border-radius: 11px; font-size: 14px; font-weight: 700; color: var(--gold-soft);
+      background: linear-gradient(180deg, rgba(109,184,255,0.18), rgba(109,184,255,0.06)); border: 1px solid var(--edge); box-shadow: 0 0 14px rgba(109,184,255,0.2); }
+    .ctrl-resync:active { transform: scale(0.97); }
 
     /* Scrubber hidden in live mode */
     .scrub-row.hidden-ctrl { display: none; }
@@ -471,10 +475,31 @@
     /* Long names/urls wrap instead of pushing layout wide */
     .pl-name, .rec-name, .rec-url, .video-info strong, #ended-msg, #ended-title { overflow-wrap: anywhere; word-break: break-word; }
     img, video, canvas, iframe { max-width: 100%; }
-    /* Phone controller fits any device, respects safe areas, never taller than 45vh */
-    #phone-ctrl { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); max-height: 45vh; overflow-y: auto; }
+    /* Phone controller fits any device, respects safe areas, scrolls if tall */
+    #phone-ctrl { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); max-height: 86vh; max-height: 86dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     /* Give the cast screen enough clearance for the fixed controller on small screens */
     @media (max-height: 680px){ #screen-phone-cast.active { padding-bottom: 200px; } }
+
+    /* Header never overflows; End button + logo share the row gracefully */
+    header { flex-wrap: nowrap; gap: 8px; }
+    header > div { min-width: 0; }
+    header .logo { white-space: nowrap; }
+    .subtitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Narrow phones (<=380px): scale paddings/fonts so nothing clips or needs horizontal scroll */
+    @media (max-width: 380px){
+      #app { padding: 14px 12px 60px; }
+      header { padding: 12px 14px 10px; }
+      .subtitle { display: none; }
+      .source-btn { padding: 14px 8px; }
+      .source-btn .nm { font-size: 12px; }
+      .source-btn .ds { font-size: 10px; }
+      .home-card h2 { font-size: 15px; }
+      #hdr-end { padding: 7px 9px; font-size: 11px; }
+      button { font-size: 13px; }
+    }
+    /* Very narrow (<=330px): single-column source grid so tiles never clip */
+    @media (max-width: 330px){ .source-grid { grid-template-columns: 1fr; } }
 
     /* ═══════════ CASTPARTY SCI-FI BRAND — consistent panel/button identity ═══════════ */
     :root { --edge: rgba(109,184,255,0.30); --edge-soft: rgba(109,184,255,0.16); --glow: 0 0 14px rgba(109,184,255,0.25); }
@@ -509,7 +534,7 @@
     <div class="logo">Cast<span>Party</span></div>
     <div class="subtitle">Cast & stream over Wi-Fi</div>
   </div>
-  <button id="hdr-end" onclick="confirmTerminate()" title="Terminate session">⏻ End</button>
+  <button id="hdr-end" onclick="confirmTerminate()" title="Terminate session">End Session</button>
 </header>
 
 <!-- Terminate confirm modal -->
@@ -577,7 +602,7 @@
       <div class="avtv-badge"><span class="live-dot"></span> CASTPARTY — STREAMING LIVE</div>
       <div class="tv-monitor-outer">
         <div id="tv-stage" class="idle" onclick="showTVOverlay()" ondblclick="tvFullscreen()">
-          <video id="tv-video" playsinline></video>
+          <video id="tv-video" playsinline webkit-playsinline x5-playsinline muted autoplay></video>
           <img id="tv-image" alt="" />
           <audio id="tv-audio"></audio>
           <div id="tv-audio-stage">
@@ -782,9 +807,10 @@
   <div class="ctrl-row">
     <button class="ctrl-btn" onclick="ctrl('restart')" title="Replay">↺<span class="lbl"> Replay</span></button>
     <button class="ctrl-btn" onclick="ctrl('reload')" title="Refresh TV">⟳<span class="lbl"> Refresh</span></button>
-    <button class="ctrl-btn" onclick="changeVideo()" title="Add media">⊕<span class="lbl"> Add</span></button>
-    <button class="ctrl-btn danger" onclick="endAll(true)" title="End session">⏻<span class="lbl"> End</span></button>
+    <button class="ctrl-btn" onclick="changeVideo()" title="Add media">＋<span class="lbl"> Add</span></button>
+    <button class="ctrl-btn danger" onclick="confirmTerminate()" title="End session"><span class="lbl">End</span></button>
   </div>
+  <button class="ctrl-resync" onclick="resyncSession()">🔄 Resync / Reconnect to TV</button>
   <div class="ctrl-party">
     <input type="text" id="party-msg-input2" maxlength="100" placeholder="🎉 On-screen message…" oninput="onPartyInput2()" />
     <button class="ctrl-flash" onclick="flashMessageToTV()" title="Display on screen for 5s">💬</button>
@@ -867,6 +893,36 @@ function doTerminate(){ closeTerminate(); endAll(true); }
 // Playlist action buttons
 function addMoreMedia(){ var fi=$('file-input'); if(fi){ fi.value=''; fi.click(); } }
 function castNow(){ sendPlaylist(); }
+
+// Remember the last thing we cast so we can resync/replay without ending the session
+var lastCast = null;   // {type:'file'|'url', it, url, kind}
+// Resync: refresh the peer connection and re-cast the current content so the TV
+// recovers from a blank/lost-sync state without terminating the session.
+function resyncSession(){
+  toast('🔄 Resyncing…');
+  try{ if(peer && peer.disconnected){ peer.reconnect(); } }catch(e){}
+  // re-open the data connection if it dropped
+  try{
+    if(role==='phone' && (!primaryConn || !primaryConn.open) && peer && roomId){
+      primaryConn = peer.connect(roomId, {reliable:true});
+      wireConn(primaryConn, 'primary');
+    }
+  }catch(e){}
+  // re-cast whatever was last shown so the screen comes back
+  setTimeout(function(){
+    if(!lastCast){ toast('Nothing to resync — pick content to cast'); return; }
+    if(lastCast.type==='url'){
+      send({t:'url', url:lastCast.url});
+    } else if(lastCast.it){
+      var it=lastCast.it;
+      setPhonePreview({kind:it.kind, file:it.file});
+      if(it.kind==='video' && it.size>=CLOUD_THRESHOLD && cloudEnabled()){ cloudCastVideo(it).catch(function(){}); }
+      else if(it.kind==='video' && it.size>=CLOUD_THRESHOLD && supportsCapture()){ streamFile(it.file, it.name); }
+      else { transferFile(it.file, it.kind, it.name); }
+    }
+    toast('🔄 Re-cast to TV');
+  }, 600);
+}
 function toggleRemote(){ $('phone-ctrl').classList.toggle('open'); }
 function openRemote(){ $('phone-ctrl').classList.add('open'); }
 function closeRemote(){ $('phone-ctrl').classList.remove('open'); }
@@ -874,26 +930,30 @@ function closeRemote(){ $('phone-ctrl').classList.remove('open'); }
 // Draggable remote FAB — tap toggles, drag repositions (position persisted)
 function initFabDrag(){
   var fab = $('remote-fab'); if(!fab) return;
-  var sx, sy, ox, oy, moved=false, dragging=false;
+  var sx, sy, ox, oy, moved=false, dragging=false, lastTouch=0;
   try{ var p=JSON.parse(localStorage.getItem('avtv_fabpos')||'null');
     if(p){ fab.style.left=p.left+'px'; fab.style.top=p.top+'px'; fab.style.right='auto'; fab.style.bottom='auto'; } }catch(e){}
-  function pt(e){ return e.touches&&e.touches[0] ? e.touches[0] : e; }
+  function pt(e){ return e.touches&&e.touches[0] ? e.touches[0] : (e.changedTouches&&e.changedTouches[0] ? e.changedTouches[0] : e); }
   function down(e){ dragging=true; moved=false; var p=pt(e); sx=p.clientX; sy=p.clientY; var r=fab.getBoundingClientRect(); ox=r.left; oy=r.top; fab.style.transition='none'; }
   function move(e){ if(!dragging) return; var p=pt(e); var dx=p.clientX-sx, dy=p.clientY-sy;
-    if(Math.abs(dx)>5||Math.abs(dy)>5) moved=true;
+    if(Math.abs(dx)>6||Math.abs(dy)>6) moved=true;
     if(moved){ if(e.cancelable) e.preventDefault();
       var nl=Math.min(window.innerWidth-fab.offsetWidth, Math.max(0, ox+dx));
       var nt=Math.min(window.innerHeight-fab.offsetHeight, Math.max(0, oy+dy));
       fab.style.left=nl+'px'; fab.style.top=nt+'px'; fab.style.right='auto'; fab.style.bottom='auto'; } }
-  function up(){ if(!dragging) return; dragging=false; fab.style.transition='';
+  function up(e){ if(!dragging) return; dragging=false; fab.style.transition='';
     if(moved){ var r=fab.getBoundingClientRect(); try{ localStorage.setItem('avtv_fabpos', JSON.stringify({left:Math.round(r.left), top:Math.round(r.top)})); }catch(e){} }
-    else { toggleRemote(); } }
-  fab.addEventListener('touchstart', down, {passive:true});
+    else { toggleRemote(); }
+    moved=false;
+  }
+  // Touch path (preventDefault on end suppresses the synthetic mouse events that caused double-toggle)
+  fab.addEventListener('touchstart', function(e){ lastTouch=Date.now(); down(e); }, {passive:true});
   fab.addEventListener('touchmove', move, {passive:false});
-  fab.addEventListener('touchend', up);
-  fab.addEventListener('mousedown', down);
-  window.addEventListener('mousemove', move);
-  window.addEventListener('mouseup', up);
+  fab.addEventListener('touchend', function(e){ if(e.cancelable) e.preventDefault(); up(e); });
+  // Mouse path (ignored briefly after a touch to avoid double handling)
+  fab.addEventListener('mousedown', function(e){ if(Date.now()-lastTouch < 600) return; down(e); });
+  window.addEventListener('mousemove', function(e){ if(Date.now()-lastTouch < 600) return; move(e); });
+  window.addEventListener('mouseup', function(e){ if(Date.now()-lastTouch < 600) return; up(e); });
 }
 
 function goHome(){ resetConn(); showScreen('screen-home'); }
@@ -1541,6 +1601,7 @@ function renderPlaylist(){
 function recastItem(i){
   if(!playlist[i]) return;
   var it = playlist[i];
+  lastCast = {type:'file', it: it};
   setPhonePreview({kind: it.kind, file: it.file});
   if(it.kind==='video' && it.size>=CLOUD_THRESHOLD && cloudEnabled()){
     enterController(false); cloudCastVideo(it).catch(function(){ toast('Re-cast failed'); });
@@ -1738,6 +1799,7 @@ async function drainPlaylist(){
     if(playlist[i].sent) continue;
     var it = playlist[i];
     setPhonePreview({kind: it.kind, file: it.file}); // mirror current item on phone
+    lastCast = {type:'file', it: it};
     var bigVideo = it.kind === 'video' && it.size >= CLOUD_THRESHOLD;
     var useCloud  = bigVideo && cloudEnabled();
     var useStream = bigVideo && !useCloud && supportsCapture();
@@ -1883,6 +1945,7 @@ function castUrl(){
   addRecent(u);
   enterController(true);
   var t = detectUrlType(u);
+  lastCast = {type:'url', url:u};
   setPill('phone-cast-status','phone-cast-text','streaming', URL_ICONS[t]||'Playing on TV');
   setPhonePreview(t==='video' ? {kind:'video', url:u} : null); // direct video previews; YouTube/HLS show placeholder
   // Show scrubber for all types that report time; hide for iframe
@@ -2307,7 +2370,7 @@ function resetConn(){
   try{ v.pause(); v.removeAttribute('src'); v.srcObject=null; }catch(e){}
   try{ clearTimeout(imgTimer); if(vizRAF){ cancelAnimationFrame(vizRAF); vizRAF=null; } var a=$('tv-audio'); a.pause(); a.removeAttribute('src'); a.srcObject=null; }catch(e){}
   confirmed=false; rx=null; tvQueue=[]; tvPlaying=null; tvStreamPendingMeta=null;
-  playlist=[]; partyMsg=''; sending=false; slideshow=[]; nowPlayingIdx=-1;
+  playlist=[]; partyMsg=''; sending=false; slideshow=[]; nowPlayingIdx=-1; lastCast=null;
   $('phone-ctrl').classList.remove('open');
   var he=$('hdr-end'); if(he) he.classList.remove('show');
   closeTerminate();
