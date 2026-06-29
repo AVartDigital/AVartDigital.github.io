@@ -192,8 +192,11 @@
     #tv-transfer { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10;
       background: radial-gradient(ellipse 90% 70% at 50% 50%, rgba(13,26,42,0.92), rgba(4,8,14,0.96)); }
     #tv-transfer.show { display: flex; }
-    #tv-transfer .xfer-title { font-size: clamp(16px,2.4vw,24px); font-weight: 800; letter-spacing: 4px; text-transform: uppercase; color: var(--gold-soft); text-shadow: 0 0 18px rgba(109,184,255,0.6); margin-bottom: 18px; }
-    #tv-transfer .xfer-pct { font-size: clamp(28px,5vw,56px); font-weight: 900; color: var(--gold); font-variant-numeric: tabular-nums; text-shadow: 0 0 24px rgba(109,184,255,0.7); margin-top: 16px; letter-spacing: 1px; }
+    #tv-transfer .xfer-title { font-size: clamp(16px,2.4vw,24px); font-weight: 800; letter-spacing: 4px; text-transform: uppercase; color: var(--gold-soft); text-shadow: 0 0 18px rgba(109,184,255,0.6); margin-bottom: 18px; animation: pulse 1.4s ease-in-out infinite; }
+    #tv-transfer .xfer-title::after { content: ''; animation: loaddots 1.4s steps(1,end) infinite; }
+    @keyframes loaddots { 0%{content:'';} 25%{content:'.';} 50%{content:'..';} 75%{content:'...';} 100%{content:'';} }
+    /* animated element instead of a 1-100 number */
+    #tv-transfer .xfer-pct { display: none; }
     .progress-track { position: relative; width: 64%; max-width: 520px; height: 12px; border-radius: 8px;
       background: rgba(109,184,255,0.12); overflow: hidden; border: 1px solid var(--edge); box-shadow: 0 0 24px rgba(109,184,255,0.18) inset; }
     .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #2b6cff, var(--gold), var(--gold-soft)); box-shadow: 0 0 18px rgba(109,184,255,0.8); transition: width .2s; }
@@ -206,7 +209,7 @@
     #tv-textbar { position: absolute; left: 0; right: 0; bottom: 0; padding: 16px 20px; background: rgba(0,0,0,0.8); color: #fff; font-size: 22px; font-weight: 600; word-break: break-word; display: none; }
 
     /* TV fade-in overlay */
-    #tv-fade { position: absolute; inset: 0; background: #000; z-index: 30; opacity: 0; pointer-events: none; transition: opacity 2.5s ease; }
+    #tv-fade { position: absolute; inset: 0; background: #000; z-index: 30; opacity: 0; pointer-events: none; transition: opacity 1s ease; }
     /* Flash party message overlay — shows for 5s then fades */
     #tv-flash { position: absolute; left: 0; right: 0; bottom: 12%; display: flex; justify-content: center; padding: 0 6%; z-index: 25; opacity: 0; pointer-events: none; transition: opacity .6s ease; }
     #tv-flash.show { opacity: 1; }
@@ -371,6 +374,33 @@
     #party-msg-input:focus { border-color: var(--gold); }
     .party-count { font-size:11px; color:var(--muted); text-align:right; margin-top:4px; }
 
+    /* Header end button (top-right, small red) */
+    header { justify-content: space-between; }
+    #hdr-end { display: none; flex: none; min-width: 0; min-height: 0; padding: 8px 12px; font-size: 12px; font-weight: 800; letter-spacing: .5px;
+      background: rgba(255,70,70,0.14); color: #ff9a9a; border: 1px solid rgba(255,90,90,0.45); border-radius: 10px; box-shadow: 0 0 14px rgba(255,80,80,0.25); }
+    #hdr-end.show { display: inline-flex; align-items: center; }
+    #hdr-end:active { transform: scale(0.94); }
+
+    /* Collapsible source options */
+    #source-collapse { margin-bottom: 16px; border: 1px solid var(--edge-soft); border-radius: var(--radius); background: linear-gradient(180deg, rgba(109,184,255,0.05), rgba(109,184,255,0)); overflow: hidden; }
+    .source-summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; font-size: 13px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--gold-soft); }
+    .source-summary::-webkit-details-marker { display: none; }
+    .source-summary .chev { transition: transform .2s; }
+    #source-collapse[open] .source-summary .chev { transform: rotate(180deg); }
+    #source-collapse .source-grid { padding: 0 12px 12px; margin-bottom: 0; }
+
+    /* Confirm modal */
+    .modal-backdrop { position: fixed; inset: 0; z-index: 4000; display: none; align-items: center; justify-content: center; padding: 24px;
+      background: rgba(4,8,14,0.72); backdrop-filter: blur(6px); }
+    .modal-backdrop.show { display: flex; }
+    .modal-card { width: 100%; max-width: 380px; text-align: center; padding: 26px 22px;
+      background: linear-gradient(180deg, rgba(26,40,58,0.98), rgba(10,16,26,0.99)); border: 1px solid var(--edge); border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 40px rgba(109,184,255,0.12) inset; }
+    .modal-card .modal-ic { font-size: 44px; margin-bottom: 10px; filter: drop-shadow(0 0 12px rgba(255,90,90,0.6)); }
+    .modal-card h2 { font-size: 20px; margin-bottom: 8px; }
+    .modal-card p { font-size: 13.5px; color: var(--muted); line-height: 1.5; margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 10px; }
+
     /* Media / playlist layout */
     .media-layout { display: grid; grid-template-columns: 1fr; gap: 16px; }
     @media (min-width: 860px) { .media-layout { grid-template-columns: 1fr 360px; align-items: start; } }
@@ -389,6 +419,14 @@
     .pl-item .pl-act button { flex:none; min-width:34px; width:34px; height:34px; min-height:34px; padding:0; font-size:13px; background:rgba(109,184,255,0.08); border:1px solid var(--edge); color:var(--gold-soft); border-radius:8px; }
     .pl-item .pl-act button.play { background:linear-gradient(180deg, var(--gold-soft), var(--gold)); color:#042038; border:none; box-shadow:0 0 10px rgba(109,184,255,0.35); }
     .pl-item .pl-act button.del { color: var(--danger); border-color:rgba(255,120,120,0.35); }
+    .pl-item .pl-act button.stop { color:#ff9a9a; border-color:rgba(255,120,120,0.45); background:rgba(255,80,80,0.12); }
+    /* Played vs new distinction */
+    .pl-item.done { opacity: 0.72; }
+    .pl-item.nowplaying { border-color: var(--gold); background: rgba(109,184,255,0.14); box-shadow: 0 0 0 1px var(--edge), 0 0 16px rgba(109,184,255,0.25); opacity: 1; }
+    .pl-badge { display:inline-block; font-size:9px; font-weight:800; letter-spacing:1px; padding:1px 6px; border-radius:20px; margin-right:6px; vertical-align:middle; }
+    .pl-badge.new { background:rgba(109,184,255,0.2); color:var(--gold-soft); border:1px solid var(--edge); }
+    .pl-badge.viewed { background:rgba(255,255,255,0.06); color:var(--muted); border:1px solid rgba(255,255,255,0.12); }
+    .pl-badge.now { background:var(--gold); color:#042038; box-shadow:0 0 10px rgba(109,184,255,0.6); }
     #screen-phone-cast.active { padding-bottom: 96px; }
     /* Live preview mirror on the phone */
     #phone-preview-wrap { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 14px; overflow: hidden; background: #05080d; border: 1px solid var(--edge); box-shadow: 0 0 30px rgba(109,184,255,0.15), inset 0 0 0 1px rgba(109,184,255,0.06); margin-bottom: 14px; }
@@ -471,7 +509,21 @@
     <div class="logo">Cast<span>Party</span></div>
     <div class="subtitle">Cast & stream over Wi-Fi</div>
   </div>
+  <button id="hdr-end" onclick="confirmTerminate()" title="Terminate session">⏻ End</button>
 </header>
+
+<!-- Terminate confirm modal -->
+<div id="confirm-end" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-ic">⏻</div>
+    <h2>Terminate session?</h2>
+    <p>This ends casting and disconnects from the TV. Any temporary uploaded videos are deleted.</p>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeTerminate()">Keep going</button>
+      <button class="btn-danger" onclick="doTerminate()">⏻ Terminate</button>
+    </div>
+  </div>
+</div>
 
 <div id="app">
 
@@ -599,16 +651,17 @@
 
   <!-- PHONE: SOURCE PICKER -->
   <div id="screen-phone-source" class="screen">
-    <button class="back-btn" onclick="endAll(true)">← End session</button>
     <div id="phone-source-pill" class="status-pill connected"><span class="dot"></span><span id="phone-source-text">Paired with TV — pick what to show</span></div>
     <div id="phone-source-toast" style="display:none;" class="note"></div>
-    <div class="section-title">What do you want to show?</div>
-    <div class="source-grid">
-      <div class="source-btn" onclick="pickSource('file')"><div class="ic">🎬</div><div class="nm">Media &amp; playlist</div><div class="ds">Videos, photos, music</div></div>
-      <div class="source-btn" onclick="pickSource('screen')"><div class="ic">📲</div><div class="nm">Screen / app</div><div class="ds">Mirror your screen</div></div>
-      <div class="source-btn" onclick="pickSource('url')"><div class="ic">🌐</div><div class="nm">Website</div><div class="ds">Open a URL on TV</div></div>
-      <div class="source-btn" onclick="pickSource('camera')"><div class="ic">📷</div><div class="nm">Camera</div><div class="ds">Live phone camera</div></div>
-    </div>
+    <details id="source-collapse" open>
+      <summary class="source-summary"><span>📡 What do you want to show?</span><span class="chev">▾</span></summary>
+      <div class="source-grid">
+        <div class="source-btn" onclick="pickSource('file')"><div class="ic">🎬</div><div class="nm">Media &amp; playlist</div><div class="ds">Videos, photos, music</div></div>
+        <div class="source-btn" onclick="pickSource('screen')"><div class="ic">📲</div><div class="nm">Screen / app</div><div class="ds">Mirror your screen</div></div>
+        <div class="source-btn" onclick="pickSource('url')"><div class="ic">🌐</div><div class="nm">Website</div><div class="ds">Open a URL on TV</div></div>
+        <div class="source-btn" onclick="pickSource('camera')"><div class="ic">📷</div><div class="nm">Camera</div><div class="ds">Live phone camera</div></div>
+      </div>
+    </details>
     <div id="src-file" style="display:none;">
       <div class="media-layout">
         <div>
@@ -622,8 +675,11 @@
             <div class="party-count"><span id="party-count">0</span>/100</div>
             <button class="btn-secondary btn-wide" style="margin-top:8px;" onclick="flashMessageToTV()">💬 Display on Screen (5s)</button>
           </div>
-          <button class="btn-primary btn-wide" id="btn-cast-file" onclick="sendPlaylist()" disabled>📡 Send playlist to TV &amp; play</button>
-          <p class="hint" style="margin-top:10px;">Items play in order. Add more anytime — they queue behind what's playing.</p>
+          <div style="display:flex;gap:10px;">
+            <button class="btn-secondary" style="flex:1;" onclick="addMoreMedia()">➕ Add to Playlist</button>
+            <button class="btn-primary" style="flex:1.3;" id="btn-cast-file" onclick="castNow()" disabled>▶ Cast Now</button>
+          </div>
+          <p class="hint" style="margin-top:10px;">Items play in order. “Add to Playlist” queues more; “Cast Now” starts playing on the TV.</p>
           <p id="cloud-status-note" class="hint" style="margin-top:6px;"></p>
         </div>
         <div class="playlist-panel">
@@ -688,7 +744,7 @@
       <h3>On the TV</h3>
       <div id="cast-queue"><div class="pl-empty">Nothing queued yet.</div></div>
     </div>
-    <p style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center;">Tap the ⦿ remote button anytime to open playback controls.</p>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center;">Tap the ⌨ remote button anytime to open playback controls.</p>
   </div>
 
   <!-- ENDED -->
@@ -704,7 +760,7 @@
 
 <!-- FLOATING REMOTE LAUNCHER (always available once paired) -->
 <button id="remote-fab" title="Remote control (drag to move)" aria-label="Remote control">
-  <span class="fab-ring"></span><span class="fab-glyph">⦿</span>
+  <span class="fab-ring"></span><span class="fab-glyph">⌨</span>
 </button>
 
 <!-- PHONE FLOATING CONTROLLER -->
@@ -755,6 +811,7 @@ var primaryConn = null; // phone side
 var tvQueue = [];
 var tvPlaying = null;
 var tvLoop = false;
+var slideshow = [];   // image items this session, for looping slideshows
 var rx = null; // current receive state
 
 // Stream mode state
@@ -794,10 +851,22 @@ function updateRemoteUI(id){
   var ctrl = $('phone-ctrl');
   var canRemote = (role === 'phone') && (id === 'screen-phone-cast' || id === 'screen-phone-source');
   if(fab) fab.classList.toggle('show', !!canRemote);
+  // Header End button: visible whenever a live session exists
+  var inSession = confirmed && (id === 'screen-phone-cast' || id === 'screen-phone-source' || id === 'screen-tv-play');
+  var he = $('hdr-end'); if(he) he.classList.toggle('show', !!inSession);
   if(!ctrl) return;
   if(id === 'screen-phone-cast'){ ctrl.classList.add('open'); }
   else { ctrl.classList.remove('open'); }
 }
+
+// Terminate session (with confirm)
+function confirmTerminate(){ $('confirm-end').classList.add('show'); }
+function closeTerminate(){ $('confirm-end').classList.remove('show'); }
+function doTerminate(){ closeTerminate(); endAll(true); }
+
+// Playlist action buttons
+function addMoreMedia(){ var fi=$('file-input'); if(fi){ fi.value=''; fi.click(); } }
+function castNow(){ sendPlaylist(); }
 function toggleRemote(){ $('phone-ctrl').classList.toggle('open'); }
 function openRemote(){ $('phone-ctrl').classList.add('open'); }
 function closeRemote(){ $('phone-ctrl').classList.remove('open'); }
@@ -931,17 +1000,13 @@ function tvShowStream(stream){
     a.srcObject = stream; a.src = '';
     showOnlyMedia('audio');
     $('tv-party-msg').textContent = tvPartyMsg || '';
-    a.muted = false; a.volume = 1;
-    a.play().then(function(){ startViz(a); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); })
-     .catch(function(){ a.muted=true; a.play().then(function(){ setTimeout(function(){ a.muted=false; },500); startViz(a); playFadeIn(); tvFullscreenAuto(); }).catch(function(){}); });
+    autoPlay(a, function(){ startViz(a); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); });
   } else {
     var v = $('tv-video');
     v.srcObject = stream; v.src = '';
     showOnlyMedia('video');
     $('tv-play-overlay').classList.add('hidden');
-    v.muted = false; v.volume = 1;
-    v.play().then(function(){ playFadeIn(); tvFullscreenAuto(); showTVOverlay(); })
-     .catch(function(){ v.muted=true; v.play().then(function(){ setTimeout(function(){ v.muted=false; },500); playFadeIn(); tvFullscreenAuto(); }).catch(function(){}); });
+    autoPlay(v, function(){ playFadeIn(); tvFullscreenAuto(); showTVOverlay(); });
   }
 
   // When the stream closes naturally (phone ended), advance to next queued item
@@ -1007,9 +1072,7 @@ function tvStartProgressive(){
   showOnlyMedia('video');
   $('tv-play-overlay').classList.add('hidden');
   v.srcObject = null; v.src = url; v.loop = tvLoop;
-  v.muted = false; v.volume = 1;
-  v.play().then(function(){ playFadeIn(); $('tv-transfer').classList.remove('show'); tvFullscreenAuto(); })
-   .catch(function(){ v.muted=true; v.play().then(function(){ setTimeout(function(){ v.muted=false; },500); playFadeIn(); $('tv-transfer').classList.remove('show'); tvFullscreenAuto(); }).catch(function(){}); });
+  autoPlay(v, function(){ playFadeIn(); $('tv-transfer').classList.remove('show'); tvFullscreenAuto(); });
 }
 
 function tvFileEnd(){
@@ -1071,43 +1134,43 @@ function playItem(item){
   tvPlaying = item;
   if(item.partyMsg) tvPartyMsg = item.partyMsg;
   $('tv-play-overlay').classList.add('hidden');
+  $('tv-transfer').classList.remove('show');
 
   if(item.kind === 'image'){
+    if(item.url && !slideshow.some(function(s){ return s.url===item.url; })) slideshow.push(item);
     $('tv-image').src = item.url;
     showOnlyMedia('image');
     playFadeIn(); tvFullscreenAuto(); showTVOverlay();
-    imgTimer = setTimeout(function(){ if(tvQueue.length>0) playNext(); }, 8000);
+    // Slideshow: advance to next image after a few seconds (loops if tvLoop re-queues)
+    imgTimer = setTimeout(function(){ if(tvQueue.length>0) playNext(); else if(tvLoop && slideshow.length>1){ tvQueue = slideshow.slice(); playNext(); } }, 6000);
   } else if(item.kind === 'audio'){
     var a = $('tv-audio');
     a.src = item.url; a.loop = tvLoop;
     showOnlyMedia('audio');
     $('tv-party-msg').textContent = tvPartyMsg || '';
-    a.muted = false; a.volume = 1;
-    a.play().then(function(){ startViz(a); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); })
-     .catch(function(){ a.muted=true; a.play().then(function(){ setTimeout(function(){ a.muted=false; },500); startViz(a); playFadeIn(); tvFullscreenAuto(); }).catch(function(){ $('tv-play-overlay').classList.remove('hidden'); }); });
+    autoPlay(a, function(){ startViz(a); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); });
   } else {
     var vv = $('tv-video');
     if(vv._url && vv._url!==item.url){ try{ URL.revokeObjectURL(vv._url); }catch(e){} }
     vv._url = item.url; vv.srcObject = null; vv.src = item.url; vv.loop = tvLoop;
     showOnlyMedia('video');
-    vv.muted = false; vv.volume = 1;
-    vv.play().then(function(){ playFadeIn(); tvFullscreenAuto(); showTVOverlay(); })
-     .catch(function(){ vv.muted=true; vv.play().then(function(){ setTimeout(function(){ vv.muted=false; },500); playFadeIn(); tvFullscreenAuto(); }).catch(function(){ $('tv-play-overlay').classList.remove('hidden'); }); });
+    autoPlay(vv, function(){ playFadeIn(); tvFullscreenAuto(); showTVOverlay(); });
   }
   tvBroadcast({t:'ready'}); broadcastQueue(); sendTime();
 }
 
 function playNext(){
   var item = tvQueue.shift();
-  if(!item){ tvPlaying = null; stopViz(); tvIdle(); broadcastQueue(); return; }
-  playItem(item);
+  if(!item){ tvPlaying = null; stopViz(); tvFadeOutThen(tvIdle); broadcastQueue(); return; }
+  tvFadeOutThen(function(){ playItem(item); });   // 1s fade-out → fade-in
 }
 
 // fires when current video/audio ends naturally
 function onMediaEnded(){
-  if(tvLoop) return;
+  if(tvLoop && tvQueue.length===0){ return; } // single looping item handled by element.loop
   if(tvQueue.length > 0){ playNext(); }
-  else { $('tv-play-overlay').classList.remove('hidden'); broadcastQueue(); }
+  else if(tvLoop && slideshow.length>1){ tvQueue = slideshow.slice(); playNext(); }
+  else { tvFadeOutThen(tvIdle); broadcastQueue(); } // no center play button — back to idle art
 }
 
 function broadcastQueue(){
@@ -1165,10 +1228,31 @@ function playFadeIn(){
   fd.style.opacity = '1';
   requestAnimationFrame(function(){
     requestAnimationFrame(function(){
-      fd.style.transition = 'opacity 2.5s ease';
+      fd.style.transition = 'opacity 1s ease';
       fd.style.opacity = '0';
     });
   });
+}
+// 1s fade-to-black, then run cb (used when transitioning between files)
+function tvFadeOutThen(cb){
+  var fd = $('tv-fade');
+  fd.style.transition = 'opacity 1s ease';
+  fd.style.opacity = '1';
+  setTimeout(cb, 1000);
+}
+// Reliable autoplay: start muted (always allowed), then unmute — avoids the
+// "needs a tap on the TV" problem that desynced phone↔TV playback.
+function autoPlay(el, onok){
+  el.muted = true; el.volume = 1;
+  var run = function(){ if(onok) onok(); setTimeout(function(){ try{ el.muted = false; el.volume = 1; }catch(e){} }, 400); };
+  var p;
+  try{ p = el.play(); }catch(e){ p = null; }
+  if(p && p.then){ p.then(run).catch(function(){
+    var p2; try{ p2 = el.play(); }catch(e){ p2=null; }
+    if(p2 && p2.then){ p2.then(run).catch(function(){ $('tv-play-overlay').classList.remove('hidden'); }); }
+    else { run(); }
+  }); }
+  else { run(); }
 }
 
 function tvIdle(){
@@ -1180,7 +1264,8 @@ function tvIdle(){
   $('tv-image').removeAttribute('src');
   showOnlyMedia('none');
   $('tv-stage').classList.add('idle');
-  $('tv-play-overlay').classList.remove('hidden');
+  $('tv-transfer').classList.remove('show');
+  $('tv-play-overlay').classList.add('hidden');   // idle = Player 2 artwork only, no play button
 }
 
 // TV transport
@@ -1401,6 +1486,7 @@ function kindIcon(k){ return k==='image'?'🖼️':(k==='audio'?'🎵':'🎬'); 
 var playlist = [];   // {file, name, kind, size, sent}
 var partyMsg = '';
 var selectedPlIdx = -1;
+var nowPlayingIdx = -1;   // index in playlist of the item currently on the TV
 var sending = false;
 
 function fileInputChange(e){
@@ -1428,21 +1514,45 @@ function renderPlaylist(){
   for(var i=0;i<playlist.length;i++){
     var it=playlist[i];
     var isSel = (i===selectedPlIdx && !it.sent);
-    html += '<div class="pl-item'+(it.sent?' now':'')+(isSel?' selected':'')+'">'+
+    var isNow = (it.sent && i===nowPlayingIdx);
+    var badge = isNow ? '<span class="pl-badge now">● NOW</span>'
+              : it.sent ? '<span class="pl-badge viewed">✓ VIEWED</span>'
+              : '<span class="pl-badge new">NEW</span>';
+    html += '<div class="pl-item'+(it.sent?' done':'')+(isNow?' nowplaying':'')+(isSel?' selected':'')+'">'+
       '<div class="pl-ic">'+kindIcon(it.kind)+'</div>'+
       '<div class="pl-meta"><div class="pl-name">'+escapeHtml(it.name)+'</div>'+
-      '<div class="pl-sub">'+it.kind+' · '+formatBytes(it.size)+(it.sent?' · sent ✓':'')+'</div></div>'+
+      '<div class="pl-sub">'+badge+' '+it.kind+' · '+formatBytes(it.size)+'</div></div>'+
       '<div class="pl-act">'+
-        (it.sent ? '' :
-          '<button class="play" onclick="event.stopPropagation();playNowFromPlaylist('+i+')" title="Play now">▶</button>'+
-          '<button onclick="event.stopPropagation();movePl('+i+',-1)" title="Move up">▲</button>'+
-          '<button onclick="event.stopPropagation();movePl('+i+',1)" title="Move down">▼</button>')+
+        (it.sent
+          ? // already cast → re-cast, and stop if it's the one playing
+            '<button class="play" onclick="event.stopPropagation();recastItem('+i+')" title="Re-cast">↻</button>'+
+            (isNow ? '<button class="stop" onclick="event.stopPropagation();stopCast()" title="Stop">■</button>' : '')
+          : // not cast yet → play now + reorder
+            '<button class="play" onclick="event.stopPropagation();playNowFromPlaylist('+i+')" title="Play now">▶</button>'+
+            '<button onclick="event.stopPropagation();movePl('+i+',-1)" title="Move up">▲</button>'+
+            '<button onclick="event.stopPropagation();movePl('+i+',1)" title="Move down">▼</button>')+
         '<button class="del" onclick="event.stopPropagation();removeFromPlaylist('+i+')" title="Remove">✕</button>'+
       '</div></div>';
   }
   el.innerHTML=html;
   updatePlConfirmBar();
 }
+// Re-cast an already-played item (Snapchat-style "view again")
+function recastItem(i){
+  if(!playlist[i]) return;
+  var it = playlist[i];
+  setPhonePreview({kind: it.kind, file: it.file});
+  if(it.kind==='video' && it.size>=CLOUD_THRESHOLD && cloudEnabled()){
+    enterController(false); cloudCastVideo(it).catch(function(){ toast('Re-cast failed'); });
+  } else if(it.kind==='video' && it.size>=CLOUD_THRESHOLD && supportsCapture()){
+    enterController(false); streamFile(it.file, it.name);
+  } else {
+    enterController(false); transferFile(it.file, it.kind, it.name);
+  }
+  toast('↻ Re-casting '+it.name);
+}
+// Stop whatever is playing on the TV
+function stopCast(){ send({t:'stop'}); nowPlayingIdx=-1; renderPlaylist(); toast('■ Stopped'); }
 function plItemClick(e, i){
   var it = playlist[i];
   if(!it || it.sent) return; // can't select already-sent items
@@ -1528,6 +1638,7 @@ async function sendPlaylist(){
   if(playlist.length===0){ toast('Add media first'); return; }
   if(call){ try{call.close();}catch(e){} call=null; }
   enterController(false);
+  toast('⏳ Loading on TV…');
   send({t:'partymsg', text:partyMsg});
   await drainPlaylist();
 }
@@ -1688,6 +1799,7 @@ function cloudCastVideo(item){
         var publicUrl = SUPABASE_URL.replace(/\/$/,'') + '/storage/v1/object/public/' + SUPABASE_BUCKET + '/' + objectName;
         // Hand the URL to the TV as a normal queue item (full transport + auto-advance)
         send({t:'enqueue-url', name:item.name, url:publicUrl, kind:'video', partyMsg:partyMsg});
+        toast('✅ Upload complete — ready to cast: '+item.name);
         setPill('phone-cast-status','phone-cast-text','streaming','▶ Casting '+item.name);
         resolve();
       }
@@ -1918,6 +2030,7 @@ function handleData(msg, dc, cid){
     case 'stream-end': if(role==='tv'){ $('tv-spinner').classList.remove('show'); if(tvPlaying&&tvPlaying.isStream){ tvPlaying=null; if(tvQueue.length>0){playNext();}else{tvIdle();} broadcastQueue(); } } break;
     case 'stream-cancel': if(role==='tv'){ tvStreamPendingMeta=null; $('tv-spinner').classList.remove('show'); } break;
     case 'ready': if(role==='phone'){ setPill('phone-cast-status','phone-cast-text','streaming','Playing on TV'); } break;
+    case 'stop': if(role==='tv'){ tvQueue=[]; tvPlaying=null; tvIdle(); broadcastQueue(); } break;
     case 'pb': if(role==='tv'){ applyTVCmd(msg.a, msg.v); } break;
     case 'time': if(role==='phone') onTime(msg); break;
     case 'url': if(role==='tv') openUrlOnTV(msg.url); break;
@@ -2009,6 +2122,12 @@ function onTime(m){
   $('ph-loop').classList.toggle('on', !!m.loop);
 }
 function onQueue(m){
+  // Map the TV's now-playing back to a playlist index so the list shows ● NOW / ✓ VIEWED
+  if(m.playing && m.playing.name){
+    var idx = -1;
+    for(var k=0;k<playlist.length;k++){ if(playlist[k].sent && playlist[k].name===m.playing.name){ idx=k; } }
+    if(idx!==nowPlayingIdx){ nowPlayingIdx = idx; if(typeof renderPlaylist==='function') renderPlaylist(); }
+  } else if(nowPlayingIdx!==-1){ nowPlayingIdx=-1; if(typeof renderPlaylist==='function') renderPlaylist(); }
   var el = $('cast-queue'); if(!el) return;
   var html = '';
   if(m.playing){ html += '<div class="pl-item now"><div class="pl-ic">'+kindIcon(m.playing.kind)+'</div><div class="pl-meta"><div class="pl-name">'+escapeHtml(m.playing.name)+'</div><div class="pl-sub">Now playing</div></div></div>'; }
@@ -2188,8 +2307,10 @@ function resetConn(){
   try{ v.pause(); v.removeAttribute('src'); v.srcObject=null; }catch(e){}
   try{ clearTimeout(imgTimer); if(vizRAF){ cancelAnimationFrame(vizRAF); vizRAF=null; } var a=$('tv-audio'); a.pause(); a.removeAttribute('src'); a.srcObject=null; }catch(e){}
   confirmed=false; rx=null; tvQueue=[]; tvPlaying=null; tvStreamPendingMeta=null;
-  playlist=[]; partyMsg=''; sending=false;
+  playlist=[]; partyMsg=''; sending=false; slideshow=[]; nowPlayingIdx=-1;
   $('phone-ctrl').classList.remove('open');
+  var he=$('hdr-end'); if(he) he.classList.remove('show');
+  closeTerminate();
 }
 
 // Phone side send uses primaryConn
