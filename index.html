@@ -211,6 +211,20 @@
 
     /* TV fade-in overlay */
     #tv-fade { position: absolute; inset: 0; background: #000; z-index: 30; opacity: 0; pointer-events: none; transition: opacity 1s ease; }
+    /* "Casting from NAME" banner — auto-shows 4s at the start of each file */
+    #tv-caster { position: absolute; top: 5%; left: 0; right: 0; display: flex; justify-content: center; z-index: 26; opacity: 0; pointer-events: none; transition: opacity .5s ease; }
+    #tv-caster.show { opacity: 1; }
+    #tv-caster #tv-caster-text { font-weight: 800; letter-spacing: 1px; font-size: clamp(16px,2.6vw,30px); color: #fff;
+      padding: 10px 22px; border-radius: 30px; background: rgba(10,18,30,0.6); backdrop-filter: blur(8px); border: 1px solid var(--edge);
+      text-shadow: 0 0 16px rgba(109,184,255,0.6); box-shadow: 0 0 30px rgba(109,184,255,0.3); }
+    /* Persistent corner join-QR on the idle screen (until 3 devices connected) */
+    #tv-corner-qr { position: absolute; right: 3%; bottom: 5%; z-index: 22; display: none; align-items: center; gap: 12px;
+      background: rgba(8,14,24,0.7); backdrop-filter: blur(8px); border: 1px solid var(--edge); border-radius: 14px; padding: 10px 14px;
+      box-shadow: 0 0 26px rgba(109,184,255,0.25); }
+    #tv-corner-qr.show { display: flex; }
+    #tv-corner-qr img { width: 84px; height: 84px; border-radius: 8px; background: #fff; padding: 5px; display: block; }
+    #tv-corner-qr .cq-label { font-size: clamp(11px,1.4vw,15px); font-weight: 700; color: var(--gold-soft); letter-spacing: 1px; line-height: 1.4; }
+    #tv-corner-qr .cq-label #tv-corner-code { font-size: clamp(16px,2vw,24px); font-weight: 900; color: var(--gold); letter-spacing: 3px; }
     /* Flash party message overlay — shows for 5s then fades */
     #tv-flash { position: absolute; left: 0; right: 0; bottom: 12%; display: flex; justify-content: center; padding: 0 6%; z-index: 25; opacity: 0; pointer-events: none; transition: opacity .6s ease; }
     #tv-flash.show { opacity: 1; }
@@ -501,6 +515,23 @@
     /* Very narrow (<=330px): single-column source grid so tiles never clip */
     @media (max-width: 330px){ .source-grid { grid-template-columns: 1fr; } }
 
+    /* Coordinator device panel */
+    #devices-panel { margin-bottom: 16px; border: 1px solid var(--edge-soft); border-radius: var(--radius); background: linear-gradient(180deg, rgba(109,184,255,0.05), rgba(109,184,255,0)); overflow: hidden; }
+    #devices-list { padding: 0 12px 6px; }
+    .dev-row { display: flex; align-items: center; gap: 10px; background: var(--surface2); border: 1px solid var(--edge-soft); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; flex-wrap: wrap; }
+    .dev-row .dev-ic { font-size: 18px; flex: none; }
+    .dev-row .dev-meta { flex: 1; min-width: 90px; }
+    .dev-row .dev-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dev-row .dev-sub { font-size: 11px; color: var(--muted); }
+    .dev-badge { display:inline-block; font-size:9px; font-weight:800; letter-spacing:1px; padding:1px 7px; border-radius:20px; margin-left:6px; }
+    .dev-badge.coord { background: var(--gold); color:#042038; box-shadow:0 0 10px rgba(109,184,255,0.5); }
+    .dev-badge.guest { background: rgba(255,255,255,0.08); color: var(--muted); border:1px solid rgba(255,255,255,0.12); }
+    .dev-badge.you { background: rgba(109,184,255,0.2); color: var(--gold-soft); border:1px solid var(--edge); }
+    .dev-act { display:flex; gap:6px; flex:none; }
+    .dev-act button { flex:none; min-width:0; min-height:34px; padding:6px 10px; font-size:11px; font-weight:700; border-radius:8px; border:1px solid var(--edge); background:rgba(109,184,255,0.08); color:var(--gold-soft); }
+    .dev-act button.block { color:#ff9a9a; border-color:rgba(255,120,120,0.4); background:rgba(255,80,80,0.1); }
+    .dev-act button.promote { background:linear-gradient(180deg,var(--gold-soft),var(--gold)); color:#042038; border:none; }
+
     /* ═══════════ CASTPARTY SCI-FI BRAND — consistent panel/button identity ═══════════ */
     :root { --edge: rgba(109,184,255,0.30); --edge-soft: rgba(109,184,255,0.16); --glow: 0 0 14px rgba(109,184,255,0.25); }
     /* Tech-panel surfaces: cards, source tiles, home tiles, playlist, notes share one identity */
@@ -554,17 +585,17 @@
 
   <!-- HOME -->
   <div id="screen-home" class="screen active">
-    <p style="color:var(--muted);font-size:13px;margin-bottom:18px;text-align:center;">What device are you on?</p>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:18px;text-align:center;">How do you want to connect?</p>
     <div class="mode-grid">
       <div class="home-card focused" id="home-phone" onclick="goPhone()">
         <div class="mode-icon">📱</div>
-        <h2>Phone / Sender</h2>
-        <p>Scan the TV's QR code, then send videos or mirror your screen.</p>
+        <h2>Share from Device</h2>
+        <p>Choose this option on the device you want to use to share photos, videos, or other media to a connected TV or display.</p>
       </div>
       <div class="home-card" id="home-tv" onclick="goTV()">
         <div class="mode-icon">📺</div>
-        <h2>TV / Receiver</h2>
-        <p>Open on your Philips TV's Silk browser. Shows a QR code for your phone to scan.</p>
+        <h2>View on Display</h2>
+        <p>Choose this option on your smart TV or display. A QR code and 4-digit code will appear. Scan the QR code with your mobile device to connect. Up to 3 devices can connect and share content during the same session.</p>
       </div>
     </div>
     <p class="home-hint">Arrow keys + Enter to navigate • TV remote friendly</p>
@@ -622,6 +653,8 @@
           </div>
           <div id="tv-textbar"></div>
           <div id="tv-flash"><span id="tv-flash-text"></span></div>
+          <div id="tv-caster"><span id="tv-caster-text"></span></div>
+          <div id="tv-corner-qr"><img id="tv-corner-qr-img" alt="Scan to join" /><div class="cq-label">Scan to join<br><span id="tv-corner-code">——</span></div></div>
           <div id="tv-fade"></div>
           <div id="tv-overlay">
             <div class="ov-btns">
@@ -650,12 +683,15 @@
   <!-- PHONE: JOIN -->
   <div id="screen-phone-join" class="screen">
     <button class="back-btn" onclick="goHome()">← Back</button>
-    <div class="section-title">Connect to your TV</div>
-    <div class="note">📷 Easiest: on the TV choose <strong>TV / Receiver</strong>, then scan its QR code with your Samsung camera.</div>
-    <div class="section-title">…or enter the TV's code</div>
+    <div class="section-title">Your display name</div>
+    <div class="join-form" style="max-width:420px;margin-bottom:14px;">
+      <input type="text" id="display-name-input" maxlength="20" placeholder="e.g. Alex" style="font-size:16px;letter-spacing:0;text-align:left;" oninput="onNameInput()" />
+    </div>
+    <div class="note">📷 Easiest: on the display choose <strong>View on Display</strong>, then scan its QR code with your camera.</div>
+    <div class="section-title">…or enter the 4-digit code</div>
     <div class="join-form" style="max-width:420px;">
       <input type="text" id="phone-code-input" maxlength="6" placeholder="123456" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/\D/g,'')" />
-      <button class="btn-primary" onclick="phoneConnect()">Connect to TV</button>
+      <button class="btn-primary" onclick="phoneConnect()">Connect</button>
     </div>
     <div id="phone-join-status" class="status-pill" style="display:none;"><span class="dot"></span><span id="phone-join-text">Connecting…</span></div>
     <div id="phone-join-spinner" style="display:none;"><div class="spinner"></div></div>
@@ -678,6 +714,14 @@
   <div id="screen-phone-source" class="screen">
     <div id="phone-source-pill" class="status-pill connected"><span class="dot"></span><span id="phone-source-text">Paired with TV — pick what to show</span></div>
     <div id="phone-source-toast" style="display:none;" class="note"></div>
+
+    <!-- Coordinator device-management panel -->
+    <details id="devices-panel" style="display:none;">
+      <summary class="source-summary"><span>👥 Devices <span id="devices-count" class="count">(0)</span></span><span class="chev">▾</span></summary>
+      <div id="devices-list"></div>
+      <p class="hint" id="devices-hint" style="margin-top:4px;"></p>
+    </details>
+
     <details id="source-collapse" open>
       <summary class="source-summary"><span>📡 What do you want to show?</span><span class="chev">▾</span></summary>
       <div class="source-grid">
@@ -831,8 +875,16 @@ window.addEventListener('pagehide', function(){ try{ cloudCleanup(); }catch(e){}
 
 // ───────── State ─────────
 var role = null, peer = null, conn = null, call = null, localStream = null, roomId = null, confirmed = false, currentSource = null;
-var connections = new Map(); // TV: connId -> {conn, isPrimary}
+var connections = new Map(); // TV: connId -> {conn, isPrimary, name}
 var primaryConn = null; // phone side
+var MAX_DEVICES = 3;
+var myName = '';        // phone: this device's display name
+var myRole = null;      // phone: 'primary' (coordinator) or 'guest'
+var deviceRoster = [];  // phone: latest device list from TV
+var myCid = null;       // phone: this device's id as known by the TV
+try{ myName = localStorage.getItem('castparty_name') || ''; }catch(e){}
+function onNameInput(){ myName = ($('display-name-input').value||'').slice(0,20); try{ localStorage.setItem('castparty_name', myName); }catch(e){} }
+function senderName(){ return myName || 'Guest'; }
 
 var tvQueue = [];
 var tvPlaying = null;
@@ -880,6 +932,7 @@ function updateRemoteUI(id){
   // Header End button: visible whenever a live session exists
   var inSession = confirmed && (id === 'screen-phone-cast' || id === 'screen-phone-source' || id === 'screen-tv-play');
   var he = $('hdr-end'); if(he) he.classList.toggle('show', !!inSession);
+  if(id === 'screen-phone-source') renderDevices();
   if(!ctrl) return;
   if(id === 'screen-phone-cast'){ ctrl.classList.add('open'); }
   else { ctrl.classList.remove('open'); }
@@ -893,6 +946,39 @@ function doTerminate(){ closeTerminate(); endAll(true); }
 // Playlist action buttons
 function addMoreMedia(){ var fi=$('file-input'); if(fi){ fi.value=''; fi.click(); } }
 function castNow(){ sendPlaylist(); }
+
+// ── Coordinator device-management panel (phone) ──
+function renderDevices(){
+  var panel=$('devices-panel'); if(!panel) return;
+  if(role!=='phone' || !confirmed || !deviceRoster.length){ panel.style.display='none'; return; }
+  panel.style.display='block';
+  $('devices-count').textContent = '('+deviceRoster.length+')';
+  var amCoord = (myRole==='primary');
+  var html='';
+  for(var i=0;i<deviceRoster.length;i++){
+    var d=deviceRoster[i];
+    var isYou=(d.id===myCid);
+    var badge = d.role==='primary' ? '<span class="dev-badge coord">★ COORDINATOR</span>' : '<span class="dev-badge guest">GUEST</span>';
+    var youBadge = isYou ? '<span class="dev-badge you">YOU</span>' : '';
+    var acts='';
+    if(amCoord && !isYou){
+      if(d.role!=='primary') acts += '<button class="promote" onclick="promoteToCoordinator(\''+d.id+'\')">★ Make Coordinator</button>';
+      acts += d.canShare
+        ? '<button class="block" onclick="setGuestShare(\''+d.id+'\',false)">Pause sharing</button>'
+        : '<button onclick="setGuestShare(\''+d.id+'\',true)">Allow sharing</button>';
+    }
+    html += '<div class="dev-row"><div class="dev-ic">'+(d.role==='primary'?'👑':'📱')+'</div>'+
+      '<div class="dev-meta"><div class="dev-name">'+escapeHtml(d.name)+' '+youBadge+'</div>'+
+      '<div class="dev-sub">'+badge+(d.canShare?'':' · sharing paused')+'</div></div>'+
+      '<div class="dev-act">'+acts+'</div></div>';
+  }
+  $('devices-list').innerHTML=html;
+  $('devices-hint').textContent = amCoord
+    ? 'You are the Coordinator — hand off control or pause a guest’s sharing anytime.'
+    : 'The Coordinator manages who can share on this display.';
+}
+function promoteToCoordinator(id){ send({t:'promote', id:id}); toast('Handing Coordinator role…'); }
+function setGuestShare(id, allow){ send({t:'setshare', id:id, allow:allow}); }
 
 // Remember the last thing we cast so we can resync/replay without ending the session
 var lastCast = null;   // {type:'file'|'url', it, url, kind}
@@ -1001,9 +1087,17 @@ function goTV(){
   peer.on('disconnected', function(){ try{ peer.reconnect(); }catch(e){} });
 }
 
+function countAccepted(){ var n=0; connections.forEach(function(e){ if(e.accepted) n++; }); return n; }
 function tvAutoAccept(cid){
   var entry = connections.get(cid);
   if(!entry) return;
+  // Enforce a max of 3 connected devices
+  if(!entry.accepted && countAccepted() >= MAX_DEVICES){
+    tvSendTo(entry.conn, {t:'full'});
+    setTimeout(function(){ try{ entry.conn.close(); }catch(e){} connections.delete(cid); }, 300);
+    return;
+  }
+  entry.accepted = true;
   if(!confirmed){
     confirmed = true;
     entry.isPrimary = true;
@@ -1011,10 +1105,27 @@ function tvAutoAccept(cid){
     tvSendTo(entry.conn, {t:'confirmed', role:'primary'});
     showScreen('screen-tv-play');
     tvIdle();
-    // Attempt fullscreen immediately when entering TV play screen
     setTimeout(function(){ tvFullscreenAuto(); }, 300);
   } else {
+    connections.set(cid, entry);
     tvSendTo(entry.conn, {t:'confirmed', role:'guest'});
+  }
+  updateCornerQR();
+  broadcastDevices();
+}
+
+// Show/hide the persistent corner join-QR on the idle screen (room for up to MAX_DEVICES)
+function updateCornerQR(){
+  var box = $('tv-corner-qr'); if(!box) return;
+  var stageIdle = $('tv-stage') && $('tv-stage').classList.contains('idle');
+  var hasRoom = countAccepted() < MAX_DEVICES;
+  if(role==='tv' && confirmed && hasRoom && stageIdle){
+    if($('tv-corner-code')) $('tv-corner-code').textContent = roomId || '——';
+    var img=$('tv-corner-qr-img');
+    if(img && !img.src){ drawQR(img, location.origin + location.pathname + '?join=' + roomId); }
+    box.classList.add('show');
+  } else {
+    box.classList.remove('show');
   }
 }
 
@@ -1031,6 +1142,37 @@ function tvSendTo(dc, obj){
 }
 function tvBroadcast(obj){
   connections.forEach(function(entry){ tvSendTo(entry.conn, obj); });
+}
+
+// ── Device roster (Coordinator panel) ──
+function deviceList(){
+  var arr=[];
+  connections.forEach(function(e, cid){ if(e.accepted) arr.push({ id:cid, name:e.name||'Guest', role:e.isPrimary?'primary':'guest', canShare: e.canShare!==false }); });
+  return arr;
+}
+function broadcastDevices(){
+  var list = deviceList();
+  connections.forEach(function(e, cid){ tvSendTo(e.conn, {t:'devices', list:list, you:cid}); });
+}
+// Coordinator promotes another device to Coordinator (control handoff)
+function promoteDevice(id){
+  var target = connections.get(id); if(!target || !target.accepted) return;
+  connections.forEach(function(e, cid){
+    var wasPrimary = e.isPrimary;
+    e.isPrimary = (cid === id);
+    if(e.isPrimary){ e.canShare = true; }
+    connections.set(cid, e);
+    if(e.isPrimary && !wasPrimary) tvSendTo(e.conn, {t:'role', role:'primary'});
+    if(!e.isPrimary && wasPrimary) tvSendTo(e.conn, {t:'role', role:'guest'});
+  });
+  broadcastDevices();
+}
+// Coordinator allows/blocks a guest's sharing
+function setDeviceShare(id, allow){
+  var t = connections.get(id); if(!t) return;
+  t.canShare = !!allow; connections.set(id, t);
+  tvSendTo(t.conn, {t: allow ? 'share-on' : 'share-off'});
+  broadcastDevices();
 }
 
 function regenQR(){
@@ -1053,6 +1195,8 @@ function tvShowStream(stream){
   stopViz(); clearTimeout(imgTimer);
   tvPlaying = {id: Date.now(), name: meta.name || 'Live stream', kind: kind, url: null, isStream: true};
   if(meta.partyMsg != null) tvPartyMsg = meta.partyMsg;
+  $('tv-corner-qr').classList.remove('show');
+  if(meta.sender) showCasterBanner(meta.sender);
 
   if(kind === 'audio'){
     // Route audio stream through <audio> element for visualizer
@@ -1097,7 +1241,7 @@ function curMedia(){ return (tvPlaying && tvPlaying.kind==='audio') ? $('tv-audi
 
 function tvFileStart(meta){
   rx = { chunks: [], received: 0, size: meta.size, mime: meta.mime, name: meta.name,
-         kind: meta.kind || 'video', partyMsg: (meta.partyMsg!=null?meta.partyMsg:''), partialUrl: null, progressStarted: false };
+         kind: meta.kind || 'video', partyMsg: (meta.partyMsg!=null?meta.partyMsg:''), sender: meta.sender||'', partialUrl: null, progressStarted: false };
   if(meta.partyMsg != null) tvPartyMsg = meta.partyMsg;
   if(tvPlaying === null){
     $('tv-transfer').classList.add('show');
@@ -1123,6 +1267,8 @@ function tvFileChunk(buf){
 
 function tvStartProgressive(){
   if(!rx) return;
+  if(rx.sender) showCasterBanner(rx.sender);
+  $('tv-corner-qr').classList.remove('show');
   var partialBlob = new Blob(rx.chunks.slice(), {type: rx.mime || 'video/mp4'});
   var url = URL.createObjectURL(partialBlob);
   if(rx.partialUrl){ try{ URL.revokeObjectURL(rx.partialUrl); }catch(e){} }
@@ -1141,6 +1287,7 @@ function tvFileEnd(){
   var kind = rx.kind || 'video';
   var name = rx.name || kind;
   var pmsg = rx.partyMsg || '';
+  var sndr = rx.sender || '';
   var chunks = rx.chunks;
   var oldPartial = rx.partialUrl;
   var wasProgressive = rx.progressStarted;
@@ -1148,7 +1295,7 @@ function tvFileEnd(){
 
   var blob = new Blob(chunks, {type: mime});
   var url = URL.createObjectURL(blob);
-  var item = {id: Date.now()+'-'+Math.random(), name:name, kind:kind, url:url, partyMsg:pmsg};
+  var item = {id: Date.now()+'-'+Math.random(), name:name, kind:kind, url:url, partyMsg:pmsg, sender:sndr};
 
   if(wasProgressive){
     // already playing (or attempted) this video from a partial blob — swap to the full url
@@ -1195,6 +1342,8 @@ function playItem(item){
   if(item.partyMsg) tvPartyMsg = item.partyMsg;
   $('tv-play-overlay').classList.add('hidden');
   $('tv-transfer').classList.remove('show');
+  $('tv-corner-qr').classList.remove('show');
+  if(item.sender) showCasterBanner(item.sender);
 
   if(item.kind === 'image'){
     if(item.url && !slideshow.some(function(s){ return s.url===item.url; })) slideshow.push(item);
@@ -1326,6 +1475,18 @@ function tvIdle(){
   $('tv-stage').classList.add('idle');
   $('tv-transfer').classList.remove('show');
   $('tv-play-overlay').classList.add('hidden');   // idle = Player 2 artwork only, no play button
+  updateCornerQR();
+}
+
+// "Casting from NAME" — auto-shows for 4s at the start of each file
+var _casterTimer = null;
+function showCasterBanner(name){
+  if(!name) return;
+  var b=$('tv-caster'), t=$('tv-caster-text'); if(!b||!t) return;
+  t.textContent = 'Casting from “' + name + '”';
+  b.classList.add('show');
+  clearTimeout(_casterTimer);
+  _casterTimer = setTimeout(function(){ b.classList.remove('show'); }, 4000);
 }
 
 // TV transport
@@ -1475,7 +1636,7 @@ document.addEventListener('keydown', function(e){
 })();
 
 // ───────── Phone role ─────────
-function goPhone(){ role = 'phone'; showScreen('screen-phone-join'); }
+function goPhone(){ role = 'phone'; var ni=$('display-name-input'); if(ni && myName) ni.value=myName; showScreen('screen-phone-join'); }
 function phoneConnect(){
   var c = $('phone-code-input').value.trim();
   if(c.length !== 6){ toast('Enter the 6-digit TV code'); return; }
@@ -1514,7 +1675,9 @@ function startPhonePeer(code){
 
 function phoneConfirm(){
   confirmed = true;
+  if(!myName){ myName = ($('display-name-input') && $('display-name-input').value) || 'Guest'; try{ localStorage.setItem('castparty_name', myName); }catch(e){} }
   send({t:'confirm'});
+  send({t:'hello', name: senderName()});
   showScreen('screen-phone-source');
 }
 
@@ -1729,7 +1892,7 @@ function cleanupStreamVid(){
 function streamFile(file, name){
   return new Promise(function(resolve){
     // Signal TV: stream is coming, here is its metadata
-    send({t:'stream-start', name: name||file.name, kind:'video', size:file.size, mime:file.type||'video/mp4', partyMsg:partyMsg});
+    send({t:'stream-start', name: name||file.name, kind:'video', size:file.size, mime:file.type||'video/mp4', partyMsg:partyMsg, sender:senderName()});
 
     cleanupStreamVid();
     if(call){ try{call.close();}catch(e){} call=null; }
@@ -1860,7 +2023,7 @@ function cloudCastVideo(item){
         sessionUploads.push(objectName);
         var publicUrl = SUPABASE_URL.replace(/\/$/,'') + '/storage/v1/object/public/' + SUPABASE_BUCKET + '/' + objectName;
         // Hand the URL to the TV as a normal queue item (full transport + auto-advance)
-        send({t:'enqueue-url', name:item.name, url:publicUrl, kind:'video', partyMsg:partyMsg});
+        send({t:'enqueue-url', name:item.name, url:publicUrl, kind:'video', partyMsg:partyMsg, sender:senderName()});
         toast('✅ Upload complete — ready to cast: '+item.name);
         setPill('phone-cast-status','phone-cast-text','streaming','▶ Casting '+item.name);
         resolve();
@@ -1890,7 +2053,7 @@ function cloudCleanup(){
 
 async function transferFile(file, kind, name){
   if(file.size > 2*1073741824){ toast('Very large file — TV may run low on memory'); }
-  send({t:'fstart', name:name||file.name, size:file.size, mime:file.type||'application/octet-stream', kind:kind||mediaKind(file.type,file.name), partyMsg:partyMsg});
+  send({t:'fstart', name:name||file.name, size:file.size, mime:file.type||'application/octet-stream', kind:kind||mediaKind(file.type,file.name), partyMsg:partyMsg, sender:senderName()});
   var CHUNK = 512*1024;
   var HIGH = 32*1024*1024;
   var DRAIN = HIGH / 4;
@@ -1941,7 +2104,7 @@ function castUrl(){
   var u = ($('url-input').value||'').trim();
   if(!u){ toast('Paste a URL first'); return; }
   if(!/^https?:\/\//i.test(u)) u='https://'+u;
-  send({t:'url', url:u});
+  send({t:'url', url:u, sender:senderName()});
   addRecent(u);
   enterController(true);
   var t = detectUrlType(u);
@@ -2070,23 +2233,40 @@ function handleData(msg, dc, cid){
     return;
   }
   if(!msg || !msg.t) return;
+  // Enforce Coordinator sharing permissions: block share-type messages from paused guests
+  if(role === 'tv' && cid && /^(fstart|stream-start|url|enqueue-url|uploading)$/.test(msg.t)){
+    var sh = connections.get(cid);
+    if(sh && sh.canShare === false){ tvSendTo(sh.conn, {t:'denied'}); return; }
+  }
   switch(msg.t){
     case 'confirm':
       if(role === 'tv'){ tvAutoAccept(cid); }
       break;
     case 'confirmed':
       if(role === 'phone'){
+        myRole = msg.role;
         if(msg.role === 'primary'){
-          toast('TV accepted ✓');
+          toast('Connected as Coordinator ✓');
         } else if(msg.role === 'guest'){
           showScreen('screen-phone-source');
           var tst = $('phone-source-toast');
-          tst.textContent = '📺 Joined as queue sender';
+          tst.textContent = '📺 Connected — your media joins the shared queue';
           tst.style.display = 'block';
           setTimeout(function(){ tst.style.display='none'; }, 4000);
         }
       }
       break;
+    case 'hello': if(role==='tv' && cid){ var he=connections.get(cid); if(he){ he.name=msg.name||'Guest'; connections.set(cid,he); broadcastDevices(); } } break;
+    case 'full': if(role==='phone'){ setPill('phone-join-status','phone-join-text','error','Session full (3 devices)'); toast('That display already has 3 devices connected.'); } break;
+    case 'devices': if(role==='phone'){ deviceRoster = msg.list||[]; myCid = msg.you||myCid; renderDevices(); } break;
+    case 'role': if(role==='phone'){ myRole = msg.role; renderDevices();
+        if(msg.role==='primary'){ toast('★ You are now the Coordinator'); }
+        else { toast('Coordinator role handed to another device'); } } break;
+    case 'share-off': if(role==='phone'){ toast('⏸ Coordinator paused your sharing'); } break;
+    case 'share-on': if(role==='phone'){ toast('▶ Coordinator enabled your sharing'); } break;
+    case 'denied': if(role==='phone'){ toast('Your sharing is paused by the Coordinator'); } break;
+    case 'promote': if(role==='tv'){ var rq=connections.get(cid); if(rq && rq.isPrimary) promoteDevice(msg.id); } break;
+    case 'setshare': if(role==='tv'){ var rq2=connections.get(cid); if(rq2 && rq2.isPrimary) setDeviceShare(msg.id, msg.allow); } break;
     case 'fstart': if(role==='tv') tvFileStart(msg); break;
     case 'fend': if(role==='tv') tvFileEnd(); break;
     case 'stream-start': if(role==='tv'){ tvStreamPendingMeta=msg; $('tv-spinner').classList.add('show'); } break;
@@ -2096,7 +2276,7 @@ function handleData(msg, dc, cid){
     case 'stop': if(role==='tv'){ tvQueue=[]; tvPlaying=null; tvIdle(); broadcastQueue(); } break;
     case 'pb': if(role==='tv'){ applyTVCmd(msg.a, msg.v); } break;
     case 'time': if(role==='phone') onTime(msg); break;
-    case 'url': if(role==='tv') openUrlOnTV(msg.url); break;
+    case 'url': if(role==='tv'){ if(msg.sender) showCasterBanner(msg.sender); openUrlOnTV(msg.url); } break;
     case 'uploading': if(role==='tv'){
       showScreen('screen-tv-play');
       if(tvPlaying === null){
@@ -2109,7 +2289,7 @@ function handleData(msg, dc, cid){
     case 'load-hide': if(role==='tv'){ $('tv-transfer').classList.remove('show'); } break;
     case 'enqueue-url': if(role==='tv'){
       $('tv-transfer').classList.remove('show');
-      var citem = {id: Date.now()+'-'+Math.random(), name: msg.name||'Video', kind: msg.kind||'video', url: msg.url, partyMsg: msg.partyMsg||'', isCloud:true};
+      var citem = {id: Date.now()+'-'+Math.random(), name: msg.name||'Video', kind: msg.kind||'video', url: msg.url, partyMsg: msg.partyMsg||'', sender: msg.sender||'', isCloud:true};
       if(tvPlaying === null){ showScreen('screen-tv-play'); playItem(citem); }
       else { tvQueue.push(citem); broadcastQueue(); }
     } break;
@@ -2126,6 +2306,9 @@ function onConnClose(cid){
   connections.delete(cid);
   if(role === 'phone'){
     onDisconnect();
+  } else if(role === 'tv'){
+    updateCornerQR();   // a device left → maybe re-show the join QR
+    broadcastDevices();
   }
 }
 
@@ -2370,7 +2553,8 @@ function resetConn(){
   try{ v.pause(); v.removeAttribute('src'); v.srcObject=null; }catch(e){}
   try{ clearTimeout(imgTimer); if(vizRAF){ cancelAnimationFrame(vizRAF); vizRAF=null; } var a=$('tv-audio'); a.pause(); a.removeAttribute('src'); a.srcObject=null; }catch(e){}
   confirmed=false; rx=null; tvQueue=[]; tvPlaying=null; tvStreamPendingMeta=null;
-  playlist=[]; partyMsg=''; sending=false; slideshow=[]; nowPlayingIdx=-1; lastCast=null;
+  playlist=[]; partyMsg=''; sending=false; slideshow=[]; nowPlayingIdx=-1; lastCast=null; myRole=null; deviceRoster=[]; myCid=null;
+  var dp=$('devices-panel'); if(dp) dp.style.display='none';
   $('phone-ctrl').classList.remove('open');
   var he=$('hdr-end'); if(he) he.classList.remove('show');
   closeTerminate();
