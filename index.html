@@ -26,29 +26,54 @@
       --ok: #6ee7a0; --info: #7fb4ff; --danger: #ff8a8a;
       --text: #eef3fb; --muted: #97a4ba; --radius: 14px;
     }
-    html, body { height: 100%; }
+    /* ═══ FIXED-VIEWPORT NATIVE SHELL ═══ */
+    html, body {
+      height: 100dvh; width: 100vw; margin: 0; padding: 0;
+      overflow: hidden; overscroll-behavior: none; touch-action: manipulation;
+    }
+    @supports not (height: 100dvh) { html, body { height: 100vh; } }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: radial-gradient(130% 90% at 50% -10%, #16243a 0%, var(--bg2) 45%, var(--bg) 100%);
-      color: var(--text); min-height: 100vh; min-height: 100dvh;
-      display: flex; flex-direction: column; align-items: center; overflow-x: hidden;
+      color: var(--text);
+      display: flex; flex-direction: column; align-items: center;
     }
     header { width: 100%; padding: 16px 22px 12px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(109,184,255,0.12); flex-shrink: 0; }
-    header .logo { font-size: 21px; font-weight: 800; letter-spacing: 1px; color: var(--gold); }
+    header .logo { font-size: clamp(18px, 4.5vw, 21px); font-weight: 800; letter-spacing: 1px; color: var(--gold); }
     header .logo span { color: var(--text); font-weight: 300; }
     .subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    #app { width: 100%; max-width: 1100px; padding: 22px 18px 60px; flex: 1; display: flex; flex-direction: column; }
+    /* App fills the remaining viewport; never grows the page */
+    #app { width: 100%; max-width: 1100px; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 
-    /* Screen transitions */
+    /* Screen transitions — Slide-Fade + scale (native-like) */
     .screen { display: none; }
-    .screen.active { display: block; animation: fadeUp .32s cubic-bezier(.22,.68,0,1.2) both; min-height: calc(100dvh - 70px); width: 100%; }
-    @keyframes fadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+    .screen.active {
+      display: flex; flex-direction: column; width: 100%;
+      flex: 1 1 auto; min-height: 0;
+      /* Page itself never scrolls; the active screen scrolls INTERNALLY so
+         nothing is ever cut off, with no page/horizontal scrollbars. */
+      overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch;
+      padding: 18px 16px calc(24px + env(safe-area-inset-bottom));
+      animation: screenIn .42s cubic-bezier(.22,.68,0,1.2) both;
+    }
+    @keyframes screenIn { from { opacity:0; transform: translateY(14px) scale(1.05); } to { opacity:1; transform: translateY(0) scale(1); } }
+    /* Short screens center; tall screens (lots of controls) start at top so they scroll cleanly */
+    #screen-home.active, #screen-tv-wait.active, #screen-tv-confirm.active,
+    #screen-phone-confirm.active, #screen-phone-join.active, #screen-ended.active,
+    #screen-tv-play.active { justify-content: center; }
+    /* TV player: strictly full-bleed, no scroll, no padding */
+    #screen-tv-play.active { overflow: hidden; padding: 0; align-items: center; }
+    /* Cinematic media scale: incoming media settles from 1.05→1, exit dips to 0.95 */
+    #tv-video, #tv-image, #tv-audio-stage, #tv-yt, #tv-iframe { transition: transform 1s ease, opacity 1s ease; }
+    #tv-stage.exiting #tv-video, #tv-stage.exiting #tv-image, #tv-stage.exiting #tv-audio-stage,
+    #tv-stage.exiting #tv-yt, #tv-stage.exiting #tv-iframe { transform: scale(0.95); opacity: 0; }
+    #tv-stage.entering #tv-video, #tv-stage.entering #tv-image { transform: scale(1.05); }
 
     /* Home screen fills + branded hero art */
     #screen-home.active { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
     #screen-home.active::before {
       content: ''; position: fixed; inset: 0; z-index: -1;
-      background: url('./Player%202.jpg?v=1') center/cover no-repeat;
+      background: url('./Player%202.png?v=1') center/cover no-repeat;
       opacity: 0.18; filter: saturate(1.1) blur(1px);
       -webkit-mask-image: radial-gradient(120% 90% at 50% 30%, #000 30%, transparent 85%);
       mask-image: radial-gradient(120% 90% at 50% 30%, #000 30%, transparent 85%);
@@ -150,12 +175,12 @@
 
     #tv-stage {
       position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden;
-      background: url('./Player%202.jpg?v=1') center/cover no-repeat #060806;
+      background: url('./Player%202.png?v=1') center/cover no-repeat #060806;
     }
     body.tv-playing .tv-monitor-outer { padding: 0; border-radius: 0; border: none; background: #000; box-shadow: none; }
     body.tv-playing .tv-monitor-outer::before { display: none; }
     body.tv-playing #tv-stage { aspect-ratio: unset; width: 100vw; height: 100dvh; border-radius: 0; }
-    #tv-stage.idle { background-image: url('./Player%202.jpg?v=1'); background-size: cover; background-position: center center; }
+    #tv-stage.idle { background-image: url('./Player%202.png?v=1'); background-size: cover; background-position: center center; }
     #tv-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
     #tv-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
     #tv-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: #000; }
@@ -245,6 +270,15 @@
       pointer-events: none; opacity: 0; transition: opacity .35s; z-index: 20;
     }
     #tv-overlay.visible { opacity: 1; pointer-events: auto; }
+    /* On-TV seek/progress bar */
+    #tv-overlay .ov-seek {
+      display: flex; align-items: center; gap: 14px; width: min(76%, 900px); margin-bottom: 16px;
+      background: rgba(8,12,10,0.6); backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 20px; padding: 12px 22px; box-shadow: 0 8px 40px rgba(0,0,0,0.55);
+    }
+    #tv-overlay .ov-time { font-size: clamp(13px,1.5vw,18px); font-weight: 700; color: var(--gold-soft); font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: center; }
+    #tv-overlay .ov-track { position: relative; flex: 1; height: 8px; border-radius: 6px; background: rgba(255,255,255,0.18); cursor: pointer; overflow: hidden; }
+    #tv-overlay .ov-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; border-radius: 6px; background: linear-gradient(90deg, #2b6cff, var(--gold), var(--gold-soft)); box-shadow: 0 0 12px rgba(109,184,255,0.7); }
     #tv-overlay .ov-btns {
       display: flex; gap: 10px; align-items: center;
       background: rgba(8,12,10,0.72); backdrop-filter: blur(18px);
@@ -590,12 +624,12 @@
       <div class="home-card focused" id="home-phone" onclick="goPhone()">
         <div class="mode-icon">📱</div>
         <h2>Share from Device</h2>
-        <p>Choose this option on the device you want to use to share photos, videos, or other media to a connected TV or display.</p>
+        <p>Share photos, videos, or other media to a connected TV or display.</p>
       </div>
       <div class="home-card" id="home-tv" onclick="goTV()">
         <div class="mode-icon">📺</div>
         <h2>View on Display</h2>
-        <p>Choose this option on your smart TV or display. A QR code and 4-digit code will appear. Scan the QR code with your mobile device to connect. Up to 3 devices can connect and share content during the same session.</p>
+        <p>Scan QR code with your mobile device to connect and share.</p>
       </div>
     </div>
     <p class="home-hint">Arrow keys + Enter to navigate • TV remote friendly</p>
@@ -657,6 +691,11 @@
           <div id="tv-corner-qr"><img id="tv-corner-qr-img" alt="Scan to join" /><div class="cq-label">Scan to join<br><span id="tv-corner-code">——</span></div></div>
           <div id="tv-fade"></div>
           <div id="tv-overlay">
+            <div class="ov-seek">
+              <span class="ov-time" id="tv-ov-cur">0:00</span>
+              <div class="ov-track" id="tv-ov-track" onclick="tvSeekClick(event)"><div class="ov-fill" id="tv-ov-fill"></div></div>
+              <span class="ov-time" id="tv-ov-dur">0:00</span>
+            </div>
             <div class="ov-btns">
               <button class="ov-btn" onclick="tvOvCmd('rewind')" title="-10s">⏪</button>
               <button class="ov-btn big" id="tv-ov-pp" onclick="tvOvCmd('toggle')">⏸</button>
@@ -1347,9 +1386,9 @@ function playItem(item){
 
   if(item.kind === 'image'){
     if(item.url && !slideshow.some(function(s){ return s.url===item.url; })) slideshow.push(item);
-    $('tv-image').src = item.url;
     showOnlyMedia('image');
-    playFadeIn(); tvFullscreenAuto(); showTVOverlay();
+    // Buffered State: keep spinner until the image is decoded, THEN reveal
+    bufferedReveal($('tv-image'), 'image', item.url, function(){ tvFullscreenAuto(); showTVOverlay(); });
     // Slideshow: advance to next image after a few seconds (loops if tvLoop re-queues)
     imgTimer = setTimeout(function(){ if(tvQueue.length>0) playNext(); else if(tvLoop && slideshow.length>1){ tvQueue = slideshow.slice(); playNext(); } }, 6000);
   } else if(item.kind === 'audio'){
@@ -1363,9 +1402,34 @@ function playItem(item){
     if(vv._url && vv._url!==item.url){ try{ URL.revokeObjectURL(vv._url); }catch(e){} }
     vv._url = item.url; vv.srcObject = null; vv.src = item.url; vv.loop = tvLoop;
     showOnlyMedia('video');
-    autoPlay(vv, function(){ playFadeIn(); tvFullscreenAuto(); showTVOverlay(); });
+    // Buffered State: spinner until the video can play through, THEN reveal + start
+    bufferedReveal(vv, 'video', item.url, function(){ tvFullscreenAuto(); showTVOverlay(); });
   }
   tvBroadcast({t:'ready'}); broadcastQueue(); sendTime();
+}
+
+// ── Buffered State Pattern ──
+// Show a subtle spinner while the asset syncs; reveal (fade-in) + start only
+// once it's ready — never a hard-cut or half-loaded frame. Safety-nets after 4s.
+function bufferedReveal(el, kind, url, after){
+  var revealed = false;
+  $('tv-spinner').classList.add('show');
+  function reveal(){
+    if(revealed) return; revealed = true;
+    $('tv-spinner').classList.remove('show');
+    playFadeIn();
+    if(after) after();
+  }
+  if(kind === 'image'){
+    el.onload = reveal; el.onerror = reveal;
+    el.src = url;
+    if(el.complete && el.naturalWidth) reveal();   // cached image
+  } else {
+    el.addEventListener('canplaythrough', reveal, {once:true});
+    el.addEventListener('playing', reveal, {once:true});
+    autoPlay(el, function(){ /* started; reveal fires on canplaythrough/playing */ });
+  }
+  setTimeout(reveal, 4000); // never hang forever
 }
 
 function playNext(){
@@ -1431,23 +1495,28 @@ function drawViz(){
   vizRAF = requestAnimationFrame(drawViz);
 }
 
+// Cinematic entry: media scales 1.05→1 and reveals from black over 1.5s
+// (playback starts immediately under the black layer, so it stays fast + stable)
 function playFadeIn(){
-  var fd = $('tv-fade');
+  var fd = $('tv-fade'), st = $('tv-stage');
   fd.style.transition = 'none';
   fd.style.opacity = '1';
+  if(st){ st.classList.remove('exiting'); st.classList.add('entering'); }
   requestAnimationFrame(function(){
     requestAnimationFrame(function(){
-      fd.style.transition = 'opacity 1s ease';
+      fd.style.transition = 'opacity 1.5s ease';
       fd.style.opacity = '0';
+      if(st) st.classList.remove('entering');   // scale 1.05 → 1 over 1s
     });
   });
 }
-// 1s fade-to-black, then run cb (used when transitioning between files)
+// Cinematic exit: fade to black + scale to 0.95 over 1s, then run cb (swap content)
 function tvFadeOutThen(cb){
-  var fd = $('tv-fade');
+  var fd = $('tv-fade'), st = $('tv-stage');
+  if(st) st.classList.add('exiting');
   fd.style.transition = 'opacity 1s ease';
   fd.style.opacity = '1';
-  setTimeout(cb, 1000);
+  setTimeout(function(){ if(st) st.classList.remove('exiting'); cb(); }, 1000);
 }
 // Reliable autoplay: start muted (always allowed), then unmute — avoids the
 // "needs a tap on the TV" problem that desynced phone↔TV playback.
@@ -1550,6 +1619,24 @@ function updateTVIcons(){
   $('tv-loopbtn').classList.toggle('on', tvLoop);
   if($('tv-ov-pp')) $('tv-ov-pp').textContent = pp;
   if($('tv-ov-loop')) $('tv-ov-loop').classList.toggle('on', tvLoop);
+  updateTVSeek();
+}
+// Refresh the on-TV seek/progress bar from video.currentTime
+function updateTVSeek(){
+  var v = curMedia(); if(!v) return;
+  var dur = v.duration||0, ct = v.currentTime||0;
+  var f=$('tv-ov-fill'); if(f) f.style.width = (dur ? Math.min(100,(ct/dur*100)) : 0) + '%';
+  if($('tv-ov-cur')) $('tv-ov-cur').textContent = fmt(ct);
+  if($('tv-ov-dur')) $('tv-ov-dur').textContent = fmt(dur);
+}
+// Click/tap the TV track to seek (works with pointer/touch displays)
+function tvSeekClick(e){
+  var v = curMedia(); if(!v || !v.duration) return;
+  var tr = $('tv-ov-track'); var r = tr.getBoundingClientRect();
+  var x = (e.clientX!=null?e.clientX:(e.touches&&e.touches[0]?e.touches[0].clientX:0)) - r.left;
+  var pct = Math.max(0, Math.min(1, x / r.width));
+  applyTVCmd('seek', pct * v.duration);
+  showTVOverlay();
 }
 
 // Tap/click the big play button when autoplay was blocked or media is paused
