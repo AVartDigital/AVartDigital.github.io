@@ -28,8 +28,9 @@
     }
     /* ═══ FIXED-VIEWPORT NATIVE SHELL ═══ */
     html, body {
-      height: 100dvh; width: 100vw; margin: 0; padding: 0;
-      overflow: hidden; overscroll-behavior: none; touch-action: manipulation;
+      height: 100dvh; width: 100vw; max-width: 100%; margin: 0; padding: 0;
+      position: relative;            /* contain absolutely-positioned descendants */
+      overflow: hidden; overflow-x: hidden; overscroll-behavior: none; touch-action: manipulation;
     }
     @supports not (height: 100dvh) { html, body { height: 100vh; } }
     body {
@@ -419,6 +420,15 @@
     .big-confirm p { color: var(--muted); font-size: 14px; line-height: 1.5; margin-bottom: 20px; }
     .note { font-size: 12px; color: var(--muted); line-height: 1.5; background: rgba(127,180,255,0.07); border: 1px solid rgba(127,180,255,0.22); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
 
+    /* Button groups share width equally and never overflow */
+    .button-group { display: flex; width: 100%; max-width: 100%; gap: 10px; box-sizing: border-box; }
+    .button-group > button { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Source-screen containment guards */
+    #src-file, #src-url, #src-screen, #src-camera { width: 100%; max-width: 100%; box-sizing: border-box; overflow-x: hidden; }
+    #src-file *, #src-url * { max-width: 100%; box-sizing: border-box; }
+    #src-url input, #party-msg-input { min-width: 0; }
+    #src-url > div[style*="flex"] { flex-wrap: wrap; }
+
     /* Party message input */
     .party-input-wrap { margin-bottom: 14px; }
     .party-input-wrap label { display:block; font-size: 12px; color: var(--gold-soft); font-weight:700; margin-bottom:6px; }
@@ -454,20 +464,24 @@
     .modal-actions { display: flex; gap: 10px; }
 
     /* Media / playlist layout */
-    .media-layout { display: grid; grid-template-columns: 1fr; gap: 16px; }
-    @media (min-width: 860px) { .media-layout { grid-template-columns: 1fr 360px; align-items: start; } }
-    .playlist-panel { background: var(--surface); border: 1px solid rgba(255,255,255,0.07); border-radius: var(--radius); padding: 14px; }
-    .playlist-panel h3 { font-size: 13px; color: var(--gold-soft); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center; }
-    .playlist-panel h3 span.count { color: var(--muted); font-weight:600; }
+    /* minmax(0,…) lets tracks shrink below content min-width — prevents the grid
+       from pushing the whole page wider than the viewport */
+    .media-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; width: 100%; max-width: 100%; }
+    .media-layout > * { min-width: 0; max-width: 100%; }
+    @media (min-width: 860px) { .media-layout { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; } }
+    /* Playlist containment — never exceed device width (no horizontal bleed) */
+    .playlist-panel { background: var(--surface); border: 1px solid rgba(255,255,255,0.07); border-radius: var(--radius); padding: 14px; width: 100%; max-width: 100%; box-sizing: border-box; overflow-x: hidden; }
+    .playlist-panel h3 { font-size: 13px; color: var(--gold-soft); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .playlist-panel h3 span.count { color: var(--muted); font-weight:600; flex:none; }
+    #playlist-items, #cast-queue { width: 100%; max-width: 100%; box-sizing: border-box; overflow-x: hidden; }
     .pl-empty { font-size: 13px; color: var(--muted); text-align:center; padding: 20px 8px; }
-    .pl-item { display:flex; align-items:center; gap:10px; background: var(--surface2); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px; margin-bottom:8px; }
+    .pl-item { display:flex; align-items:center; gap:10px; background: var(--surface2); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px; margin-bottom:8px; width:100%; max-width:100%; min-width:0; box-sizing:border-box; overflow:hidden; }
     .pl-item.now { border-color: var(--gold); background: rgba(109,184,255,0.12); }
     .pl-item .pl-ic { font-size:20px; flex:none; }
-    .pl-item .pl-meta { flex:1; min-width:0; }
-    .pl-item .pl-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .pl-item .pl-sub { font-size:11px; color:var(--muted); }
-    .pl-item .pl-act { display:flex; gap:4px; flex:none; }
-    .pl-item .pl-act { display:flex; gap:5px; flex:none; flex-wrap:wrap; justify-content:flex-end; }
+    .pl-item .pl-meta { flex:1 1 auto; min-width:0; overflow:hidden; }
+    .pl-item .pl-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+    .pl-item .pl-sub { font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+    .pl-item .pl-act { display:flex; gap:5px; flex:0 0 auto; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; margin-left:8px; max-width:60%; }
     .pl-item .pl-act button { flex:none; min-width:34px; width:34px; height:34px; min-height:34px; padding:0; font-size:13px; background:rgba(109,184,255,0.08); border:1px solid var(--edge); color:var(--gold-soft); border-radius:8px; }
     .pl-item .pl-act button.play { background:linear-gradient(180deg, var(--gold-soft), var(--gold)); color:#042038; border:none; box-shadow:0 0 10px rgba(109,184,255,0.35); }
     .pl-item .pl-act button.del { color: var(--danger); border-color:rgba(255,120,120,0.35); }
@@ -783,9 +797,9 @@
             <div class="party-count"><span id="party-count">0</span>/100</div>
             <button class="btn-secondary btn-wide" style="margin-top:8px;" onclick="flashMessageToTV()">💬 Display on Screen (5s)</button>
           </div>
-          <div style="display:flex;gap:10px;">
-            <button class="btn-secondary" style="flex:1;" onclick="addMoreMedia()">➕ Add to Playlist</button>
-            <button class="btn-primary" style="flex:1.3;" id="btn-cast-file" onclick="castNow()" disabled>▶ Cast Now</button>
+          <div class="button-group">
+            <button class="btn-secondary" onclick="addMoreMedia()">➕ Add to Playlist</button>
+            <button class="btn-primary" id="btn-cast-file" onclick="castNow()" disabled>▶ Cast Now</button>
           </div>
           <p class="hint" style="margin-top:10px;">Items play in order. “Add to Playlist” queues more; “Cast Now” starts playing on the TV.</p>
           <p id="cloud-status-note" class="hint" style="margin-top:6px;"></p>
