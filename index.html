@@ -12,6 +12,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>CastParty — cast & stream to your TV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     /* Cross-device: smooth scrolling + iOS Safari dynamic-height fallback */
@@ -70,14 +73,21 @@
     #tv-stage.exiting #tv-yt, #tv-stage.exiting #tv-iframe { transform: scale(0.95); opacity: 0; }
     #tv-stage.entering #tv-video, #tv-stage.entering #tv-image { transform: scale(1.05); }
 
-    /* Home screen fills + branded hero art */
+    /* Home screen fills + branded hero art (TRUE full-viewport, edge-to-edge, no black) */
     #screen-home.active { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+    /* Image layer: cover the entire viewport regardless of #app width */
     #screen-home.active::before {
+      content: ''; position: fixed; inset: 0; z-index: -2;
+      background-image: url('./Player%202.png?v=1');
+      background-position: center center;
+      background-size: cover;            /* fills width AND height, crops overflow → never any black bars */
+      background-repeat: no-repeat;
+      opacity: 0.5; filter: saturate(1.1);
+    }
+    /* Scrim layer: dark gradient over the image so text/cards stay legible */
+    #screen-home.active::after {
       content: ''; position: fixed; inset: 0; z-index: -1;
-      background: url('./Player%202.png?v=1') center/cover no-repeat;
-      opacity: 0.18; filter: saturate(1.1) blur(1px);
-      -webkit-mask-image: radial-gradient(120% 90% at 50% 30%, #000 30%, transparent 85%);
-      mask-image: radial-gradient(120% 90% at 50% 30%, #000 30%, transparent 85%);
+      background: linear-gradient(180deg, rgba(7,10,17,0.55) 0%, rgba(7,10,17,0.62) 50%, rgba(7,10,17,0.82) 100%);
     }
     #screen-tv-wait.active { display: flex; flex-direction: column; justify-content: center; }
     #screen-tv-confirm.active, #screen-phone-confirm.active, #screen-phone-join.active, #screen-ended.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -98,7 +108,10 @@
     .home-card:hover { border-color: var(--gold); background: var(--surface2); }
     .home-card:active { transform: scale(0.96); }
     .home-card.focused { border-color: var(--gold); background: rgba(109,184,255,0.09); box-shadow: 0 0 0 2px rgba(109,184,255,0.25); }
-    .home-card .mode-icon { font-size: 52px; margin-bottom: 4px; }
+    .home-card .mode-icon { font-size: 52px; margin-bottom: 4px; line-height: 0; }
+    .home-card .mode-icon svg { width: clamp(48px, 12vw, 68px); height: clamp(48px, 12vw, 68px); color: var(--gold-soft);
+      filter: drop-shadow(0 0 14px rgba(109,184,255,0.55)); transition: color .2s, filter .2s, transform .15s; }
+    .home-card:hover .mode-icon svg, .home-card.focused .mode-icon svg { color: var(--gold); filter: drop-shadow(0 0 20px rgba(109,184,255,0.85)); }
     .home-card h2 { font-size: 18px; font-weight: 700; }
     .home-card p { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
     .home-hint { text-align: center; font-size: 12px; color: var(--muted); margin-top: 14px; }
@@ -236,6 +249,39 @@
     #tv-textbar { position: absolute; left: 0; right: 0; bottom: 0; padding: 16px 20px; background: rgba(0,0,0,0.8); color: #fff; font-size: 22px; font-weight: 600; word-break: break-word; display: none; }
 
     /* TV fade-in overlay */
+    /* ═══ Idle overlay: looping wave lines + AWAITING CONNECTION ═══ */
+    #tv-idle {
+      position: absolute; inset: 0; z-index: 9; pointer-events: none;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vh;
+      opacity: 0; transition: opacity .5s ease; overflow: hidden;
+    }
+    #tv-stage.idle #tv-idle { opacity: 1; }          /* visible ONLY when idle */
+    .idle-wave {
+      position: absolute; left: -50%; width: 200%; height: 22vh;
+      fill: none; stroke: #cfe6ff; stroke-width: 3.2; stroke-linecap: round;
+      filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 12px #add3fd) drop-shadow(0 0 28px rgba(173,211,253,0.6));
+      will-change: transform;
+    }
+    .idle-wave.w-top { top: 24%; animation: idleWaveL 13s linear infinite; opacity: .9; }
+    .idle-wave.w-bot { bottom: 22%; animation: idleWaveR 19s linear infinite; opacity: .8; }
+    @keyframes idleWaveL { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    @keyframes idleWaveR { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+    .idle-text {
+      position: relative; z-index: 2; text-align: center; line-height: 1.05;
+      font-family: 'Share Tech Mono','Orbitron',ui-monospace,monospace;
+      font-size: clamp(34px, 8vw, 110px); letter-spacing: clamp(4px, 1.2vw, 16px);
+      color: #ffffff;
+      /* 3D depth + white neon glow that sits behind the crisp white face (legibility first) */
+      text-shadow:
+        0 1px 0 #bcd8ff, 0 2px 0 #9cc4f5, 0 3px 6px rgba(0,0,0,0.55),
+        0 0 10px #ffffff, 0 0 24px #add3fd, 0 0 52px rgba(173,211,253,0.85);
+      animation: idleGlow 3.4s ease-in-out infinite;
+    }
+    @keyframes idleGlow {
+      0%,100% { text-shadow: 0 1px 0 #bcd8ff, 0 2px 0 #9cc4f5, 0 3px 6px rgba(0,0,0,0.55), 0 0 10px #fff, 0 0 22px #add3fd, 0 0 46px rgba(173,211,253,0.7); }
+      50%     { text-shadow: 0 1px 0 #bcd8ff, 0 2px 0 #9cc4f5, 0 3px 6px rgba(0,0,0,0.55), 0 0 14px #fff, 0 0 34px #add3fd, 0 0 68px rgba(173,211,253,0.95); }
+    }
+
     #tv-fade { position: absolute; inset: 0; background: #000; z-index: 30; opacity: 0; pointer-events: none; transition: opacity 1s ease; }
     /* "Casting from NAME" banner — auto-shows 4s at the start of each file */
     #tv-caster { position: absolute; top: 5%; left: 0; right: 0; display: flex; justify-content: center; z-index: 26; opacity: 0; pointer-events: none; transition: opacity .5s ease; }
@@ -415,7 +461,11 @@
     .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #122236; border: 1px solid rgba(109,184,255,0.25); color: var(--text); padding: 11px 20px; border-radius: 10px; font-size: 13px; z-index: 3000; opacity: 0; transition: opacity .3s; pointer-events: none; max-width: 90vw; text-align: center; }
     .toast.show { opacity: 1; }
     .big-confirm { text-align: center; padding: 30px 16px; max-width: 460px; margin: 0 auto; }
-    .big-confirm .ic { font-size: 54px; margin-bottom: 14px; }
+    .big-confirm .ic { font-size: 54px; margin-bottom: 14px; line-height: 0; }
+    .big-confirm .ic svg, .modal-ic svg, .name-ic svg { width: 52px; height: 52px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; color: var(--gold-soft); filter: drop-shadow(0 0 12px rgba(109,184,255,0.5)); }
+    .modal-ic svg { color: #ff9a9a; filter: drop-shadow(0 0 12px rgba(255,90,90,0.5)); }
+    .source-summary svg.icon { color: var(--gold-soft); }
+    .drop-icon svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; color: var(--gold-soft); margin: 0 4px; vertical-align: middle; }
     .big-confirm h2 { font-size: 22px; margin-bottom: 8px; }
     .big-confirm p { color: var(--muted); font-size: 14px; line-height: 1.5; margin-bottom: 20px; }
     .note { font-size: 12px; color: var(--muted); line-height: 1.5; background: rgba(127,180,255,0.07); border: 1px solid rgba(127,180,255,0.22); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
@@ -428,6 +478,19 @@
     #src-file *, #src-url * { max-width: 100%; box-sizing: border-box; }
     #src-url input, #party-msg-input { min-width: 0; }
     #src-url > div[style*="flex"] { flex-wrap: wrap; }
+
+    /* Display-name entry screen */
+    #screen-phone-name.active { justify-content: center; }
+    .name-card { width: 100%; max-width: 420px; margin: 0 auto; text-align: center; padding: 30px 22px;
+      background: linear-gradient(180deg, rgba(26,40,58,0.7), rgba(10,16,26,0.85)); border: 1px solid var(--edge); border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45), 0 0 40px rgba(109,184,255,0.12) inset; box-sizing: border-box; }
+    .name-card .name-ic { font-size: 48px; margin-bottom: 12px; filter: drop-shadow(0 0 14px rgba(109,184,255,0.5)); }
+    .name-card h2 { font-size: clamp(20px, 5.5vw, 26px); margin-bottom: 10px; }
+    .name-card p { font-size: 13.5px; color: var(--muted); line-height: 1.55; margin-bottom: 20px; }
+    .name-card p strong { color: var(--gold-soft); }
+    .name-card input { width: 100%; max-width: 100%; box-sizing: border-box; text-align: center; font-size: 18px; font-weight: 700;
+      background: var(--surface2); border: 1px solid var(--edge); border-radius: 12px; padding: 15px 16px; color: var(--text); outline: none; margin-bottom: 16px; }
+    .name-card input:focus { border-color: var(--gold); box-shadow: 0 0 16px rgba(109,184,255,0.3); }
 
     /* Party message input */
     .party-input-wrap { margin-bottom: 14px; }
@@ -477,7 +540,7 @@
     .pl-empty { font-size: 13px; color: var(--muted); text-align:center; padding: 20px 8px; }
     .pl-item { display:flex; align-items:center; gap:10px; background: var(--surface2); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px; margin-bottom:8px; width:100%; max-width:100%; min-width:0; box-sizing:border-box; overflow:hidden; }
     .pl-item.now { border-color: var(--gold); background: rgba(109,184,255,0.12); }
-    .pl-item .pl-ic { font-size:20px; flex:none; }
+    .pl-item .pl-ic { font-size:20px; flex:none; color: var(--gold-soft); display:flex; align-items:center; }
     .pl-item .pl-meta { flex:1 1 auto; min-width:0; overflow:hidden; }
     .pl-item .pl-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
     .pl-item .pl-sub { font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
@@ -509,7 +572,7 @@
     .preset-chip .chip-del:hover { color:var(--danger); }
     .url-recent-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--surface2); border:1px solid rgba(255,255,255,0.06); border-radius:10px; margin-bottom:8px; cursor:pointer; transition:border-color .15s; }
     .url-recent-item:hover { border-color:rgba(109,184,255,0.4); }
-    .url-recent-item .rec-type { font-size:18px; flex:none; }
+    .url-recent-item .rec-type { font-size:18px; flex:none; color: var(--gold-soft); display:flex; align-items:center; }
     .url-recent-item .rec-meta { flex:1; min-width:0; }
     .url-recent-item .rec-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .url-recent-item .rec-url  { font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -521,6 +584,10 @@
     #pl-confirm-bar .pl-conf-name { flex: 1; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--gold-soft); }
     #pl-confirm-bar button { flex: none; padding: 8px 14px; font-size: 13px; min-height: 36px; border-radius: 8px; }
     #pl-confirm-bar .conf-play { background: linear-gradient(180deg, var(--gold-soft), var(--gold)); color: #042038; border: none; }
+    /* Shared SVG icon styling — inherits the button's text color so every icon matches */
+    .icon { width: 1.15em; height: 1.15em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.18em; flex: none; pointer-events: none; }
+    .icon-lg { width: 1.5em; height: 1.5em; }
+    .source-btn .ic svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; color: var(--gold-soft); }
     #pl-confirm-bar .conf-cancel { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: var(--muted); }
 
     /* ═══════════ RESPONSIVE HARDENING — no content bleeds off-screen ═══════════ */
@@ -608,6 +675,41 @@
 </head>
 <body>
 
+<!-- ═══ CastParty inline-SVG icon sprite (one vector family for the whole app) ═══ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="ic-film" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 9h18M8 5l-2 4M13 5l-2 4M18 5l-2 4"/></symbol>
+    <symbol id="ic-mirror" viewBox="0 0 24 24"><rect x="2.5" y="4.5" width="13" height="9" rx="1.5"/><rect x="14.5" y="11.5" width="7" height="9" rx="1.5"/><path d="M6 17.5h4"/></symbol>
+    <symbol id="ic-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></symbol>
+    <symbol id="ic-camera" viewBox="0 0 24 24"><path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+    <symbol id="ic-prev" viewBox="0 0 24 24"><path d="M19 5 9 12l10 7V5Z" fill="currentColor" stroke="none"/><rect x="4" y="5" width="2.4" height="14" rx="1" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="ic-next" viewBox="0 0 24 24"><path d="M5 5l10 7L5 19V5Z" fill="currentColor" stroke="none"/><rect x="17.6" y="5" width="2.4" height="14" rx="1" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="ic-play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7V5Z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="ic-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2" fill="currentColor" stroke="none"/><rect x="14" y="5" width="4" height="14" rx="1.2" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="ic-loop" viewBox="0 0 24 24"><path d="M4 9a6 6 0 0 1 6-6h7l-2.5-2.5M20 15a6 6 0 0 1-6 6H7l2.5 2.5"/></symbol>
+    <symbol id="ic-replay" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></symbol>
+    <symbol id="ic-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4h-4"/></symbol>
+    <symbol id="ic-full" viewBox="0 0 24 24"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/></symbol>
+    <symbol id="ic-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="ic-power" viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M7 6a8 8 0 1 0 10 0"/></symbol>
+    <symbol id="ic-keyboard" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></symbol>
+    <symbol id="ic-resync" viewBox="0 0 24 24"><path d="M3 11a8 8 0 0 1 13.7-5.3L20 9M21 13a8 8 0 0 1-13.7 5.3L4 15M20 4v5h-5M4 20v-5h5"/></symbol>
+    <symbol id="ic-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-5.2A8 8 0 1 1 21 12Z"/></symbol>
+    <symbol id="ic-cast" viewBox="0 0 24 24"><path d="M3 6h18v12h-6"/><path d="M3 11a7 7 0 0 1 7 7M3 15a3 3 0 0 1 3 3M3 19h.01"/></symbol>
+    <symbol id="ic-qr" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M14 21h3M21 17v4"/></symbol>
+    <symbol id="ic-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M21 16l-5-5-8 8"/></symbol>
+    <symbol id="ic-music" viewBox="0 0 24 24"><path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></symbol>
+    <symbol id="ic-tv" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M9 21h6M12 18v3"/><path d="M10 10v4l3.5-2L10 10Z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="ic-link" viewBox="0 0 24 24"><path d="M9 13a4 4 0 0 0 5.7.3l3-3A4 4 0 0 0 11 5l-1.5 1.5"/><path d="M15 11a4 4 0 0 0-5.7-.3l-3 3A4 4 0 0 0 13 19l1.5-1.5"/></symbol>
+    <symbol id="ic-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></symbol>
+    <symbol id="ic-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.5a3.2 3.2 0 0 1 0 6M17 19a5.5 5.5 0 0 0-2.2-4.4"/></symbol>
+    <symbol id="ic-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9L12 3.5Z"/></symbol>
+    <symbol id="ic-spark" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></symbol>
+    <symbol id="ic-id" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="11" r="2.2"/><path d="M5.5 16a3 3 0 0 1 6 0M14 9.5h4M14 13h4M14 16h2.5"/></symbol>
+  </defs>
+</svg>
+
+
 <header>
   <div>
     <div class="logo">Cast<span>Party</span></div>
@@ -619,12 +721,12 @@
 <!-- Terminate confirm modal -->
 <div id="confirm-end" class="modal-backdrop">
   <div class="modal-card">
-    <div class="modal-ic">⏻</div>
+    <div class="modal-ic"><svg><use href="#ic-power"/></svg></div>
     <h2>Terminate session?</h2>
     <p>This ends casting and disconnects from the TV. Any temporary uploaded videos are deleted.</p>
     <div class="modal-actions">
       <button class="btn-ghost" onclick="closeTerminate()">Keep going</button>
-      <button class="btn-danger" onclick="doTerminate()">⏻ Terminate</button>
+      <button class="btn-danger" onclick="doTerminate()"><svg class="icon"><use href="#ic-power"/></svg> Terminate</button>
     </div>
   </div>
 </div>
@@ -636,12 +738,26 @@
     <p style="color:var(--muted);font-size:13px;margin-bottom:18px;text-align:center;">How do you want to connect?</p>
     <div class="mode-grid">
       <div class="home-card focused" id="home-phone" onclick="goPhone()">
-        <div class="mode-icon">📱</div>
+        <div class="mode-icon">
+          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <rect x="13" y="4" width="22" height="40" rx="5" stroke="currentColor" stroke-width="2.4"/>
+            <line x1="21" y1="9" x2="27" y2="9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+            <path d="M24 16v10m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M17 33h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>
+          </svg>
+        </div>
         <h2>Share from Device</h2>
         <p>Share photos, videos, or other media to a connected TV or display.</p>
       </div>
       <div class="home-card" id="home-tv" onclick="goTV()">
-        <div class="mode-icon">📺</div>
+        <div class="mode-icon">
+          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <rect x="6" y="11" width="36" height="24" rx="4" stroke="currentColor" stroke-width="2.4"/>
+            <path d="M18 41h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+            <path d="M24 35v6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+            <path d="M20 19v8l7-4-7-4Z" fill="currentColor"/>
+          </svg>
+        </div>
         <h2>View on Display</h2>
         <p>Scan QR code with your mobile device to connect and share.</p>
       </div>
@@ -665,7 +781,7 @@
   <!-- TV: CONFIRM -->
   <div id="screen-tv-confirm" class="screen">
     <div class="big-confirm">
-      <div class="ic">🔗</div><h2>Phone wants to connect</h2>
+      <div class="ic"><svg><use href="#ic-link"/></svg></div><h2>Phone wants to connect</h2>
       <p>Make sure this code matches the one shown on your phone:</p>
       <div class="code-display"><div class="label">PAIRING CODE</div><div class="code" id="tv-confirm-code">——</div></div>
       <div class="controls">
@@ -703,6 +819,12 @@
           <div id="tv-flash"><span id="tv-flash-text"></span></div>
           <div id="tv-caster"><span id="tv-caster-text"></span></div>
           <div id="tv-corner-qr"><img id="tv-corner-qr-img" alt="Scan to join" /><div class="cq-label">Scan to join<br><span id="tv-corner-code">——</span></div></div>
+          <!-- Idle overlay: animated wave lines + "AWAITING CONNECTION" (only while idle) -->
+          <div id="tv-idle" aria-hidden="true">
+            <svg class="idle-wave w-top" viewBox="0 0 1440 200" preserveAspectRatio="none"><path d="M0,100 C45,60 135,140 180,100 C225,60 315,140 360,100 C405,60 495,140 540,100 C585,60 675,140 720,100 C765,60 855,140 900,100 C945,60 1035,140 1080,100 C1125,60 1215,140 1260,100 C1305,60 1395,140 1440,100"/></svg>
+            <div class="idle-text">AWAITING<br>CONNECTION</div>
+            <svg class="idle-wave w-bot" viewBox="0 0 1440 200" preserveAspectRatio="none"><path d="M0,100 C60,150 120,50 180,100 C240,150 300,50 360,100 C420,150 480,50 540,100 C600,150 660,50 720,100 C780,150 840,50 900,100 C960,150 1020,50 1080,100 C1140,150 1200,50 1260,100 C1320,150 1380,50 1440,100"/></svg>
+          </div>
           <div id="tv-fade"></div>
           <div id="tv-overlay">
             <div class="ov-seek">
@@ -711,35 +833,43 @@
               <span class="ov-time" id="tv-ov-dur">0:00</span>
             </div>
             <div class="ov-btns">
-              <button class="ov-btn" onclick="tvOvCmd('rewind')" title="-10s">⏪</button>
-              <button class="ov-btn big" id="tv-ov-pp" onclick="tvOvCmd('toggle')">⏸</button>
-              <button class="ov-btn" onclick="tvOvCmd('forward')" title="+10s">⏩</button>
-              <button class="ov-btn" id="tv-ov-loop" onclick="tvOvCmd('loop')" title="Loop">↻</button>
-              <button class="ov-btn" onclick="tvFullscreen()" title="Fullscreen">⛶</button>
-              <button class="ov-btn ov-end" onclick="endAll(true)" title="End session">⏻</button>
+              <button class="ov-btn" onclick="tvOvCmd('rewind')" title="-10s"><svg class="icon"><use href="#ic-prev"/></svg></button>
+              <button class="ov-btn big" id="tv-ov-pp" onclick="tvOvCmd('toggle')"><svg class="icon icon-lg"><use href="#ic-pause"/></svg></button>
+              <button class="ov-btn" onclick="tvOvCmd('forward')" title="+10s"><svg class="icon"><use href="#ic-next"/></svg></button>
+              <button class="ov-btn" id="tv-ov-loop" onclick="tvOvCmd('loop')" title="Loop"><svg class="icon"><use href="#ic-loop"/></svg></button>
+              <button class="ov-btn" onclick="tvFullscreen()" title="Fullscreen"><svg class="icon"><use href="#ic-full"/></svg></button>
+              <button class="ov-btn ov-end" onclick="endAll(true)" title="End session"><svg class="icon"><use href="#ic-power"/></svg></button>
             </div>
           </div>
         </div>
       </div>
       <div class="tv-bar">
-        <button onclick="tvLocal('rewind')" title="Rewind 10s">⏪</button>
-        <button id="tv-playpause" onclick="tvLocal('toggle')">⏸</button>
-        <button onclick="tvLocal('forward')" title="Forward 10s">⏩</button>
-        <button onclick="tvLocal('restart')" title="Replay"><span style="font-size:20px;">⟲</span></button>
-        <button id="tv-loopbtn" onclick="tvLocal('loop')"><span>↻</span><span class="lbl">Loop</span></button>
-        <button onclick="tvFullscreen()" title="Fullscreen">⛶</button>
+        <button onclick="tvLocal('rewind')" title="Rewind 10s"><svg class="icon"><use href="#ic-prev"/></svg></button>
+        <button id="tv-playpause" onclick="tvLocal('toggle')"><svg class="icon"><use href="#ic-pause"/></svg></button>
+        <button onclick="tvLocal('forward')" title="Forward 10s"><svg class="icon"><use href="#ic-next"/></svg></button>
+        <button onclick="tvLocal('restart')" title="Replay"><svg class="icon"><use href="#ic-replay"/></svg></button>
+        <button id="tv-loopbtn" onclick="tvLocal('loop')"><svg class="icon"><use href="#ic-loop"/></svg><span class="lbl">Loop</span></button>
+        <button onclick="tvFullscreen()" title="Fullscreen"><svg class="icon"><use href="#ic-full"/></svg></button>
       </div>
-      <div class="tv-end" onclick="endAll(true)">🍃 End session</div>
+      <div class="tv-end" onclick="endAll(true)"><svg class="icon"><use href="#ic-power"/></svg> End session</div>
+    </div>
+  </div>
+
+  <!-- PHONE: DISPLAY NAME -->
+  <div id="screen-phone-name" class="screen">
+    <button class="back-btn" onclick="goHome()">← Back</button>
+    <div class="name-card">
+      <div class="name-ic"><svg><use href="#ic-id"/></svg></div>
+      <h2>Enter your display name</h2>
+      <p>This is the name shown on the TV when you share. Leave it blank and we’ll call you <strong id="name-default">Device&nbsp;1</strong>.</p>
+      <input type="text" id="display-name-input" maxlength="20" placeholder="Device 1" autocomplete="off" oninput="onNameInput()" />
+      <button class="btn-primary btn-wide" onclick="nameContinue()">Continue →</button>
     </div>
   </div>
 
   <!-- PHONE: JOIN -->
   <div id="screen-phone-join" class="screen">
-    <button class="back-btn" onclick="goHome()">← Back</button>
-    <div class="section-title">Your display name</div>
-    <div class="join-form" style="max-width:420px;margin-bottom:14px;">
-      <input type="text" id="display-name-input" maxlength="20" placeholder="e.g. Alex" style="font-size:16px;letter-spacing:0;text-align:left;" oninput="onNameInput()" />
-    </div>
+    <button class="back-btn" onclick="showScreen('screen-phone-name')">← Back</button>
     <div class="note">📷 Easiest: on the display choose <strong>View on Display</strong>, then scan its QR code with your camera.</div>
     <div class="section-title">…or enter the 4-digit code</div>
     <div class="join-form" style="max-width:420px;">
@@ -753,7 +883,7 @@
   <!-- PHONE: CONFIRM -->
   <div id="screen-phone-confirm" class="screen">
     <div class="big-confirm">
-      <div class="ic">📺</div><h2>Connect to this TV?</h2>
+      <div class="ic"><svg><use href="#ic-tv"/></svg></div><h2>Connect to this TV?</h2>
       <p>Check that this code matches the one shown on your TV screen:</p>
       <div class="code-display"><div class="label">PAIRING CODE</div><div class="code" id="phone-confirm-code">——</div></div>
       <div class="controls">
@@ -770,36 +900,36 @@
 
     <!-- Coordinator device-management panel -->
     <details id="devices-panel" style="display:none;">
-      <summary class="source-summary"><span>👥 Devices <span id="devices-count" class="count">(0)</span></span><span class="chev">▾</span></summary>
+      <summary class="source-summary"><span><svg class="icon"><use href="#ic-people"/></svg> Devices <span id="devices-count" class="count">(0)</span></span><span class="chev">▾</span></summary>
       <div id="devices-list"></div>
       <p class="hint" id="devices-hint" style="margin-top:4px;"></p>
     </details>
 
     <details id="source-collapse" open>
-      <summary class="source-summary"><span>📡 What do you want to show?</span><span class="chev">▾</span></summary>
+      <summary class="source-summary"><span><svg class="icon"><use href="#ic-cast"/></svg> What do you want to show?</span><span class="chev">▾</span></summary>
       <div class="source-grid">
-        <div class="source-btn" onclick="pickSource('file')"><div class="ic">🎬</div><div class="nm">Media &amp; playlist</div><div class="ds">Videos, photos, music</div></div>
-        <div class="source-btn" onclick="pickSource('screen')"><div class="ic">📲</div><div class="nm">Screen / app</div><div class="ds">Mirror your screen</div></div>
-        <div class="source-btn" onclick="pickSource('url')"><div class="ic">🌐</div><div class="nm">Website</div><div class="ds">Open a URL on TV</div></div>
-        <div class="source-btn" onclick="pickSource('camera')"><div class="ic">📷</div><div class="nm">Camera</div><div class="ds">Live phone camera</div></div>
+        <div class="source-btn" onclick="pickSource('file')"><div class="ic"><svg><use href="#ic-film"/></svg></div><div class="nm">Media &amp; playlist</div><div class="ds">Videos, photos, music</div></div>
+        <div class="source-btn" onclick="pickSource('screen')"><div class="ic"><svg><use href="#ic-mirror"/></svg></div><div class="nm">Screen / app</div><div class="ds">Mirror your screen</div></div>
+        <div class="source-btn" onclick="pickSource('url')"><div class="ic"><svg><use href="#ic-globe"/></svg></div><div class="nm">Website</div><div class="ds">Open a URL on TV</div></div>
+        <div class="source-btn" onclick="pickSource('camera')"><div class="ic"><svg><use href="#ic-camera"/></svg></div><div class="nm">Camera</div><div class="ds">Live phone camera</div></div>
       </div>
     </details>
     <div id="src-file" style="display:none;">
       <div class="media-layout">
         <div>
           <div id="file-drop-zone" onclick="document.getElementById('file-input').click()">
-            <div class="drop-icon">🎬🖼️🎵</div><p><strong>Tap to add media</strong></p><p>Videos · Photos · Music (MP3, M4A, WAV)</p>
+            <div class="drop-icon"><svg><use href="#ic-film"/></svg><svg><use href="#ic-image"/></svg><svg><use href="#ic-music"/></svg></div><p><strong>Tap to add media</strong></p><p>Videos · Photos · Music (MP3, M4A, WAV)</p>
           </div>
           <input type="file" id="file-input" accept="video/*,image/*,audio/*" multiple />
           <div class="party-input-wrap">
-            <label for="party-msg-input">🎉 On-screen message</label>
+            <label for="party-msg-input"><svg class="icon"><use href="#ic-spark"/></svg> On-screen message</label>
             <input type="text" id="party-msg-input" maxlength="100" placeholder="e.g. Happy Birthday Nalan" oninput="onPartyInput()" />
             <div class="party-count"><span id="party-count">0</span>/100</div>
-            <button class="btn-secondary btn-wide" style="margin-top:8px;" onclick="flashMessageToTV()">💬 Display on Screen (5s)</button>
+            <button class="btn-secondary btn-wide" style="margin-top:8px;" onclick="flashMessageToTV()"><svg class="icon"><use href="#ic-chat"/></svg> Display on Screen (5s)</button>
           </div>
           <div class="button-group">
-            <button class="btn-secondary" onclick="addMoreMedia()">➕ Add to Playlist</button>
-            <button class="btn-primary" id="btn-cast-file" onclick="castNow()" disabled>▶ Cast Now</button>
+            <button class="btn-secondary" onclick="addMoreMedia()"><svg class="icon"><use href="#ic-plus"/></svg> Add to Playlist</button>
+            <button class="btn-primary" id="btn-cast-file" onclick="castNow()" disabled><svg class="icon"><use href="#ic-play"/></svg> Cast Now</button>
           </div>
           <p class="hint" style="margin-top:10px;">Items play in order. “Add to Playlist” queues more; “Cast Now” starts playing on the TV.</p>
           <p id="cloud-status-note" class="hint" style="margin-top:6px;"></p>
@@ -822,18 +952,18 @@
     <div id="src-url" style="display:none;">
       <!-- Presets -->
       <div id="url-presets-wrap" style="margin-bottom:14px;display:none;">
-        <div class="section-title" style="margin-bottom:8px;">⭐ Presets</div>
+        <div class="section-title" style="margin-bottom:8px;"><svg class="icon"><use href="#ic-star"/></svg> Presets</div>
         <div id="url-presets-chips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
       </div>
       <!-- URL input -->
       <div style="display:flex;gap:8px;margin-bottom:6px;align-items:stretch;">
         <input type="text" id="url-input" placeholder="YouTube, .m3u8, .mp4, or any URL…" style="flex:1;background:var(--surface2);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:13px 14px;color:var(--text);font-size:15px;outline:none;" oninput="urlTypePreview()" />
-        <button class="btn-primary" style="flex:none;padding:13px 18px;" onclick="castUrl()">▶ Play</button>
+        <button class="btn-primary" style="flex:none;padding:13px 18px;" onclick="castUrl()"><svg class="icon"><use href="#ic-play"/></svg> Play</button>
       </div>
       <div id="url-type-label" style="font-size:11px;color:var(--muted);margin-bottom:8px;min-height:16px;"></div>
       <div style="display:flex;gap:8px;margin-bottom:14px;">
-        <button class="btn-ghost" style="flex:1;font-size:13px;padding:10px;" onclick="savePreset()">⭐ Save preset</button>
-        <button class="btn-secondary" style="flex:none;font-size:13px;padding:10px 14px;" onclick="castUrl()">🌐 Send to TV</button>
+        <button class="btn-ghost" style="flex:1;font-size:13px;padding:10px;" onclick="savePreset()"><svg class="icon"><use href="#ic-star"/></svg> Save preset</button>
+        <button class="btn-secondary" style="flex:none;font-size:13px;padding:10px 14px;" onclick="castUrl()"><svg class="icon"><use href="#ic-globe"/></svg> Send to TV</button>
       </div>
       <div class="note" style="margin-bottom:14px;">✅ YouTube · direct video · HLS (.m3u8) · DASH (.mpd)<br>❌ Netflix, Hulu, Disney+ and other DRM services won't work.</div>
       <!-- Recents -->
@@ -859,8 +989,8 @@
       <div id="phone-preview-tag">LIVE PREVIEW · muted</div>
     </div>
     <div class="controls" style="margin-bottom:12px;">
-      <button class="btn-secondary" onclick="backToSource()">↩ Other source</button>
-      <button class="btn-primary" onclick="changeVideo()">＋ Add media</button>
+      <button class="btn-secondary" onclick="backToSource()"><svg class="icon"><use href="#ic-replay"/></svg> Other source</button>
+      <button class="btn-primary" onclick="changeVideo()"><svg class="icon"><use href="#ic-plus"/></svg> Add media</button>
     </div>
     <div class="playlist-panel">
       <h3>On the TV</h3>
@@ -872,7 +1002,7 @@
   <!-- ENDED -->
   <div id="screen-ended" class="screen">
     <div class="big-confirm">
-      <div class="ic">✅</div><h2 id="ended-title">Session ended</h2>
+      <div class="ic"><svg><use href="#ic-check"/></svg></div><h2 id="ended-title">Session ended</h2>
       <p id="ended-msg">The connection has been closed.</p>
       <button class="btn-primary btn-wide" style="max-width:280px;margin:0 auto;" onclick="startOver()">Start over</button>
     </div>
@@ -882,7 +1012,7 @@
 
 <!-- FLOATING REMOTE LAUNCHER (always available once paired) -->
 <button id="remote-fab" title="Remote control (drag to move)" aria-label="Remote control">
-  <span class="fab-ring"></span><span class="fab-glyph">⌨</span>
+  <span class="fab-ring"></span><span class="fab-glyph"><svg class="icon" style="width:28px;height:28px"><use href="#ic-keyboard"/></svg></span>
 </button>
 
 <!-- PHONE FLOATING CONTROLLER -->
@@ -895,22 +1025,22 @@
     <span class="time-label" id="dur-time">0:00</span>
   </div>
   <div class="ctrl-row">
-    <button class="ctrl-btn" onclick="ctrl('rewind')" title="Back 10s">⏮</button>
-    <button class="ctrl-btn big" id="ph-playpause" onclick="ctrl('toggle')">⏸</button>
-    <button class="ctrl-btn" onclick="ctrl('forward')" title="Forward 10s">⏭</button>
-    <button class="ctrl-btn" id="ph-loop" onclick="ctrl('loop')" title="Loop">⟲</button>
-    <button class="ctrl-btn" onclick="ctrl('fullscreen')" title="Fullscreen">⛶</button>
+    <button class="ctrl-btn" onclick="ctrl('rewind')" title="Back 10s"><svg class="icon"><use href="#ic-prev"/></svg></button>
+    <button class="ctrl-btn big" id="ph-playpause" onclick="ctrl('toggle')"><svg class="icon icon-lg"><use href="#ic-pause"/></svg></button>
+    <button class="ctrl-btn" onclick="ctrl('forward')" title="Forward 10s"><svg class="icon"><use href="#ic-next"/></svg></button>
+    <button class="ctrl-btn" id="ph-loop" onclick="ctrl('loop')" title="Loop"><svg class="icon"><use href="#ic-loop"/></svg></button>
+    <button class="ctrl-btn" onclick="ctrl('fullscreen')" title="Fullscreen"><svg class="icon"><use href="#ic-full"/></svg></button>
   </div>
   <div class="ctrl-row">
-    <button class="ctrl-btn" onclick="ctrl('restart')" title="Replay">↺<span class="lbl"> Replay</span></button>
-    <button class="ctrl-btn" onclick="ctrl('reload')" title="Refresh TV">⟳<span class="lbl"> Refresh</span></button>
-    <button class="ctrl-btn" onclick="changeVideo()" title="Add media">＋<span class="lbl"> Add</span></button>
-    <button class="ctrl-btn danger" onclick="confirmTerminate()" title="End session"><span class="lbl">End</span></button>
+    <button class="ctrl-btn" onclick="ctrl('restart')" title="Replay"><svg class="icon"><use href="#ic-replay"/></svg><span class="lbl"> Replay</span></button>
+    <button class="ctrl-btn" onclick="ctrl('reload')" title="Refresh TV"><svg class="icon"><use href="#ic-refresh"/></svg><span class="lbl"> Refresh</span></button>
+    <button class="ctrl-btn" onclick="changeVideo()" title="Add media"><svg class="icon"><use href="#ic-plus"/></svg><span class="lbl"> Add</span></button>
+    <button class="ctrl-btn danger" onclick="confirmTerminate()" title="End session"><svg class="icon"><use href="#ic-power"/></svg><span class="lbl"> End</span></button>
   </div>
-  <button class="ctrl-resync" onclick="resyncSession()">🔄 Resync / Reconnect to TV</button>
+  <button class="ctrl-resync" onclick="resyncSession()"><svg class="icon"><use href="#ic-resync"/></svg> Resync / Reconnect to TV</button>
   <div class="ctrl-party">
-    <input type="text" id="party-msg-input2" maxlength="100" placeholder="🎉 On-screen message…" oninput="onPartyInput2()" />
-    <button class="ctrl-flash" onclick="flashMessageToTV()" title="Display on screen for 5s">💬</button>
+    <input type="text" id="party-msg-input2" maxlength="100" placeholder="On-screen message…" oninput="onPartyInput2()" />
+    <button class="ctrl-flash" onclick="flashMessageToTV()" title="Display on screen for 5s"><svg class="icon"><use href="#ic-chat"/></svg></button>
     <span class="ctrl-party-count" id="party-count2">0</span>
   </div>
 </div>
@@ -931,13 +1061,14 @@ var role = null, peer = null, conn = null, call = null, localStream = null, room
 var connections = new Map(); // TV: connId -> {conn, isPrimary, name}
 var primaryConn = null; // phone side
 var MAX_DEVICES = 3;
+var tvDeviceSeq = 0;    // TV: running counter for "Device N" defaults
 var myName = '';        // phone: this device's display name
 var myRole = null;      // phone: 'primary' (coordinator) or 'guest'
 var deviceRoster = [];  // phone: latest device list from TV
 var myCid = null;       // phone: this device's id as known by the TV
 try{ myName = localStorage.getItem('castparty_name') || ''; }catch(e){}
 function onNameInput(){ myName = ($('display-name-input').value||'').slice(0,20); try{ localStorage.setItem('castparty_name', myName); }catch(e){} }
-function senderName(){ return myName || 'Guest'; }
+function senderName(){ return (myName||'').trim(); }  /* blank → TV fills in "Device N" */
 
 var tvQueue = [];
 var tvPlaying = null;
@@ -1116,6 +1247,7 @@ function startOver(){
 function goTV(){
   role = 'tv';
   roomId = genCode();
+  tvDeviceSeq = 0;
   showScreen('screen-tv-wait');
   $('tv-code').textContent = roomId;
   drawQR($('qr-img'), location.origin + location.pathname + '?join=' + roomId);
@@ -1626,12 +1758,17 @@ function applyTVCmd(a, val){
   showTVOverlay();
 }
 
+// Swap a play/pause button's SVG icon without wiping it
+function setPPIcon(el, paused){
+  if(!el) return;
+  var lg = (el.id==='ph-playpause' || el.id==='tv-ov-pp') ? ' icon-lg' : '';
+  el.innerHTML = '<svg class="icon'+lg+'"><use href="#'+(paused?'ic-play':'ic-pause')+'"/></svg>';
+}
 function updateTVIcons(){
   var v = curMedia();
-  var pp = v.paused ? '▶' : '⏸';
-  $('tv-playpause').textContent = pp;
+  setPPIcon($('tv-playpause'), v.paused);
+  setPPIcon($('tv-ov-pp'), v.paused);
   $('tv-loopbtn').classList.toggle('on', tvLoop);
-  if($('tv-ov-pp')) $('tv-ov-pp').textContent = pp;
   if($('tv-ov-loop')) $('tv-ov-loop').classList.toggle('on', tvLoop);
   updateTVSeek();
 }
@@ -1737,7 +1874,14 @@ document.addEventListener('keydown', function(e){
 })();
 
 // ───────── Phone role ─────────
-function goPhone(){ role = 'phone'; var ni=$('display-name-input'); if(ni && myName) ni.value=myName; showScreen('screen-phone-join'); }
+var pendingJoinCode = null;
+function goPhone(){ role = 'phone'; var ni=$('display-name-input'); if(ni) ni.value = myName || ''; showScreen('screen-phone-name'); setTimeout(function(){ if(ni) ni.focus(); }, 350); }
+function nameContinue(){
+  myName = (($('display-name-input') && $('display-name-input').value) || '').trim().slice(0,20);
+  try{ localStorage.setItem('castparty_name', myName); }catch(e){}
+  if(pendingJoinCode){ var c=pendingJoinCode; pendingJoinCode=null; $('phone-code-input').value=c; showScreen('screen-phone-join'); startPhonePeer(c); }
+  else { showScreen('screen-phone-join'); }
+}
 function phoneConnect(){
   var c = $('phone-code-input').value.trim();
   if(c.length !== 6){ toast('Enter the 6-digit TV code'); return; }
@@ -1776,9 +1920,9 @@ function startPhonePeer(code){
 
 function phoneConfirm(){
   confirmed = true;
-  if(!myName){ myName = ($('display-name-input') && $('display-name-input').value) || 'Guest'; try{ localStorage.setItem('castparty_name', myName); }catch(e){} }
+  // Send the name as-is (may be blank) — the TV assigns "Device N" and tells us back
   send({t:'confirm'});
-  send({t:'hello', name: senderName()});
+  send({t:'hello', name: (myName||'').trim()});
   showScreen('screen-phone-source');
 }
 
@@ -1804,7 +1948,7 @@ function mediaKind(mime, name){
   if(/^audio\//.test(mime||'') || /\.(mp3|m4a|wav|aac|ogg)$/i.test(name||'')) return 'audio';
   return 'video';
 }
-function kindIcon(k){ return k==='image'?'🖼️':(k==='audio'?'🎵':'🎬'); }
+function kindIcon(k){ var id = k==='image'?'ic-image':(k==='audio'?'ic-music':'ic-film'); return '<svg class="icon"><use href="#'+id+'"/></svg>'; }
 
 // ── Phone playlist ──
 var playlist = [];   // {file, name, kind, size, sent}
@@ -1976,7 +2120,7 @@ function startStreamSync(){
     if(dur && !scrubbing){ scrubEl.max = dur; scrubEl.value = ct; }
     $('cur-time').textContent = fmt(ct);
     $('dur-time').textContent = fmt(dur);
-    $('ph-playpause').textContent = streamVid.paused ? '▶' : '⏸';
+    setPPIcon($('ph-playpause'), streamVid.paused);
   }, 400);
 }
 function stopStreamSync(){ if(streamSyncIv){ clearInterval(streamSyncIv); streamSyncIv=null; } }
@@ -2233,13 +2377,13 @@ function renderRecents(){
   wrap.style.display = arr.length ? 'block' : 'none';
   var el = $('url-recents-list'); if(!el) return;
   el.innerHTML = arr.map(function(r,i){
-    var icon = r.type==='youtube'?'▶️':r.type==='hls'||r.type==='dash'?'📡':r.type==='video'?'🎬':'🌐';
+    var iconId = r.type==='youtube'?'ic-play':(r.type==='hls'||r.type==='dash')?'ic-cast':r.type==='video'?'ic-film':'ic-globe';
     var label = URL_ICONS[r.type]||'Web page';
     var short = r.url.replace(/^https?:\/\//,'').slice(0,60);
     return '<div class="url-recent-item" onclick="castRecent('+i+')">'+
-      '<div class="rec-type">'+icon+'</div>'+
+      '<div class="rec-type"><svg class="icon"><use href="#'+iconId+'"/></svg></div>'+
       '<div class="rec-meta"><div class="rec-name">'+label+'</div><div class="rec-url">'+escapeHtml(short)+'</div></div>'+
-      '<div class="rec-play">▶</div></div>';
+      '<div class="rec-play"><svg class="icon"><use href="#ic-play"/></svg></div></div>';
   }).join('');
 }
 function castRecent(i){
@@ -2338,6 +2482,7 @@ function handleData(msg, dc, cid){
   if(role === 'tv' && cid && /^(fstart|stream-start|url|enqueue-url|uploading)$/.test(msg.t)){
     var sh = connections.get(cid);
     if(sh && sh.canShare === false){ tvSendTo(sh.conn, {t:'denied'}); return; }
+    if(sh && !msg.sender && sh.name) msg.sender = sh.name;   // fall back to the device's assigned name
   }
   switch(msg.t){
     case 'confirm':
@@ -2357,7 +2502,14 @@ function handleData(msg, dc, cid){
         }
       }
       break;
-    case 'hello': if(role==='tv' && cid){ var he=connections.get(cid); if(he){ he.name=msg.name||'Guest'; connections.set(cid,he); broadcastDevices(); } } break;
+    case 'hello': if(role==='tv' && cid){ var he=connections.get(cid); if(he){
+        var nm=(msg.name||'').trim();
+        if(!nm){ tvDeviceSeq++; nm='Device '+tvDeviceSeq; }   // default when left blank
+        he.name=nm; connections.set(cid,he);
+        tvSendTo(he.conn, {t:'assigned', name:nm});           // tell the phone its final name
+        broadcastDevices();
+      } } break;
+    case 'assigned': if(role==='phone'){ myName = msg.name || myName; } break;
     case 'full': if(role==='phone'){ setPill('phone-join-status','phone-join-text','error','Session full (3 devices)'); toast('That display already has 3 devices connected.'); } break;
     case 'devices': if(role==='phone'){ deviceRoster = msg.list||[]; myCid = msg.you||myCid; renderDevices(); } break;
     case 'role': if(role==='phone'){ myRole = msg.role; renderDevices();
@@ -2464,8 +2616,7 @@ function onTime(m){
   else if(currentSource==='file'){ $('scrub-wrap').style.display='flex'; }
   if(!scrubbing && m.dur){ scrubEl.max=m.dur; scrubEl.value=m.ct; }
   $('cur-time').textContent = fmt(m.ct); $('dur-time').textContent = fmt(m.dur);
-  var pp = m.paused ? '▶' : '⏸';
-  $('ph-playpause').textContent = pp;
+  setPPIcon($('ph-playpause'), m.paused);
   $('ph-loop').classList.toggle('on', !!m.loop);
 }
 function onQueue(m){
@@ -2718,9 +2869,9 @@ function toast(msg){ var t=$('toast'); t.textContent=msg; t.classList.add('show'
 (function(){
   var c = new URLSearchParams(location.search).get('join');
   if(c && /^\d{6}$/.test(c)){
+    // QR scanned → ask for display name first, then connect on Continue
+    pendingJoinCode = c;
     goPhone();
-    $('phone-code-input').value = c;
-    setTimeout(function(){ startPhonePeer(c); }, 300);
   }
 })();
 
