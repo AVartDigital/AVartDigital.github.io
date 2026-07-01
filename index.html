@@ -1074,9 +1074,9 @@
     <span class="vol-pct" id="vol-pct">100%</span>
   </div>
   <div class="ctrl-row">
-    <button class="ctrl-btn" onclick="ctrl('restart')" title="Replay"><svg class="icon"><use href="#ic-replay"/></svg><span class="lbl"> Replay</span></button>
-    <button class="ctrl-btn" onclick="ctrl('reload')" title="Refresh TV"><svg class="icon"><use href="#ic-refresh"/></svg><span class="lbl"> Refresh</span></button>
-    <button class="ctrl-btn" onclick="changeVideo()" title="Add media"><svg class="icon"><use href="#ic-plus"/></svg><span class="lbl"> Add</span></button>
+    <button class="ctrl-btn" onclick="ctrl('restart')" title="Replay from start"><svg class="icon"><use href="#ic-replay"/></svg><span class="lbl"> Replay</span></button>
+    <button class="ctrl-btn" onclick="recastCurrent()" title="Re-cast this file to the TV"><svg class="icon"><use href="#ic-cast"/></svg><span class="lbl"> Recast</span></button>
+    <button class="ctrl-btn" onclick="ctrl('reload')" title="Refresh the TV video (if frozen)"><svg class="icon"><use href="#ic-refresh"/></svg><span class="lbl"> Refresh</span></button>
     <button class="ctrl-btn danger" onclick="confirmTerminate()" title="End session"><svg class="icon"><use href="#ic-power"/></svg><span class="lbl"> End</span></button>
   </div>
   <button class="ctrl-resync" onclick="resyncSession()"><svg class="icon"><use href="#ic-resync"/></svg> Resync / Reconnect to TV</button>
@@ -2127,7 +2127,10 @@ function castItem(it){
   enterController(false);
   setPhonePreview({kind: it.kind, file: it.file});
   if(it.onTV){
-    send({t:'playlib', id:it.id, name:it.name, kind:it.kind, partyMsg:partyMsg, sender:senderName()});
+    // Make sure the link is alive first (fixes "stuck after video ended" cases)
+    var deliver = function(){ send({t:'playlib', id:it.id, name:it.name, kind:it.kind, partyMsg:partyMsg, sender:senderName()}); };
+    if(primaryConn && primaryConn.open){ deliver(); }
+    else { reviveConnection(); setTimeout(deliver, 800); }   // reconnect, then play
     setPill('phone-cast-status','phone-cast-text','streaming','▶ Playing '+it.name);
     return;
   }
@@ -2141,6 +2144,16 @@ function castItem(it){
   }
 }
 function recastItem(i){ if(!playlist[i]) return; castItem(playlist[i]); }
+// Recast the current/last file — brings it back to the TV from the start, even
+// if it ended and the TV went to the idle screen. Preview resets to match.
+function recastCurrent(){
+  var it = (lastCast && lastCast.it) ? lastCast.it
+         : (nowPlayingIdx>=0 ? playlist[nowPlayingIdx] : null)
+         || playlist.filter(function(p){ return p.onTV; }).slice(-1)[0];
+  if(!it){ toast('Nothing to recast — pick a file'); return; }
+  toast('⟲ Recasting '+it.name);
+  castItem(it);
+}
 // Stop whatever is playing on the TV
 function stopCast(){ send({t:'stop'}); nowPlayingIdx=-1; renderPlaylist(); renderCastList(); toast('■ Stopped'); }
 function plItemClick(e, i){
@@ -2244,8 +2257,8 @@ function startStreamSync(){
     var dur = streamVid.duration || 0;
     var ct  = streamVid.currentTime || 0;
     if(dur && !scrubbing){ scrubEl.max = dur; scrubEl.value = ct; }
-    $('cur-time').textContent = fmt(ct);
-    $('dur-time').textContent = fmt(dur);
+    $('cur-time').textContent = dur ? fmt(dur) : '·:··';
+    $('dur-time').textContent = dur ? '-'+fmt(Math.max(0,dur-ct)) : '·:··';
     setPPIcon($('ph-playpause'), streamVid.paused);
   }, 400);
 }
@@ -2594,8 +2607,11 @@ function updateVolUI(){
 }
 function initScrubber(){
   scrubEl = $('scrubber');
-  scrubEl.addEventListener('input', function(){ scrubbing=true; $('cur-time').textContent=fmt(scrubEl.value);
-    var pv=$('phone-preview'); if(phonePreviewKind==='video' && pv){ try{ pv.currentTime=parseFloat(scrubEl.value); }catch(e){} } });
+  scrubEl.addEventListener('input', function(){ scrubbing=true;
+    var mx=+scrubEl.max||0, vv=+scrubEl.value||0;
+    $('cur-time').textContent = mx ? fmt(mx) : '·:··';
+    $('dur-time').textContent = mx ? '-'+fmt(Math.max(0,mx-vv)) : '·:··';
+    var pv=$('phone-preview'); if(phonePreviewKind==='video' && pv){ try{ pv.currentTime=vv; }catch(e){} } });
   scrubEl.addEventListener('change', function(){ ctrl('seek', parseFloat(scrubEl.value)); scrubbing=false; });
 }
 function ctrl(a, val){
@@ -2815,8 +2831,9 @@ function onTime(m){
   var dur = (isFinite(m.dur) && m.dur > 0) ? m.dur : 0;
   var ct  = (isFinite(m.ct)  && m.ct  >= 0) ? m.ct  : 0;
   if(!scrubbing && dur){ scrubEl.max = dur; scrubEl.value = Math.min(ct, dur); }
-  $('cur-time').textContent = fmt(ct);
-  $('dur-time').textContent = dur ? fmt(dur) : '·:··';   // brief "loading" dash until duration is known
+  // Left = total length; Right = countdown to zero (time remaining)
+  $('cur-time').textContent = dur ? fmt(dur) : '·:··';
+  $('dur-time').textContent = dur ? '-'+fmt(Math.max(0, dur-ct)) : '·:··';
   setPPIcon($('ph-playpause'), m.paused);
   $('ph-loop').classList.toggle('on', !!m.loop);
 }
