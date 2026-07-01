@@ -72,6 +72,24 @@
     #tv-stage.exiting #tv-video, #tv-stage.exiting #tv-image, #tv-stage.exiting #tv-audio-stage,
     #tv-stage.exiting #tv-yt, #tv-stage.exiting #tv-iframe { transform: scale(0.95); opacity: 0; }
     #tv-stage.entering #tv-video, #tv-stage.entering #tv-image { transform: scale(1.05); }
+    /* Mac-style window close (minimize) / open (expand) transitions */
+    @keyframes winClose {
+      0%   { transform: scale(1) translateY(0); opacity: 1; filter: blur(0); border-radius: 0; }
+      70%  { opacity: .85; }
+      100% { transform: scale(0.06) translateY(62%); opacity: 0; filter: blur(3px); border-radius: 26px; }
+    }
+    @keyframes winOpen {
+      0%   { transform: scale(0.06) translateY(62%); opacity: 0; filter: blur(3px); border-radius: 26px; }
+      100% { transform: scale(1) translateY(0); opacity: 1; filter: blur(0); border-radius: 0; }
+    }
+    #tv-stage.closing #tv-video, #tv-stage.closing #tv-image, #tv-stage.closing #tv-audio-stage,
+    #tv-stage.closing #tv-yt, #tv-stage.closing #tv-iframe {
+      animation: winClose .72s cubic-bezier(.6,0,.9,.25) forwards; transform-origin: bottom center;
+    }
+    #tv-stage.opening #tv-video, #tv-stage.opening #tv-image, #tv-stage.opening #tv-audio-stage,
+    #tv-stage.opening #tv-yt, #tv-stage.opening #tv-iframe {
+      animation: winOpen .6s cubic-bezier(.2,.85,.2,1) both; transform-origin: center center;
+    }
 
     /* Home screen fills + branded hero art (TRUE full-viewport, edge-to-edge, no black) */
     #screen-home.active { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
@@ -441,6 +459,19 @@
     .ctrl-party input { flex: 1; min-width: 0; background: rgba(109,184,255,0.08); border: 1px solid var(--edge); border-radius: 10px; padding: 11px 12px; color: var(--text); font-size: 14px; outline: none; }
     .ctrl-party input:focus { border-color: var(--gold); box-shadow: 0 0 12px rgba(109,184,255,0.3); }
     .ctrl-party-count { flex: none; font-size: 11px; color: var(--muted); min-width: 28px; text-align: right; }
+    /* TV volume row */
+    .vol-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .vol-btn { flex: none; width: 52px; }
+    .vol-btn.muted { color: var(--danger); border-color: rgba(255,120,120,0.4); }
+    input[type=range].vol { flex: 1; min-width: 0; }
+    .vol-pct { flex: none; min-width: 42px; text-align: right; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    /* On-screen message mode buttons */
+    .msg-mode-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .msg-mode-btn { flex: 1; min-width: 0; min-height: 40px; border-radius: 10px; font-size: 12.5px; font-weight: 700;
+      background: rgba(109,184,255,0.08); border: 1px solid var(--edge); color: var(--gold-soft);
+      display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+    .msg-mode-btn.on { background: rgba(109,184,255,0.25); border-color: var(--gold); color: var(--gold); box-shadow: 0 0 12px rgba(109,184,255,0.35); }
+    .msg-mode-btn.clear { flex: none; color: #ff9a9a; border-color: rgba(255,120,120,0.4); background: rgba(255,80,80,0.1); }
     .ctrl-flash { flex: none; min-width: 44px; width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 10px; font-size: 18px; background: linear-gradient(180deg, var(--gold-soft), var(--gold)); color: #042038; border: none; box-shadow: 0 0 12px rgba(109,184,255,0.4); }
     .ctrl-resync { width: 100%; margin-top: 10px; min-height: 46px; border-radius: 11px; font-size: 14px; font-weight: 700; color: var(--gold-soft);
       background: linear-gradient(180deg, rgba(109,184,255,0.18), rgba(109,184,255,0.06)); border: 1px solid var(--edge); box-shadow: 0 0 14px rgba(109,184,255,0.2); }
@@ -706,6 +737,9 @@
     <symbol id="ic-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9L12 3.5Z"/></symbol>
     <symbol id="ic-spark" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></symbol>
     <symbol id="ic-id" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="11" r="2.2"/><path d="M5.5 16a3 3 0 0 1 6 0M14 9.5h4M14 13h4M14 16h2.5"/></symbol>
+    <symbol id="ic-vol" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4Z" fill="currentColor" stroke="none"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></symbol>
+    <symbol id="ic-mute" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4Z" fill="currentColor" stroke="none"/><path d="M16 9l5 6M21 9l-5 6"/></symbol>
+    <symbol id="ic-pin" viewBox="0 0 24 24"><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6ZM12 14v7"/></symbol>
   </defs>
 </svg>
 
@@ -1031,6 +1065,12 @@
     <button class="ctrl-btn" id="ph-loop" onclick="ctrl('loop')" title="Loop"><svg class="icon"><use href="#ic-loop"/></svg></button>
     <button class="ctrl-btn" onclick="ctrl('fullscreen')" title="Fullscreen"><svg class="icon"><use href="#ic-full"/></svg></button>
   </div>
+  <!-- TV volume control -->
+  <div class="vol-row">
+    <button class="ctrl-btn vol-btn" id="ph-mute" onclick="ctrl('mute')" title="Mute TV"><svg class="icon"><use href="#ic-vol"/></svg></button>
+    <input type="range" class="scrub vol" id="volslider" min="0" max="100" value="100" step="1" oninput="onVolInput()" aria-label="TV volume" />
+    <span class="vol-pct" id="vol-pct">100%</span>
+  </div>
   <div class="ctrl-row">
     <button class="ctrl-btn" onclick="ctrl('restart')" title="Replay"><svg class="icon"><use href="#ic-replay"/></svg><span class="lbl"> Replay</span></button>
     <button class="ctrl-btn" onclick="ctrl('reload')" title="Refresh TV"><svg class="icon"><use href="#ic-refresh"/></svg><span class="lbl"> Refresh</span></button>
@@ -1040,8 +1080,13 @@
   <button class="ctrl-resync" onclick="resyncSession()"><svg class="icon"><use href="#ic-resync"/></svg> Resync / Reconnect to TV</button>
   <div class="ctrl-party">
     <input type="text" id="party-msg-input2" maxlength="100" placeholder="On-screen message…" oninput="onPartyInput2()" />
-    <button class="ctrl-flash" onclick="flashMessageToTV()" title="Display on screen for 5s"><svg class="icon"><use href="#ic-chat"/></svg></button>
+    <button class="ctrl-flash" onclick="flashMessageToTV()" title="Show on screen"><svg class="icon"><use href="#ic-chat"/></svg></button>
     <span class="ctrl-party-count" id="party-count2">0</span>
+  </div>
+  <div class="msg-mode-row">
+    <button class="msg-mode-btn on" id="msg-mode-timed" onclick="setFlashHold(false)">⏱ 5 seconds</button>
+    <button class="msg-mode-btn" id="msg-mode-hold" onclick="setFlashHold(true)"><svg class="icon"><use href="#ic-pin"/></svg> Keep on until off</button>
+    <button class="msg-mode-btn clear" id="msg-clear" onclick="clearFlash()" style="display:none;">✕ Clear</button>
   </div>
 </div>
 
@@ -1073,6 +1118,7 @@ function senderName(){ return (myName||'').trim(); }  /* blank → TV fills in "
 var tvQueue = [];
 var tvPlaying = null;
 var tvLoop = false;
+var tvLibrary = {};   // TV: id -> item (every file received this session, for instant replay)
 var slideshow = [];   // image items this session, for looping slideshows
 var rx = null; // current receive state
 
@@ -1178,17 +1224,17 @@ function resyncSession(){
       wireConn(primaryConn, 'primary');
     }
   }catch(e){}
-  // re-cast whatever was last shown so the screen comes back
+  // re-cast whatever was last shown so the TV screen comes back — reuse the
+  // already-uploaded cloud URL (NO re-upload), which is what makes resync reliable
   setTimeout(function(){
     if(!lastCast){ toast('Nothing to resync — pick content to cast'); return; }
     if(lastCast.type==='url'){
-      send({t:'url', url:lastCast.url});
+      send({t:'url', url:lastCast.url, sender:senderName()});
+    } else if(lastCast.it && lastCast.it.uploaded && lastCast.it.url){
+      setPhonePreview({kind:lastCast.it.kind, file:lastCast.it.file});
+      send({t:'playurl', name:lastCast.it.name, url:lastCast.it.url, kind:lastCast.it.kind, partyMsg:partyMsg, sender:senderName()});
     } else if(lastCast.it){
-      var it=lastCast.it;
-      setPhonePreview({kind:it.kind, file:it.file});
-      if(it.kind==='video' && it.size>=CLOUD_THRESHOLD && cloudEnabled()){ cloudCastVideo(it).catch(function(){}); }
-      else if(it.kind==='video' && it.size>=CLOUD_THRESHOLD && supportsCapture()){ streamFile(it.file, it.name); }
-      else { transferFile(it.file, it.kind, it.name); }
+      castItem(lastCast.it);   // not uploaded yet → normal cast path
     }
     toast('🔄 Re-cast to TV');
   }, 600);
@@ -1425,7 +1471,7 @@ function showOnlyMedia(which){
 function curMedia(){ return (tvPlaying && tvPlaying.kind==='audio') ? $('tv-audio') : $('tv-video'); }
 
 function tvFileStart(meta){
-  rx = { chunks: [], received: 0, size: meta.size, mime: meta.mime, name: meta.name,
+  rx = { chunks: [], received: 0, size: meta.size, mime: meta.mime, name: meta.name, id: meta.id||null, force: !!meta.force,
          kind: meta.kind || 'video', partyMsg: (meta.partyMsg!=null?meta.partyMsg:''), sender: meta.sender||'', partialUrl: null, progressStarted: false };
   if(meta.partyMsg != null) tvPartyMsg = meta.partyMsg;
   if(tvPlaying === null){
@@ -1473,6 +1519,8 @@ function tvFileEnd(){
   var name = rx.name || kind;
   var pmsg = rx.partyMsg || '';
   var sndr = rx.sender || '';
+  var libId = rx.id || ('rx'+Date.now());
+  var force = rx.force;
   var chunks = rx.chunks;
   var oldPartial = rx.partialUrl;
   var wasProgressive = rx.progressStarted;
@@ -1480,7 +1528,8 @@ function tvFileEnd(){
 
   var blob = new Blob(chunks, {type: mime});
   var url = URL.createObjectURL(blob);
-  var item = {id: Date.now()+'-'+Math.random(), name:name, kind:kind, url:url, partyMsg:pmsg, sender:sndr};
+  var item = {id: libId, name:name, kind:kind, url:url, partyMsg:pmsg, sender:sndr};
+  tvLibrary[libId] = item;   // keep for the whole session → instant replay, no re-send
 
   if(wasProgressive){
     // already playing (or attempted) this video from a partial blob — swap to the full url
@@ -1508,8 +1557,8 @@ function tvFileEnd(){
     return;
   }
 
-  if(tvPlaying === null){
-    playItem(item);
+  if(force || tvPlaying === null){
+    playItem(item);           // explicit cast (or nothing playing) → play now
   } else {
     tvQueue.push(item);
     broadcastQueue();
@@ -1519,10 +1568,32 @@ function tvFileEnd(){
   tvBroadcast({t:'ready'});
 }
 
+// Mac-style window transitions
+function tvCloseWindow(cb){
+  var st=$('tv-stage'); st.classList.remove('opening','entering','exiting'); st.classList.add('closing');
+  setTimeout(function(){ st.classList.remove('closing'); if(cb) cb(); }, 740);
+}
+function tvOpenWindow(){
+  var st=$('tv-stage'); st.classList.remove('closing','exiting'); st.classList.add('opening');
+  setTimeout(function(){ st.classList.remove('opening'); }, 620);
+}
+// Natural end → hold the last frame ~1.5s, then "close the window" down to idle
+function tvEndToIdle(){
+  tvPlaying=null; stopViz();
+  setTimeout(function(){ tvCloseWindow(function(){ tvIdle(); }); }, 1500);
+}
+// Start a new item: expand from idle (window open), or crossfade between files
+function tvTransitionTo(item){
+  if($('tv-stage').classList.contains('idle')){ playItem(item); }     // open animation
+  else { tvFadeOutThen(function(){ playItem(item); }); }               // crossfade
+}
+
 // Play any media item by kind
+var _openFromIdle = false;
 function playItem(item){
   clearTimeout(imgTimer);
   stopViz();
+  _openFromIdle = $('tv-stage').classList.contains('idle');   // capture BEFORE showOnlyMedia clears it
   tvPlaying = item;
   if(item.partyMsg) tvPartyMsg = item.partyMsg;
   $('tv-play-overlay').classList.add('hidden');
@@ -1542,7 +1613,7 @@ function playItem(item){
     a.src = item.url; a.loop = tvLoop;
     showOnlyMedia('audio');
     $('tv-party-msg').textContent = tvPartyMsg || '';
-    autoPlay(a, function(){ startViz(a); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); });
+    autoPlay(a, function(){ startViz(a); tvIntroReveal(); tvFullscreenAuto(); showTVOverlay(); });
   } else {
     var vv = $('tv-video');
     if(vv._url && vv._url!==item.url){ try{ URL.revokeObjectURL(vv._url); }catch(e){} }
@@ -1557,13 +1628,15 @@ function playItem(item){
 // ── Buffered State Pattern ──
 // Show a subtle spinner while the asset syncs; reveal (fade-in) + start only
 // once it's ready — never a hard-cut or half-loaded frame. Safety-nets after 4s.
+// Reveal via window-open (from idle) or black fade-in (between files)
+function tvIntroReveal(){ if(_openFromIdle){ tvOpenWindow(); _openFromIdle=false; } else { playFadeIn(); } }
 function bufferedReveal(el, kind, url, after){
   var revealed = false;
   $('tv-spinner').classList.add('show');
   function reveal(){
     if(revealed) return; revealed = true;
     $('tv-spinner').classList.remove('show');
-    playFadeIn();
+    tvIntroReveal();
     if(after) after();
   }
   if(kind === 'image'){
@@ -1580,8 +1653,8 @@ function bufferedReveal(el, kind, url, after){
 
 function playNext(){
   var item = tvQueue.shift();
-  if(!item){ tvPlaying = null; stopViz(); tvFadeOutThen(tvIdle); broadcastQueue(); return; }
-  tvFadeOutThen(function(){ playItem(item); });   // 1s fade-out → fade-in
+  if(!item){ tvEndToIdle(); broadcastQueue(); return; }   // window-close → idle
+  tvFadeOutThen(function(){ playItem(item); });   // 1s fade-out → fade-in between files
 }
 
 // fires when current video/audio ends naturally
@@ -1589,7 +1662,7 @@ function onMediaEnded(){
   if(tvLoop && tvQueue.length===0){ return; } // single looping item handled by element.loop
   if(tvQueue.length > 0){ playNext(); }
   else if(tvLoop && slideshow.length>1){ tvQueue = slideshow.slice(); playNext(); }
-  else { tvFadeOutThen(tvIdle); broadcastQueue(); } // no center play button — back to idle art
+  else { tvEndToIdle(); broadcastQueue(); }   // hold 1.5s → close window → idle art
 }
 
 function broadcastQueue(){
@@ -1707,7 +1780,23 @@ function showCasterBanner(name){
 // TV transport
 function tvOvCmd(a){ applyTVCmd(a); }
 function tvLocal(a){ applyTVCmd(a); }
+var tvVolume = 1;
 function applyTVCmd(a, val){
+  // Volume / mute — apply to whatever is currently playing (video/audio/YouTube)
+  if(a === 'volume'){
+    tvVolume = Math.max(0, Math.min(1, val||0));
+    try{ $('tv-video').volume = tvVolume; $('tv-video').muted = tvVolume===0; }catch(e){}
+    try{ $('tv-audio').volume = tvVolume; $('tv-audio').muted = tvVolume===0; }catch(e){}
+    try{ if(ytPlayer && ytPlayer.setVolume){ ytPlayer.setVolume(Math.round(tvVolume*100)); if(tvVolume===0) ytPlayer.mute(); else ytPlayer.unMute(); } }catch(e){}
+    return;
+  }
+  if(a === 'mute'){
+    var m = !!val;
+    try{ $('tv-video').muted = m; }catch(e){}
+    try{ $('tv-audio').muted = m; }catch(e){}
+    try{ if(ytPlayer){ m ? ytPlayer.mute() : ytPlayer.unMute(); } }catch(e){}
+    return;
+  }
   // YouTube IFrame player
   if($('tv-yt').style.display === 'block' && ytPlayer){
     switch(a){
@@ -1951,11 +2040,12 @@ function mediaKind(mime, name){
 function kindIcon(k){ var id = k==='image'?'ic-image':(k==='audio'?'ic-music':'ic-film'); return '<svg class="icon"><use href="#'+id+'"/></svg>'; }
 
 // ── Phone playlist ──
-var playlist = [];   // {file, name, kind, size, sent}
+var playlist = [];   // {id, file, name, kind, size, onTV, url, uploaded}
 var partyMsg = '';
 var selectedPlIdx = -1;
 var nowPlayingIdx = -1;   // index in playlist of the item currently on the TV
 var sending = false;
+var plSeq = 0;            // stable id counter for playlist items
 
 function fileInputChange(e){
   var files = e.target.files;
@@ -1965,9 +2055,9 @@ function fileInputChange(e){
 }
 function addToPlaylist(f){
   if(f.size > 500*1024*1024){ toast('⚠ '+f.name+' is over 500MB — may be unreliable'); }
-  playlist.push({ file:f, name:f.name, kind:mediaKind(f.type,f.name), size:f.size, sent:false });
+  playlist.push({ id:'it'+(++plSeq), file:f, name:f.name, kind:mediaKind(f.type,f.name), size:f.size, onTV:false, sent:false });
 }
-function removeFromPlaylist(i){ if(playlist[i] && playlist[i].sent){ toast('Already sent'); return; } playlist.splice(i,1); if(selectedPlIdx===i) selectedPlIdx=-1; else if(selectedPlIdx>i) selectedPlIdx--; renderPlaylist(); }
+function removeFromPlaylist(i){ if(!playlist[i]) return; playlist.splice(i,1); if(selectedPlIdx===i) selectedPlIdx=-1; else if(selectedPlIdx>i) selectedPlIdx--; renderPlaylist(); renderCastList(); }
 function movePl(i, dir){
   var j=i+dir; if(j<0||j>=playlist.length) return;
   if(playlist[i].sent || playlist[j].sent){ toast('Can’t reorder sent items'); return; }
@@ -2005,23 +2095,30 @@ function renderPlaylist(){
   el.innerHTML=html;
   updatePlConfirmBar();
 }
-// Re-cast an already-played item (Snapchat-style "view again")
-function recastItem(i){
-  if(!playlist[i]) return;
-  var it = playlist[i];
+// Play/replay any playlist item. If the TV already holds this exact file
+// (cloud URL or received blob) it replays INSTANTLY with no re-upload/re-send.
+function castItem(it){
+  if(!it) return;
   lastCast = {type:'file', it: it};
+  enterController(false);
   setPhonePreview({kind: it.kind, file: it.file});
-  if(it.kind==='video' && it.size>=CLOUD_THRESHOLD && cloudEnabled()){
-    enterController(false); cloudCastVideo(it).catch(function(){ toast('Re-cast failed'); });
-  } else if(it.kind==='video' && it.size>=CLOUD_THRESHOLD && supportsCapture()){
-    enterController(false); streamFile(it.file, it.name);
-  } else {
-    enterController(false); transferFile(it.file, it.kind, it.name);
+  if(it.onTV){
+    send({t:'playlib', id:it.id, name:it.name, kind:it.kind, partyMsg:partyMsg, sender:senderName()});
+    setPill('phone-cast-status','phone-cast-text','streaming','▶ Playing '+it.name);
+    return;
   }
-  toast('↻ Re-casting '+it.name);
+  // First delivery only — after this the TV keeps it for the whole session
+  if(it.kind==='video' && it.size>=CLOUD_THRESHOLD && cloudEnabled()){
+    cloudCastVideo(it, true).then(function(){ it.onTV=true; renderCastList(); }).catch(function(){ toast('Cast failed'); });
+  } else if(it.kind==='video' && it.size>=CLOUD_THRESHOLD && supportsCapture()){
+    streamFile(it.file, it.name);   // live stream can't be re-served; stays re-streamable
+  } else {
+    transferFile(it.file, it.kind, it.name, it.id, true).then(function(){ it.onTV=true; renderCastList(); });
+  }
 }
+function recastItem(i){ if(!playlist[i]) return; castItem(playlist[i]); }
 // Stop whatever is playing on the TV
-function stopCast(){ send({t:'stop'}); nowPlayingIdx=-1; renderPlaylist(); toast('■ Stopped'); }
+function stopCast(){ send({t:'stop'}); nowPlayingIdx=-1; renderPlaylist(); renderCastList(); toast('■ Stopped'); }
 function plItemClick(e, i){
   var it = playlist[i];
   if(!it || it.sent) return; // can't select already-sent items
@@ -2057,21 +2154,12 @@ function plCancelSelect(){
   var bar = $('pl-confirm-bar');
   if(bar) bar.classList.remove('show');
 }
-// Per-item "Play now": jump this item to the front of the unsent queue and start casting
+// Per-item "Play now": play this exact item on the TV immediately
 function playNowFromPlaylist(i){
-  if(!playlist[i] || playlist[i].sent){ return; }
-  var firstUnsentIdx = playlist.findIndex(function(p){ return !p.sent; });
-  if(firstUnsentIdx >= 0 && firstUnsentIdx !== i){
-    var item = playlist.splice(i, 1)[0];
-    playlist.splice(firstUnsentIdx, 0, item);
-  }
+  if(!playlist[i]) return;
   selectedPlIdx = -1;
   renderPlaylist();
-  if(!sending){
-    sendPlaylist();           // enters controller + starts draining from the front
-  } else {
-    toast('▶ Will play next');
-  }
+  castItem(playlist[i]);      // reuses cloud URL if already uploaded (instant replay)
 }
 function setPartyMsg(val){
   partyMsg = String(val||'').slice(0,100);
@@ -2085,22 +2173,36 @@ function setPartyMsg(val){
 function onPartyInput(){ setPartyMsg($('party-msg-input').value); }
 function onPartyInput2(){ setPartyMsg($('party-msg-input2').value); }
 // "Display on Screen": flash the current message on the TV for 5s, then fade
+var flashHold = false;   // false = 5s auto-fade, true = stays until cleared
+function setFlashHold(hold){
+  flashHold = !!hold;
+  var t=$('msg-mode-timed'), h=$('msg-mode-hold');
+  if(t) t.classList.toggle('on', !flashHold);
+  if(h) h.classList.toggle('on', flashHold);
+}
 function flashMessageToTV(){
   var t = (partyMsg||'').trim();
   if(!t){ toast('Type a message first'); return; }
-  send({t:'flashmsg', text:t});
-  toast('💬 Shown on TV for 5s');
+  send({t:'flashmsg', text:t, hold:flashHold});
+  var mc=$('msg-clear'); if(mc) mc.style.display = flashHold ? 'inline-flex' : 'none';
+  toast(flashHold ? '📌 Pinned on TV — stays until you clear it' : '💬 Shown on TV for 5s');
 }
-// TV side: show centered message, then fade after 5s
+function clearFlash(){
+  send({t:'flashclear'});
+  var mc=$('msg-clear'); if(mc) mc.style.display='none';
+  toast('Cleared from TV');
+}
+// TV side: show centered message; auto-fade after 5s unless held
 var _flashTimer = null;
-function flashMessageOnTV(text){
+function flashMessageOnTV(text, hold){
   var f=$('tv-flash'), ft=$('tv-flash-text');
   if(!f||!ft) return;
   ft.textContent = text;
   f.classList.add('show');
   clearTimeout(_flashTimer);
-  _flashTimer = setTimeout(function(){ f.classList.remove('show'); }, 5000);
+  if(!hold){ _flashTimer = setTimeout(function(){ f.classList.remove('show'); }, 5000); }
 }
+function clearFlashOnTV(){ clearTimeout(_flashTimer); var f=$('tv-flash'); if(f) f.classList.remove('show'); }
 
 async function sendPlaylist(){
   if(sending){ return; }
@@ -2213,19 +2315,19 @@ async function drainPlaylist(){
     var useStream = bigVideo && !useCloud && supportsCapture();
     if(useCloud){
       try{
-        await cloudCastVideo(it);
+        await cloudCastVideo(it);   // marks it.onTV on success
       }catch(e){
         toast('Cloud upload failed — falling back');
         if(supportsCapture()) await streamFile(it.file, it.name);
-        else await transferFile(it.file, it.kind, it.name);
+        else { await transferFile(it.file, it.kind, it.name, it.id, false); it.onTV=true; }
       }
     } else {
       setPill('phone-cast-status','phone-cast-text','streaming', (useStream ? '⚡ Streaming ' : '📤 Sending ') + it.name + '…');
       if(useStream) await streamFile(it.file, it.name);
-      else await transferFile(it.file, it.kind, it.name);
+      else { await transferFile(it.file, it.kind, it.name, it.id, false); it.onTV=true; }
     }
     it.sent = true;
-    renderPlaylist();
+    renderPlaylist(); renderCastList();
   }
   sending = false;
   setPill('phone-cast-status','phone-cast-text','streaming','Playing on TV');
@@ -2244,7 +2346,7 @@ function loadTus(){
 }
 function safeName(n){ return String(n||'video').replace(/[^a-zA-Z0-9._-]/g,'_').slice(-60); }
 
-function cloudCastVideo(item){
+function cloudCastVideo(item, force){
   return new Promise(async function(resolve, reject){
     try{ await loadTus(); }catch(e){ return reject(e); }
     var objectName = 'sessions/' + (roomId||'x') + '/' + Date.now() + '_' + safeName(item.name);
@@ -2267,10 +2369,12 @@ function cloudCastVideo(item){
       onSuccess: function(){
         sessionUploads.push(objectName);
         var publicUrl = SUPABASE_URL.replace(/\/$/,'') + '/storage/v1/object/public/' + SUPABASE_BUCKET + '/' + objectName;
-        // Hand the URL to the TV as a normal queue item (full transport + auto-advance)
-        send({t:'enqueue-url', name:item.name, url:publicUrl, kind:'video', partyMsg:partyMsg, sender:senderName()});
-        toast('✅ Upload complete — ready to cast: '+item.name);
-        setPill('phone-cast-status','phone-cast-text','streaming','▶ Casting '+item.name);
+        item.url = publicUrl; item.uploaded = true; item.onTV = true;  // remember → replay never re-uploads
+        // force → play now (explicit replay); else queue-aware (initial drain plays if idle)
+        send({t: force ? 'playurl' : 'enqueue-url', id:item.id, name:item.name, url:publicUrl, kind:'video', partyMsg:partyMsg, sender:senderName()});
+        toast('✅ Ready on TV: '+item.name);
+        setPill('phone-cast-status','phone-cast-text','streaming','▶ Playing '+item.name);
+        renderPlaylist(); renderCastList();
         resolve();
       }
     });
@@ -2296,9 +2400,9 @@ function cloudCleanup(){
   });
 }
 
-async function transferFile(file, kind, name){
+async function transferFile(file, kind, name, id, force){
   if(file.size > 2*1073741824){ toast('Very large file — TV may run low on memory'); }
-  send({t:'fstart', name:name||file.name, size:file.size, mime:file.type||'application/octet-stream', kind:kind||mediaKind(file.type,file.name), partyMsg:partyMsg, sender:senderName()});
+  send({t:'fstart', id:id||null, force:!!force, name:name||file.name, size:file.size, mime:file.type||'application/octet-stream', kind:kind||mediaKind(file.type,file.name), partyMsg:partyMsg, sender:senderName()});
   var CHUNK = 512*1024;
   var HIGH = 32*1024*1024;
   var DRAIN = HIGH / 4;
@@ -2436,10 +2540,25 @@ function callTV(stream){ if(call){try{call.close();}catch(e){}} call=peer.call(r
 function enterController(liveMode){
   showScreen('screen-phone-cast');
   $('scrub-wrap').style.display = liveMode ? 'none' : 'flex';
+  renderCastList();
 }
 
 // Phone controls
 var scrubEl;
+var tvVol = 100, tvMuted = false;
+function onVolInput(){
+  var el=$('volslider'); tvVol = parseInt(el.value,10);
+  if(tvVol>0 && tvMuted){ tvMuted=false; }
+  send({t:'pb', a:'volume', v: tvVol/100});
+  updateVolUI();
+}
+function updateVolUI(){
+  var pct=$('vol-pct'), mb=$('ph-mute'), sl=$('volslider');
+  if(sl && !tvMuted) sl.value = tvVol;
+  if(pct) pct.textContent = tvMuted ? 'muted' : (tvVol+'%');
+  if(mb){ mb.classList.toggle('muted', tvMuted || tvVol===0);
+    mb.querySelector('use').setAttribute('href', (tvMuted||tvVol===0) ? '#ic-mute' : '#ic-vol'); }
+}
 function initScrubber(){
   scrubEl = $('scrubber');
   scrubEl.addEventListener('input', function(){ scrubbing=true; $('cur-time').textContent=fmt(scrubEl.value);
@@ -2447,6 +2566,9 @@ function initScrubber(){
   scrubEl.addEventListener('change', function(){ ctrl('seek', parseFloat(scrubEl.value)); scrubbing=false; });
 }
 function ctrl(a, val){
+  // Volume/mute always target the TV output, regardless of cast mode
+  if(a === 'volume'){ send({t:'pb', a:'volume', v:val}); return; }
+  if(a === 'mute'){ tvMuted = !tvMuted; send({t:'pb', a:'mute', v:tvMuted?1:0}); updateVolUI(); return; }
   if(streamVid){
     // In stream mode phone controls drive the hidden source video; TV follows the stream
     switch(a){
@@ -2526,7 +2648,7 @@ function handleData(msg, dc, cid){
     case 'stream-end': if(role==='tv'){ $('tv-spinner').classList.remove('show'); if(tvPlaying&&tvPlaying.isStream){ tvPlaying=null; if(tvQueue.length>0){playNext();}else{tvIdle();} broadcastQueue(); } } break;
     case 'stream-cancel': if(role==='tv'){ tvStreamPendingMeta=null; $('tv-spinner').classList.remove('show'); } break;
     case 'ready': if(role==='phone'){ setPill('phone-cast-status','phone-cast-text','streaming','Playing on TV'); } break;
-    case 'stop': if(role==='tv'){ tvQueue=[]; tvPlaying=null; tvIdle(); broadcastQueue(); } break;
+    case 'stop': if(role==='tv'){ tvQueue=[]; tvPlaying=null; stopViz(); tvCloseWindow(function(){ tvIdle(); }); broadcastQueue(); } break;
     case 'pb': if(role==='tv'){ applyTVCmd(msg.a, msg.v); } break;
     case 'time': if(role==='phone') onTime(msg); break;
     case 'url': if(role==='tv'){ if(msg.sender) showCasterBanner(msg.sender); openUrlOnTV(msg.url); } break;
@@ -2542,14 +2664,44 @@ function handleData(msg, dc, cid){
     case 'load-hide': if(role==='tv'){ $('tv-transfer').classList.remove('show'); } break;
     case 'enqueue-url': if(role==='tv'){
       $('tv-transfer').classList.remove('show');
-      var citem = {id: Date.now()+'-'+Math.random(), name: msg.name||'Video', kind: msg.kind||'video', url: msg.url, partyMsg: msg.partyMsg||'', sender: msg.sender||'', isCloud:true};
+      var ecid = msg.id || ('url'+Date.now());
+      var citem = {id: ecid, name: msg.name||'Video', kind: msg.kind||'video', url: msg.url, partyMsg: msg.partyMsg||'', sender: msg.sender||'', isCloud:true};
+      tvLibrary[ecid] = citem;
       if(tvPlaying === null){ showScreen('screen-tv-play'); playItem(citem); }
       else { tvQueue.push(citem); broadcastQueue(); }
+    } break;
+    case 'playurl': if(role==='tv'){
+      // Explicit "play this now" — always plays immediately (replay / re-cast / switch / resync)
+      $('tv-transfer').classList.remove('show');
+      var pid = msg.id || ('url'+Date.now());
+      var pitem = {id: pid, name: msg.name||'Video', kind: msg.kind||'video', url: msg.url, partyMsg: msg.partyMsg||'', sender: msg.sender||'', isCloud:true};
+      tvLibrary[pid] = pitem;   // remember for instant replay
+      showScreen('screen-tv-play');
+      clearTimeout(imgTimer);
+      tvTransitionTo(pitem);   // open-window from idle, else crossfade
+    } break;
+    case 'playlib': if(role==='tv'){
+      // Replay a file the TV already holds — no re-upload/re-send
+      var lib = tvLibrary[msg.id];
+      if(lib){
+        $('tv-transfer').classList.remove('show');
+        showScreen('screen-tv-play'); clearTimeout(imgTimer);
+        if(msg.partyMsg!=null){ lib.partyMsg = msg.partyMsg; }
+        if(msg.sender){ lib.sender = msg.sender; }
+        tvTransitionTo(lib);   // open-window from idle, else crossfade
+      } else {
+        tvSendTo(dc, {t:'need', id: msg.id});   // TV lost it → ask phone to re-send
+      }
+    } break;
+    case 'need': if(role==='phone'){
+      var itn = playlist.filter(function(p){ return p.id===msg.id; })[0];
+      if(itn){ itn.onTV=false; castItem(itn); }   // re-deliver once
     } break;
     case 'text': if(role==='tv') showTextOnTV(msg.text); break;
     case 'nav': if(role==='tv') navTV(msg.d); break;
     case 'partymsg': if(role==='tv'){ tvPartyMsg = msg.text||''; var pm=$('tv-party-msg'); if(pm) pm.textContent = tvPartyMsg; } break;
-    case 'flashmsg': if(role==='tv') flashMessageOnTV(msg.text||''); break;
+    case 'flashmsg': if(role==='tv') flashMessageOnTV(msg.text||'', !!msg.hold); break;
+    case 'flashclear': if(role==='tv') clearFlashOnTV(); break;
     case 'queue': if(role==='phone') onQueue(msg); break;
     case 'end': onRemoteEnd(); break;
   }
@@ -2598,7 +2750,14 @@ function setPhonePreview(opts){
     var src=null;
     if(opts.file){ src=URL.createObjectURL(opts.file); v._url=src; }
     else if(opts.url && /\.(mp4|webm|mov|m4v|ogv)(\?|$)/i.test(opts.url)){ src=opts.url; }
-    if(src){ v.src=src; v.muted=true; v.style.display='block'; none.style.display='none'; phonePreviewKind='video'; v.play().catch(function(){}); return; }
+    if(src){
+      v.src=src; v.muted=true; v.loop=false; v.style.display='block'; none.style.display='none'; phonePreviewKind='video';
+      // IMPORTANT: do NOT autoplay. The preview is a slave that mirrors the TV —
+      // it only moves once the TV starts sending time updates (prevents the
+      // preview from racing ahead of the TV during upload).
+      try{ v.pause(); v.currentTime = 0; }catch(e){}
+      return;
+    }
   }
   // audio / youtube / hls / screen-mirror → placeholder ("Playing on TV")
 }
@@ -2606,10 +2765,16 @@ function setPhonePreview(opts){
 function onTime(m){
   if(!scrubEl) return;
   // Mirror TV playback position in the phone's muted preview
+  // Single-player lock: the muted preview is a strict slave to the TV's position.
   var pv=$('phone-preview');
-  if(phonePreviewKind==='video' && pv && pv.readyState>0){
-    if(!scrubbing && m.dur && Math.abs((pv.currentTime||0)-m.ct)>0.7){ try{ pv.currentTime=m.ct; }catch(e){} }
-    if(m.paused){ if(!pv.paused) pv.pause(); } else { if(pv.paused) pv.play().catch(function(){}); }
+  if(phonePreviewKind==='video' && pv && pv.readyState>0 && !scrubbing){
+    if(m.paused){
+      if(!pv.paused) pv.pause();
+      if(m.dur && Math.abs((pv.currentTime||0)-m.ct) > 0.10){ try{ pv.currentTime=m.ct; }catch(e){} }   // freeze on TV frame
+    } else {
+      if(pv.paused) pv.play().catch(function(){});
+      if(m.dur && Math.abs((pv.currentTime||0)-m.ct) > 0.25){ try{ pv.currentTime=m.ct; }catch(e){} }   // keep locked to TV
+    }
   }
   // images have no timeline — hide scrubber
   if(m.kind === 'image'){ $('scrub-wrap').style.display='none'; }
@@ -2620,22 +2785,35 @@ function onTime(m){
   $('ph-loop').classList.toggle('on', !!m.loop);
 }
 function onQueue(m){
-  // Map the TV's now-playing back to a playlist index so the list shows ● NOW / ✓ VIEWED
+  // Map the TV's now-playing back to a playlist index (by name) so both lists highlight it
+  var idx = -1;
   if(m.playing && m.playing.name){
-    var idx = -1;
-    for(var k=0;k<playlist.length;k++){ if(playlist[k].sent && playlist[k].name===m.playing.name){ idx=k; } }
-    if(idx!==nowPlayingIdx){ nowPlayingIdx = idx; if(typeof renderPlaylist==='function') renderPlaylist(); }
-  } else if(nowPlayingIdx!==-1){ nowPlayingIdx=-1; if(typeof renderPlaylist==='function') renderPlaylist(); }
-  var el = $('cast-queue'); if(!el) return;
-  var html = '';
-  if(m.playing){ html += '<div class="pl-item now"><div class="pl-ic">'+kindIcon(m.playing.kind)+'</div><div class="pl-meta"><div class="pl-name">'+escapeHtml(m.playing.name)+'</div><div class="pl-sub">Now playing</div></div></div>'; }
-  if(m.queue && m.queue.length){
-    for(var i=0;i<m.queue.length;i++){
-      var q=m.queue[i];
-      html += '<div class="pl-item"><div class="pl-ic">'+kindIcon(q.kind)+'</div><div class="pl-meta"><div class="pl-name">'+escapeHtml(q.name)+'</div><div class="pl-sub">Up next · #'+(i+1)+'</div></div></div>';
-    }
+    for(var k=0;k<playlist.length;k++){ if(playlist[k].name===m.playing.name){ idx=k; } }
   }
-  if(!html) html = '<div class="pl-empty">Nothing queued.</div>';
+  if(idx!==nowPlayingIdx){ nowPlayingIdx = idx; renderPlaylist(); }
+  renderCastList();
+}
+
+// Cast-screen list of the user's OWN files with per-item Play / Stop / Remove.
+// Tapping Play replays that file on the TV (reusing its cloud URL if uploaded).
+function renderCastList(){
+  var el = $('cast-queue'); if(!el) return;
+  if(!playlist.length){ el.innerHTML = '<div class="pl-empty">No files yet — tap “Add media”.</div>'; return; }
+  var html = '';
+  for(var i=0;i<playlist.length;i++){
+    var it = playlist[i];
+    var isNow = (i===nowPlayingIdx);
+    var state = isNow ? '● NOW PLAYING' : (it.uploaded ? 'ready · tap ▶ to replay' : (it.sent ? 'sent' : 'new'));
+    html += '<div class="pl-item'+(isNow?' nowplaying':'')+'">'+
+      '<div class="pl-ic">'+kindIcon(it.kind)+'</div>'+
+      '<div class="pl-meta"><div class="pl-name">'+escapeHtml(it.name)+'</div><div class="pl-sub">'+state+'</div></div>'+
+      '<div class="pl-act">'+
+        '<button class="play" onclick="castItem(playlist['+i+'])" title="Play / replay"><svg class="icon"><use href="#ic-play"/></svg></button>'+
+        '<button onclick="ctrl(\'loop\')" title="Loop"><svg class="icon"><use href="#ic-loop"/></svg></button>'+
+        (isNow ? '<button class="stop" onclick="stopCast()" title="Stop">■</button>' : '')+
+        '<button class="del" onclick="removeFromPlaylist('+i+')" title="Remove">✕</button>'+
+      '</div></div>';
+  }
   el.innerHTML = html;
 }
 
@@ -2804,7 +2982,7 @@ function resetConn(){
   var v = $('tv-video');
   try{ v.pause(); v.removeAttribute('src'); v.srcObject=null; }catch(e){}
   try{ clearTimeout(imgTimer); if(vizRAF){ cancelAnimationFrame(vizRAF); vizRAF=null; } var a=$('tv-audio'); a.pause(); a.removeAttribute('src'); a.srcObject=null; }catch(e){}
-  confirmed=false; rx=null; tvQueue=[]; tvPlaying=null; tvStreamPendingMeta=null;
+  confirmed=false; rx=null; tvQueue=[]; tvPlaying=null; tvStreamPendingMeta=null; tvLibrary={};
   playlist=[]; partyMsg=''; sending=false; slideshow=[]; nowPlayingIdx=-1; lastCast=null; myRole=null; deviceRoster=[]; myCid=null;
   var dp=$('devices-panel'); if(dp) dp.style.display='none';
   $('phone-ctrl').classList.remove('open');
