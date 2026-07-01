@@ -432,6 +432,8 @@
     .ctrl-titlebar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 11px; letter-spacing: 2px; font-weight: 800; color: var(--gold-soft); text-transform: uppercase; }
     .ctrl-titlebar .ctrl-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); animation: pulse 1.4s infinite; }
     .ctrl-titlebar #ctrl-now { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ctrl-menu { flex: none; min-height: 32px; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 800; letter-spacing: 1px;
+      background: rgba(109,184,255,0.12); border: 1px solid var(--edge); color: var(--gold-soft); }
     .ctrl-close { flex: none; min-width: 32px; width: 32px; height: 32px; min-height: 32px; padding: 0; border-radius: 8px; background: transparent; border: 1px solid var(--edge); color: var(--gold-soft); font-size: 16px; }
 
     .scrub-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
@@ -807,7 +809,7 @@
       <img id="qr-img" alt="QR code" />
       <div class="code-display"><div class="label">PAIRING CODE</div><div class="code" id="tv-code">——</div></div>
       <div id="tv-wait-status" class="status-pill"><span class="dot"></span><span id="tv-wait-text">Waiting for phone…</span></div>
-      <p class="hint">Open your <strong>Samsung camera</strong> and point it at this QR code, then tap the link.<br>Or choose <em>Phone / Sender</em> and enter the code above.</p>
+      <p class="hint">Point your phone's <strong>camera</strong> (iPhone or Android) at this QR code, then tap the link.<br>Or choose <em>Share from Device</em> and enter the code above.</p>
       <button class="btn-secondary btn-wide" style="margin-top:16px;" onclick="regenQR()">🔄 Generate new QR code</button>
     </div>
   </div>
@@ -1052,7 +1054,7 @@
 <!-- PHONE FLOATING CONTROLLER -->
 <div id="phone-ctrl">
   <div class="ctrl-handle" onclick="toggleRemote()"><span></span></div>
-  <div class="ctrl-titlebar"><span class="ctrl-dot"></span><span id="ctrl-now">REMOTE</span><button class="ctrl-close" onclick="closeRemote()" aria-label="Close">▾</button></div>
+  <div class="ctrl-titlebar"><span class="ctrl-dot"></span><span id="ctrl-now">REMOTE</span><button class="ctrl-menu" onclick="exitToMenu()" title="Back to menu (keeps session)">☰ Menu</button><button class="ctrl-close" onclick="closeRemote()" aria-label="Close">▾</button></div>
   <div class="scrub-row" id="scrub-wrap">
     <span class="time-label" id="cur-time">0:00</span>
     <input type="range" class="scrub" id="scrubber" min="0" max="100" value="0" step="0.1" />
@@ -1142,7 +1144,19 @@ function cloudEnabled(){ return !!(SUPABASE_URL && SUPABASE_ANON_KEY); }
 var sessionUploads = [];   // object paths uploaded this session (for cleanup)
 var tusLoaded = false;
 
-var ICE = { iceServers: [{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}] };
+// Multiple public STUN servers improve NAT traversal across mixed networks/devices
+var ICE = { iceServers: [
+  {urls:'stun:stun.l.google.com:19302'},
+  {urls:'stun:stun1.l.google.com:19302'},
+  {urls:'stun:stun2.l.google.com:19302'},
+  {urls:'stun:stun3.l.google.com:19302'},
+  {urls:'stun:stun4.l.google.com:19302'},
+  {urls:'stun:global.stun.twilio.com:3478'}
+] };
+// True if this browser can do the WebRTC peer connection the app relies on
+function webrtcSupported(){
+  return !!(window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection);
+}
 var $ = function(id){ return document.getElementById(id); };
 
 // ───────── Screen management ─────────
@@ -1289,8 +1303,16 @@ function startOver(){
   showScreen('screen-home');
 }
 
+// Friendly, device-agnostic "browser can't do WebRTC" message
+function showUnsupported(){
+  $('ended-title').textContent = 'Browser not supported';
+  $('ended-msg').textContent = "This device's web browser can't make the direct connection CastParty needs (WebRTC). Most current smart-TV browsers (Samsung Tizen, LG webOS, Sony/Panasonic, Fire/Silk) and Chrome, Safari, Edge and Firefox on phones/tablets/computers work. If your TV browser is older, open CastParty on a laptop, phone, or streaming stick connected to the TV instead.";
+  showScreen('screen-ended');
+}
+
 // ───────── TV role ─────────
 function goTV(){
+  if(!webrtcSupported()){ role='tv'; showUnsupported(); return; }
   role = 'tv';
   roomId = genCode();
   tvDeviceSeq = 0;
@@ -1740,8 +1762,9 @@ function tvFadeOutThen(cb){
 // Reliable autoplay: start muted (always allowed), then unmute — avoids the
 // "needs a tap on the TV" problem that desynced phone↔TV playback.
 function autoPlay(el, onok){
-  el.muted = true; el.volume = 1;
-  var run = function(){ if(onok) onok(); setTimeout(function(){ try{ el.muted = false; el.volume = 1; }catch(e){} }, 400); };
+  el.muted = true;
+  // restore to the current TV volume (not hard 1) so the phone's volume setting sticks
+  var run = function(){ if(onok) onok(); setTimeout(function(){ try{ el.volume = tvVolume; el.muted = (tvVolume===0); }catch(e){} }, 400); };
   var p;
   try{ p = el.play(); }catch(e){ p = null; }
   if(p && p.then){ p.then(run).catch(function(){
@@ -1977,6 +2000,7 @@ function phoneConnect(){
   startPhonePeer(c);
 }
 function startPhonePeer(code){
+  if(!webrtcSupported()){ role='phone'; showUnsupported(); return; }
   role = 'phone'; roomId = code;
   $('phone-join-status').style.display = 'inline-flex';
   $('phone-join-spinner').style.display = 'block';
@@ -2292,9 +2316,9 @@ function hiddenFileChange(e){
   var files=e.target.files;
   for(var i=0;i<files.length;i++){ addToPlaylist(files[i]); }
   e.target.value='';
-  renderPlaylist();
-  toast('Added to queue');
-  drainPlaylist();
+  renderPlaylist(); renderCastList();
+  // Do NOT auto-cast — the file just joins the playlist; user taps ▶/Cast Now to play
+  toast('Added to playlist — tap ▶ to play');
 }
 
 function supportsCapture(){
@@ -2426,6 +2450,15 @@ function drain(dc, target){ return new Promise(function(res){ var i=setInterval(
 function tick(){ return new Promise(function(r){ setTimeout(r,0); }); }
 
 function backToSource(){ if(call){try{call.close();}catch(e){}call=null;} if(localStream){localStream.getTracks().forEach(function(t){t.stop();}); localStream=null;} setPhonePreview(null); showScreen('screen-phone-source'); $('phone-ctrl').classList.remove('open'); }
+// Escape hatch: return to the menu/source screen WITHOUT ending the session or
+// stopping the TV — lets the user pick another file or re-cast from a stable screen.
+function exitToMenu(){
+  closeRemote();
+  reviveConnection();                 // make sure the link is healthy on the way out
+  showScreen('screen-phone-source');
+  try{ renderDevices(); }catch(e){}
+  toast('Back to menu — session still active');
+}
 
 // Screen/Camera/URL
 async function castScreen(){
@@ -2779,8 +2812,11 @@ function onTime(m){
   // images have no timeline — hide scrubber
   if(m.kind === 'image'){ $('scrub-wrap').style.display='none'; }
   else if(currentSource==='file'){ $('scrub-wrap').style.display='flex'; }
-  if(!scrubbing && m.dur){ scrubEl.max=m.dur; scrubEl.value=m.ct; }
-  $('cur-time').textContent = fmt(m.ct); $('dur-time').textContent = fmt(m.dur);
+  var dur = (isFinite(m.dur) && m.dur > 0) ? m.dur : 0;
+  var ct  = (isFinite(m.ct)  && m.ct  >= 0) ? m.ct  : 0;
+  if(!scrubbing && dur){ scrubEl.max = dur; scrubEl.value = Math.min(ct, dur); }
+  $('cur-time').textContent = fmt(ct);
+  $('dur-time').textContent = dur ? fmt(dur) : '·:··';   // brief "loading" dash until duration is known
   setPPIcon($('ph-playpause'), m.paused);
   $('ph-loop').classList.toggle('on', !!m.loop);
 }
@@ -3040,8 +3076,34 @@ function genCode(){ return Math.floor(100000 + Math.random()*900000).toString();
 function setPill(p,t,c,txt){ $(p).className='status-pill'+(c?' '+c:''); $(t).textContent=txt; }
 function drawQR(img,url){ img.onerror=function(){ img.src='https://chart.googleapis.com/chart?chs=210x210&cht=qr&chl='+encodeURIComponent(url)+'&choe=UTF-8'; }; img.src='https://api.qrserver.com/v1/create-qr-code/?size=210x210&margin=0&data='+encodeURIComponent(url); }
 function formatBytes(b){ if(b<1048576) return (b/1024).toFixed(1)+' KB'; if(b<1073741824) return (b/1048576).toFixed(1)+' MB'; return (b/1073741824).toFixed(2)+' GB'; }
-function fmt(s){ s=+s; if(!s||isNaN(s)) return '0:00'; var m=Math.floor(s/60),x=Math.floor(s%60).toString().padStart(2,'0'); return m+':'+x; }
+function fmt(s){ s=+s; if(!isFinite(s)||s<0) return '0:00'; var m=Math.floor(s/60),x=Math.floor(s%60).toString().padStart(2,'0'); return m+':'+x; }
 function toast(msg){ var t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(function(){ t.classList.remove('show'); },3000); }
+
+// ───────── Connection resilience ─────────
+// Re-establish the peer + data connection when returning from another app / unlock.
+function reviveConnection(){
+  if(!confirmed) return;
+  try{ if(peer && peer.disconnected && !peer.destroyed){ peer.reconnect(); } }catch(e){}
+  if(role==='phone'){
+    setTimeout(function(){
+      if((!primaryConn || !primaryConn.open) && peer && !peer.destroyed && roomId){
+        try{ primaryConn = peer.connect(roomId, {reliable:true}); wireConn(primaryConn, 'primary'); }catch(e){}
+      }
+    }, 500);
+  }
+}
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'visible') reviveConnection();
+});
+window.addEventListener('focus', reviveConnection);
+window.addEventListener('online', reviveConnection);
+// Lightweight keepalive so the data channel doesn't idle-close during long playback
+setInterval(function(){
+  try{
+    if(role==='phone' && primaryConn && primaryConn.open){ primaryConn.send({t:'ka'}); }
+    else if(role==='tv'){ connections.forEach(function(e){ if(e.conn && e.conn.open){ try{ e.conn.send({t:'ka'}); }catch(x){} } }); }
+  }catch(e){}
+}, 15000);
 
 // ───────── Auto-join from QR ─────────
 (function(){
