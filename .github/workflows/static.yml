@@ -28,6 +28,9 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    # Backstop so a wedged run can't hang indefinitely (must exceed the
+    # deploy step's own 15-min timeout below).
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,8 +39,14 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
+          # Upload the site files only — excluding .git and the workflow dir keeps
+          # the Pages artifact small and avoids uploading VCS metadata.
           path: '.'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          # Give the Pages backend more room before aborting, and tolerate a few
+          # transient status-poll errors instead of failing the whole deploy.
+          timeout: 900000
+          error_count: 10
