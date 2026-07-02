@@ -274,8 +274,12 @@
       opacity: 0; transition: opacity .5s ease; overflow: hidden;
     }
     #tv-stage.idle #tv-idle { opacity: 1; }          /* visible ONLY when idle */
+    /* Looping 4K video background behind the waves + text */
+    #tv-idle-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+    #tv-idle::after { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+      background: linear-gradient(180deg, rgba(7,10,17,0.35), rgba(7,10,17,0.55)); }  /* scrim for text legibility */
     .idle-wave {
-      position: absolute; left: -50%; width: 200%; height: 22vh;
+      position: absolute; left: -50%; width: 200%; height: 22vh; z-index: 2;
       fill: none; stroke: #cfe6ff; stroke-width: 3.2; stroke-linecap: round;
       filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 12px #add3fd) drop-shadow(0 0 28px rgba(173,211,253,0.6));
       will-change: transform;
@@ -285,7 +289,7 @@
     @keyframes idleWaveL { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     @keyframes idleWaveR { from { transform: translateX(-50%); } to { transform: translateX(0); } }
     .idle-text {
-      position: relative; z-index: 2; text-align: center; line-height: 1.05;
+      position: relative; z-index: 3; text-align: center; line-height: 1.05;
       font-family: 'Share Tech Mono','Orbitron',ui-monospace,monospace;
       font-size: clamp(34px, 8vw, 110px); letter-spacing: clamp(4px, 1.2vw, 16px);
       color: #ffffff;
@@ -857,6 +861,7 @@
           <div id="tv-corner-qr"><img id="tv-corner-qr-img" alt="Scan to join" /><div class="cq-label">Scan to join<br><span id="tv-corner-code">——</span></div></div>
           <!-- Idle overlay: animated wave lines + "AWAITING CONNECTION" (only while idle) -->
           <div id="tv-idle" aria-hidden="true">
+            <video id="tv-idle-video" src="./Player%203%20loop.mp4?v=1" autoplay loop muted playsinline webkit-playsinline preload="auto"></video>
             <svg class="idle-wave w-top" viewBox="0 0 1440 200" preserveAspectRatio="none"><path d="M0,100 C45,60 135,140 180,100 C225,60 315,140 360,100 C405,60 495,140 540,100 C585,60 675,140 720,100 C765,60 855,140 900,100 C945,60 1035,140 1080,100 C1125,60 1215,140 1260,100 C1305,60 1395,140 1440,100"/></svg>
             <div class="idle-text">AWAITING<br>CONNECTION</div>
             <svg class="idle-wave w-bot" viewBox="0 0 1440 200" preserveAspectRatio="none"><path d="M0,100 C60,150 120,50 180,100 C240,150 300,50 360,100 C420,150 480,50 540,100 C600,150 660,50 720,100 C780,150 840,50 900,100 C960,150 1020,50 1080,100 C1140,150 1200,50 1260,100 C1320,150 1380,50 1440,100"/></svg>
@@ -1785,7 +1790,9 @@ function tvIdle(){
   showOnlyMedia('none');
   $('tv-stage').classList.add('idle');
   $('tv-transfer').classList.remove('show');
-  $('tv-play-overlay').classList.add('hidden');   // idle = Player 2 artwork only, no play button
+  $('tv-play-overlay').classList.add('hidden');
+  // start the looping idle background video
+  var iv=$('tv-idle-video'); if(iv){ iv.muted=true; iv.play().catch(function(){}); }
   updateCornerQR();
 }
 
