@@ -1791,8 +1791,19 @@ function tvIdle(){
   $('tv-stage').classList.add('idle');
   $('tv-transfer').classList.remove('show');
   $('tv-play-overlay').classList.add('hidden');
-  // start the looping idle background video
-  var iv=$('tv-idle-video'); if(iv){ iv.muted=true; iv.play().catch(function(){}); }
+  // start the looping idle background video (retry a couple of times if autoplay
+  // is briefly blocked or the media isn't ready yet, so it reliably covers the poster)
+  var iv=$('tv-idle-video');
+  if(iv){
+    iv.muted=true;
+    var tries=0;
+    var kick=function(){
+      if(!$('tv-stage').classList.contains('idle')) return;
+      var p; try{ p=iv.play(); }catch(e){ p=null; }
+      if(p&&p.catch){ p.catch(function(){ if(tries++<4) setTimeout(kick,500); }); }
+    };
+    kick();
+  }
   updateCornerQR();
 }
 
@@ -2141,8 +2152,11 @@ function castItem(it){
     setPill('phone-cast-status','phone-cast-text','streaming','▶ Playing '+it.name);
     return;
   }
-  // First delivery only — after this the TV keeps it for the whole session
-  if(it.kind==='video' && it.size>=CLOUD_THRESHOLD && cloudEnabled()){
+  // First delivery only — after this the TV keeps it for the whole session.
+  // Route EVERY video through the cloud when it's enabled: the TV plays straight
+  // from the public URL, so the phone is then free to browse, pick other media,
+  // take a call, lock, or leave the app entirely without freezing TV playback.
+  if(it.kind==='video' && cloudEnabled()){
     cloudCastVideo(it, true).then(function(){ it.onTV=true; renderCastList(); }).catch(function(){ toast('Cast failed'); });
   } else if(it.kind==='video' && it.size>=CLOUD_THRESHOLD && supportsCapture()){
     streamFile(it.file, it.name);   // live stream can't be re-served; stays re-streamable
@@ -2354,8 +2368,10 @@ async function drainPlaylist(){
     var it = playlist[i];
     setPhonePreview({kind: it.kind, file: it.file}); // mirror current item on phone
     lastCast = {type:'file', it: it};
-    var bigVideo = it.kind === 'video' && it.size >= CLOUD_THRESHOLD;
-    var useCloud  = bigVideo && cloudEnabled();
+    // Every video goes to the cloud when available, so playback is independent of
+    // the phone (browse / call / lock / leave the app — TV keeps playing).
+    var useCloud  = it.kind === 'video' && cloudEnabled();
+    var bigVideo  = it.kind === 'video' && it.size >= CLOUD_THRESHOLD;
     var useStream = bigVideo && !useCloud && supportsCapture();
     if(useCloud){
       try{
@@ -2639,6 +2655,22 @@ function ctrl(a, val){
       case 'fullscreen': send({t:'pb', a:'fullscreen'}); break;
     }
     return;
+  }
+  // Optimistic preview: reflect the command on the phone's muted preview instantly,
+  // so the mirror feels immediate. The TV heartbeat re-locks exact position moments later.
+  var pv = $('phone-preview');
+  if(pv && phonePreviewKind==='video' && pv.readyState>0){
+    try{
+      switch(a){
+        case 'toggle':  pv.paused ? pv.play().catch(function(){}) : pv.pause(); break;
+        case 'play':    pv.play().catch(function(){}); break;
+        case 'pause':   pv.pause(); break;
+        case 'rewind':  pv.currentTime = Math.max(0, (pv.currentTime||0) - 10); break;
+        case 'forward': pv.currentTime = Math.min(pv.duration||1e9, (pv.currentTime||0) + 10); break;
+        case 'restart': pv.currentTime = 0; pv.play().catch(function(){}); break;
+        case 'seek':    if(val != null) pv.currentTime = val; break;
+      }
+    }catch(e){}
   }
   if(a === 'seek'){ send({t:'pb', a:'seek', v:val}); return; }
   send({t:'pb', a:a, v:val});
@@ -3128,6 +3160,13 @@ setInterval(function(){
     else if(role==='tv'){ connections.forEach(function(e){ if(e.conn && e.conn.open){ try{ e.conn.send({t:'ka'}); }catch(x){} } }); }
   }catch(e){}
 }, 15000);
+
+// TV heartbeat: continuously broadcast exact play/pause/position so the phone
+// preview stays a PERFECT mirror even while the TV is paused (paused media fires
+// no 'timeupdate', so without this the phone would never learn the TV had paused).
+setInterval(function(){
+  if(role==='tv' && tvPlaying){ try{ sendTime(); }catch(e){} }
+}, 400);
 
 // ───────── Auto-join from QR ─────────
 (function(){
