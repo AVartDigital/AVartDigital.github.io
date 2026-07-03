@@ -15,6 +15,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>CastParty — cast & stream to your TV</title>
+  <!-- BUILD 2026-07-03.1 — quiet queueing · tap-to-select playlist · clean idle loop ·
+       phone-independent playback · no-scroll UI · resilient long-video uploads -->
+  <meta name="castparty-build" content="2026-07-03.1" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap" rel="stylesheet" />
@@ -891,7 +894,7 @@
           <div id="tv-corner-qr"><img id="tv-corner-qr-img" alt="Scan to join" /><div class="cq-label">Scan to join<br><span id="tv-corner-code">——</span></div></div>
           <!-- Idle overlay: the looping Player 3 background video IS the idle art -->
           <div id="tv-idle" aria-hidden="true">
-            <video id="tv-idle-video" src="./Player%203%20loop.mp4?v=1" autoplay loop muted playsinline webkit-playsinline preload="auto"></video>
+            <video id="tv-idle-video" src="./Player%203%20loop.mp4?v=2" autoplay loop muted playsinline webkit-playsinline preload="auto"></video>
           </div>
           <div id="tv-fade"></div>
           <div id="tv-overlay">
@@ -1130,6 +1133,8 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
+var BUILD = '2026-07-03.1';
+console.log('CastParty build ' + BUILD);
 // Clear any stale caches on load
 if('caches' in window){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }
 if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(function(regs){ regs.forEach(function(r){ r.unregister(); }); }); }
