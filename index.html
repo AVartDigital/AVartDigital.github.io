@@ -15,9 +15,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>CastParty — cast & stream to your TV</title>
-  <!-- BUILD 2026-07-03.1 — quiet queueing · tap-to-select playlist · clean idle loop ·
+  <!-- BUILD 2026-07-03.2 — quiet queueing · tap-to-select playlist · clean idle loop ·
        phone-independent playback · no-scroll UI · resilient long-video uploads -->
-  <meta name="castparty-build" content="2026-07-03.1" />
+  <meta name="castparty-build" content="2026-07-03.2" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap" rel="stylesheet" />
@@ -342,6 +342,12 @@
       background: rgba(8,14,24,0.7); backdrop-filter: blur(8px); border: 1px solid var(--edge); border-radius: 14px; padding: 10px 14px;
       box-shadow: 0 0 26px rgba(109,184,255,0.25); }
     #tv-corner-qr.show { display: flex; }
+    /* Quiet device counter — visible only while idle, mirrors corner-QR styling */
+    #tv-devices-chip { position: absolute; left: 3%; bottom: 5%; z-index: 22; display: none;
+      background: rgba(8,14,24,0.6); backdrop-filter: blur(8px); border: 1px solid var(--edge); border-radius: 12px;
+      padding: 8px 14px; font-size: clamp(11px,1.3vw,15px); font-weight: 700; color: var(--gold-soft); letter-spacing: .5px; }
+    #tv-devices-chip.show { display: block; }
+    #tv-stage:not(.idle) #tv-devices-chip { display: none; }   /* never over playing media */
     #tv-corner-qr img { width: 84px; height: 84px; border-radius: 8px; background: #fff; padding: 5px; display: block; }
     #tv-corner-qr .cq-label { font-size: clamp(11px,1.4vw,15px); font-weight: 700; color: var(--gold-soft); letter-spacing: 1px; line-height: 1.4; }
     #tv-corner-qr .cq-label #tv-corner-code { font-size: clamp(16px,2vw,24px); font-weight: 900; color: var(--gold); letter-spacing: 3px; }
@@ -366,6 +372,8 @@
     }
     #tv-overlay.visible { opacity: 1; pointer-events: auto; }
     /* On-TV seek/progress bar */
+    #tv-overlay .ov-title { text-align: center; font-size: clamp(13px,1.6vw,19px); font-weight: 700; color: var(--gold-soft);
+      margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4%; letter-spacing: .5px; }
     #tv-overlay .ov-seek {
       display: flex; align-items: center; gap: 14px; width: min(76%, 900px); margin-bottom: 16px;
       background: rgba(8,12,10,0.6); backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,0.18);
@@ -658,6 +666,9 @@
     .icon-lg { width: 1.5em; height: 1.5em; }
     .source-btn .ic svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; color: var(--gold-soft); }
     #pl-confirm-bar .conf-queue { background: rgba(109,184,255,0.15); border: 1px solid rgba(109,184,255,0.45); color: var(--gold-soft); }
+    .pl-clear-btn { float: right; background: transparent; border: 1px solid rgba(255,255,255,0.18); color: var(--muted);
+      border-radius: 8px; padding: 4px 10px; font-size: 11px; cursor: pointer; min-height: 28px; }
+    .pl-clear-btn:active { background: rgba(255,80,80,0.15); color: #ff9c9c; border-color: rgba(255,80,80,0.4); }
     #pl-confirm-bar .conf-cancel { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: var(--muted); }
 
     /* ═══════════ RESPONSIVE HARDENING — no content bleeds off-screen ═══════════ */
@@ -892,12 +903,14 @@
           <div id="tv-flash"><span id="tv-flash-text"></span></div>
           <div id="tv-caster"><span id="tv-caster-text"></span></div>
           <div id="tv-corner-qr"><img id="tv-corner-qr-img" alt="Scan to join" /><div class="cq-label">Scan to join<br><span id="tv-corner-code">——</span></div></div>
+          <div id="tv-devices-chip"></div>
           <!-- Idle overlay: the looping Player 3 background video IS the idle art -->
           <div id="tv-idle" aria-hidden="true">
             <video id="tv-idle-video" src="./Player%203%20loop.mp4?v=2" autoplay loop muted playsinline webkit-playsinline preload="auto"></video>
           </div>
           <div id="tv-fade"></div>
           <div id="tv-overlay">
+            <div class="ov-title" id="tv-ov-title"></div>
             <div class="ov-seek">
               <span class="ov-time" id="tv-ov-cur">0:00</span>
               <div class="ov-track" id="tv-ov-track" onclick="tvSeekClick(event)"><div class="ov-fill" id="tv-ov-fill"></div></div>
@@ -1006,7 +1019,8 @@
           <p id="cloud-status-note" class="hint" style="margin-top:6px;"></p>
         </div>
         <div class="playlist-panel">
-          <h3>Playlist <span class="count" id="pl-count">0 items</span></h3>
+          <h3>Playlist <span class="count" id="pl-count">0 items</span>
+            <button class="pl-clear-btn" onclick="clearPlaylist()" title="Remove all files from the playlist">✕ Clear all</button></h3>
           <div id="playlist-items"><div class="pl-empty">No media yet.<br>Tap "Add media" to build your playlist.</div></div>
           <div id="pl-confirm-bar">
             <span class="pl-conf-name" id="pl-conf-name"></span>
@@ -1133,7 +1147,7 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-var BUILD = '2026-07-03.1';
+var BUILD = '2026-07-03.2';
 console.log('CastParty build ' + BUILD);
 // Clear any stale caches on load
 if('caches' in window){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }
@@ -1423,6 +1437,7 @@ function updateCornerQR(){
   } else {
     box.classList.remove('show');
   }
+  updateTVDeviceChip(countAccepted());
 }
 
 function tvAccept(){
@@ -1449,6 +1464,17 @@ function deviceList(){
 function broadcastDevices(){
   var list = deviceList();
   connections.forEach(function(e, cid){ tvSendTo(e.conn, {t:'devices', list:list, you:cid}); });
+  updateTVDeviceChip(list.length);
+}
+// Small on-TV indicator: how many phones are connected (max 3), shown while idle
+function updateTVDeviceChip(n){
+  var chip = $('tv-devices-chip'); if(!chip) return;
+  if(role==='tv' && n > 0){
+    chip.textContent = '📱 ' + n + ' of ' + MAX_DEVICES + ' device' + (n===1?'':'s') + ' connected';
+    chip.classList.add('show');
+  } else {
+    chip.classList.remove('show');
+  }
 }
 // Coordinator promotes another device to Coordinator (control handoff)
 function promoteDevice(id){
@@ -1664,6 +1690,7 @@ function playItem(item){
   $('tv-play-overlay').classList.add('hidden');
   $('tv-transfer').classList.remove('show');
   $('tv-corner-qr').classList.remove('show');
+  if($('tv-ov-title')) $('tv-ov-title').textContent = item.name || '';
   if(item.sender) showCasterBanner(item.sender);
 
   if(item.kind === 'image'){
@@ -2153,11 +2180,28 @@ function fileInputChange(e){
   e.target.value='';
   renderPlaylist();
 }
+var MAX_FILE_BYTES = 2*1024*1024*1024;   // hard product limit: 2 GB per file
 function addToPlaylist(f){
-  if(f.size > 2*1024*1024*1024){ toast('ℹ '+f.name+' is over 2GB — upload will take a while on Wi-Fi'); }
+  // Enforced BEFORE any upload begins — oversized files never enter the playlist
+  if(f.size > MAX_FILE_BYTES){
+    toast('This file is too large. Please choose a file under 2 GB.');
+    return false;
+  }
   playlist.push({ id:'it'+(++plSeq), file:f, name:f.name, kind:mediaKind(f.type,f.name), size:f.size, onTV:false, sent:false });
+  return true;
 }
 function removeFromPlaylist(i){ if(!playlist[i]) return; playlist.splice(i,1); if(selectedPlIdx===i) selectedPlIdx=-1; else if(selectedPlIdx>i) selectedPlIdx--; renderPlaylist(); renderCastList(); }
+// Clear the whole local playlist. Whatever is on the TV right now keeps playing —
+// this only empties the phone's list (double-tap safe: asks once via confirm toast).
+var _clearArmed = false;
+function clearPlaylist(){
+  if(!playlist.length){ return; }
+  if(!_clearArmed){ _clearArmed = true; toast('Tap "Clear all" again to remove all ' + playlist.length + ' files'); setTimeout(function(){ _clearArmed=false; }, 3500); return; }
+  _clearArmed = false;
+  playlist = []; selectedPlIdx = -1; nowPlayingIdx = -1;
+  renderPlaylist(); renderCastList();
+  toast('Playlist cleared');
+}
 function movePl(i, dir){
   var j=i+dir; if(j<0||j>=playlist.length) return;
   if(playlist[i].sent || playlist[j].sent){ toast('Can’t reorder sent items'); return; }
@@ -2226,7 +2270,7 @@ function castItem(it, playNow){
   var directSend = function(){
     transferFile(it.file, it.kind, it.name, it.id, interrupt)
       .then(function(){ it.onTV=true; renderCastList(); })
-      .catch(function(){ toast('Couldn’t send '+it.name); });
+      .catch(function(){ toast('Couldn’t send '+it.name+' — tap ▶ on it to retry'); });
   };
   if(it.kind==='video' && cloudEnabled()){
     cloudCastVideo(it, interrupt).then(function(){ it.onTV=true; renderCastList(); if(!interrupt) toast('⏭ Queued next: '+it.name); })
