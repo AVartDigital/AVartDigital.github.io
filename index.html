@@ -4,9 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <!-- Warm up the cloud-storage connection so uploads start faster -->
-  <link rel="preconnect" href="https://pbmazmlzxwqsysozxxpe.supabase.co" crossorigin />
-  <link rel="dns-prefetch" href="https://pbmazmlzxwqsysozxxpe.supabase.co" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#070a11" />
@@ -15,9 +12,6 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>CastParty — cast & stream to your TV</title>
-  <!-- BUILD 2026-07-04.1 — quiet queueing · tap-to-select playlist · clean idle loop ·
-       phone-independent playback · no-scroll UI · resilient long-video uploads -->
-  <meta name="castparty-build" content="2026-07-04.1" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap" rel="stylesheet" />
@@ -101,8 +95,8 @@
     #screen-home.active { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
     /* Image layer: cover the entire viewport regardless of #app width */
     #screen-home.active::before {
-      content: ''; position: fixed; top: 0; right: 0; bottom: 0; left: 0; inset: 0; z-index: -2;
-      background: radial-gradient(120% 90% at 50% 0%, #12202e 0%, #0a121b 45%, #05080c 100%);
+      content: ''; position: fixed; inset: 0; z-index: -2;
+      background-image: url('./Player%202.png?v=1');
       background-position: center center;
       background-size: cover;            /* fills width AND height, crops overflow → never any black bars */
       background-repeat: no-repeat;
@@ -110,30 +104,10 @@
     }
     /* Scrim layer: dark gradient over the image so text/cards stay legible */
     #screen-home.active::after {
-      content: ''; position: fixed; top: 0; right: 0; bottom: 0; left: 0; inset: 0; z-index: -1;
+      content: ''; position: fixed; inset: 0; z-index: -1;
       background: linear-gradient(180deg, rgba(7,10,17,0.55) 0%, rgba(7,10,17,0.62) 50%, rgba(7,10,17,0.82) 100%);
     }
-    #screen-tv-wait.active { display: flex; flex-direction: column; align-items: center; justify-content: center;
-      overflow: hidden;                       /* never scroll — everything fits in the display */
-      padding-top: max(10px, env(safe-area-inset-top));
-      padding-bottom: max(10px, env(safe-area-inset-bottom)); }
-    /* Compress + viewport-scale the pairing screen so the whole QR + code + hint
-       block is always fully visible on a TV without any remote scrolling. */
-    #screen-tv-wait.active .section-title { margin-bottom: clamp(6px, 1.4vh, 12px); }
-    #screen-tv-wait.active .card { margin-bottom: 0; padding: clamp(12px, 2vh, 20px);
-      width: min(460px, 92vw); max-height: calc(100dvh - 40px); }
-    #screen-tv-wait.active #qr-img { width: min(210px, 30vh); height: min(210px, 30vh); margin: clamp(6px,1.4vh,14px) auto; }
-    #screen-tv-wait.active .code-display { margin: clamp(6px,1.2vh,12px) 0; padding: clamp(8px,1.4vh,14px); }
-    #screen-tv-wait.active .hint { font-size: clamp(11px, 1.6vh, 13px); line-height: 1.45; }
-    #screen-tv-wait.active .btn-secondary { margin-top: clamp(8px,1.6vh,16px) !important; }
-    /* Very short viewports (old/small phones): compress further so it still fits */
-    @media (max-height: 620px) {
-      #screen-tv-wait.active { padding-top: 6px; padding-bottom: 6px; }
-      #screen-tv-wait.active #qr-img { width: 24vh; height: 24vh; padding: 6px; margin: 4px auto; }
-      #screen-tv-wait.active .code-display .code { font-size: 22px; letter-spacing: 4px; }
-      #screen-tv-wait.active .hint { display: none; }   /* QR + code are self-explanatory */
-      #screen-tv-wait.active .section-title { margin-bottom: 4px; }
-    }
+    #screen-tv-wait.active { display: flex; flex-direction: column; justify-content: center; }
     #screen-tv-confirm.active, #screen-phone-confirm.active, #screen-phone-join.active, #screen-ended.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
     #screen-phone-source.active { display: flex; flex-direction: column; }
     /* Center content columns to minimize scrolling; cap width on larger screens */
@@ -233,29 +207,22 @@
 
     #tv-stage {
       position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden;
-      background: #05080c;
+      background: url('./Player%202.png?v=1') center/cover no-repeat #060806;
     }
     body.tv-playing .tv-monitor-outer { padding: 0; border-radius: 0; border: none; background: #000; box-shadow: none; }
     body.tv-playing .tv-monitor-outer::before { display: none; }
     body.tv-playing #tv-stage { aspect-ratio: unset; width: 100vw; height: 100dvh; border-radius: 0; }
-    /* Older TV engines without aspect-ratio: keep the 16:9 stage via padding hack
-       (its children are absolutely positioned, so height-from-padding works) */
-    @supports not (aspect-ratio: 16/9) {
-      #tv-stage { height: 0; padding-top: 56.25%; }
-      body.tv-playing #tv-stage { height: 100vh; padding-top: 0; }
-      .home-card { min-height: 160px; }
-    }
-    #tv-stage.idle { background: #05080c; }
-    #tv-video { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
-    #tv-image { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
-    #tv-iframe { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: #000; }
-    #tv-yt    { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; width: 100%; height: 100%; border: 0; display: none; }
+    #tv-stage.idle { background-image: url('./Player%202.png?v=1'); background-size: cover; background-position: center center; }
+    #tv-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
+    #tv-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
+    #tv-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: #000; }
+    #tv-yt    { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; }
 
     /* Audio visualizer stage */
-    #tv-audio-stage { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; display: none; align-items: center; justify-content: center; overflow: hidden;
+    #tv-audio-stage { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; overflow: hidden;
       background: radial-gradient(ellipse 120% 90% at 50% 30%, #16243a 0%, #0b101a 70%, #070a11 100%); }
     #tv-audio-stage.show { display: flex; }
-    #tv-viz { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; width: 100%; height: 100%; }
+    #tv-viz { position: absolute; inset: 0; width: 100%; height: 100%; }
     #tv-party-msg {
       position: relative; z-index: 4; text-align: center; padding: 0 6%;
       font-weight: 900; letter-spacing: 1px; line-height: 1.1;
@@ -266,7 +233,7 @@
     }
     #tv-audio-note { position: absolute; bottom: 8%; left: 0; right: 0; z-index:4; text-align: center; color: var(--muted); font-size: 14px; letter-spacing: 2px; }
     #tv-play-overlay {
-      position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;
     }
     /* When shown (autoplay blocked / paused) the button is tappable/clickable */
     #tv-play-overlay:not(.hidden) .pbtn { pointer-events: auto; cursor: pointer; }
@@ -280,7 +247,7 @@
     #tv-play-overlay.hidden { display: none; }
 
     /* Transfer progress */
-    #tv-transfer { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10;
+    #tv-transfer { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10;
       background: radial-gradient(ellipse 90% 70% at 50% 50%, rgba(13,26,42,0.92), rgba(4,8,14,0.96)); }
     #tv-transfer.show { display: flex; }
     #tv-transfer .xfer-title { font-size: clamp(16px,2.4vw,24px); font-weight: 800; letter-spacing: 4px; text-transform: uppercase; color: var(--gold-soft); text-shadow: 0 0 18px rgba(109,184,255,0.6); margin-bottom: 18px; animation: pulse 1.4s ease-in-out infinite; }
@@ -302,17 +269,13 @@
     /* TV fade-in overlay */
     /* ═══ Idle overlay: looping wave lines + AWAITING CONNECTION ═══ */
     #tv-idle {
-      position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; z-index: 9; pointer-events: none;
+      position: absolute; inset: 0; z-index: 9; pointer-events: none;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vh;
       opacity: 0; transition: opacity .5s ease; overflow: hidden;
     }
     #tv-stage.idle #tv-idle { opacity: 1; }          /* visible ONLY when idle */
-    /* Looping 4K video background behind the waves + text */
-    #tv-idle-video { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
-    #tv-idle::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; z-index: 1; pointer-events: none;
-      background: linear-gradient(180deg, rgba(7,10,17,0.35), rgba(7,10,17,0.55)); }  /* scrim for text legibility */
     .idle-wave {
-      position: absolute; left: -50%; width: 200%; height: 22vh; z-index: 2;
+      position: absolute; left: -50%; width: 200%; height: 22vh;
       fill: none; stroke: #cfe6ff; stroke-width: 3.2; stroke-linecap: round;
       filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 12px #add3fd) drop-shadow(0 0 28px rgba(173,211,253,0.6));
       will-change: transform;
@@ -322,7 +285,7 @@
     @keyframes idleWaveL { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     @keyframes idleWaveR { from { transform: translateX(-50%); } to { transform: translateX(0); } }
     .idle-text {
-      position: relative; z-index: 3; text-align: center; line-height: 1.05;
+      position: relative; z-index: 2; text-align: center; line-height: 1.05;
       font-family: 'Share Tech Mono','Orbitron',ui-monospace,monospace;
       font-size: clamp(34px, 8vw, 110px); letter-spacing: clamp(4px, 1.2vw, 16px);
       color: #ffffff;
@@ -337,7 +300,7 @@
       50%     { text-shadow: 0 1px 0 #bcd8ff, 0 2px 0 #9cc4f5, 0 3px 6px rgba(0,0,0,0.55), 0 0 14px #fff, 0 0 34px #add3fd, 0 0 68px rgba(173,211,253,0.95); }
     }
 
-    #tv-fade { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; background: #000; z-index: 30; opacity: 0; pointer-events: none; transition: opacity 1s ease; }
+    #tv-fade { position: absolute; inset: 0; background: #000; z-index: 30; opacity: 0; pointer-events: none; transition: opacity 1s ease; }
     /* "Casting from NAME" banner — auto-shows 4s at the start of each file */
     #tv-caster { position: absolute; top: 5%; left: 0; right: 0; display: flex; justify-content: center; z-index: 26; opacity: 0; pointer-events: none; transition: opacity .5s ease; }
     #tv-caster.show { opacity: 1; }
@@ -349,12 +312,6 @@
       background: rgba(8,14,24,0.7); backdrop-filter: blur(8px); border: 1px solid var(--edge); border-radius: 14px; padding: 10px 14px;
       box-shadow: 0 0 26px rgba(109,184,255,0.25); }
     #tv-corner-qr.show { display: flex; }
-    /* Quiet device counter — visible only while idle, mirrors corner-QR styling */
-    #tv-devices-chip { position: absolute; left: 3%; bottom: 5%; z-index: 22; display: none;
-      background: rgba(8,14,24,0.6); backdrop-filter: blur(8px); border: 1px solid var(--edge); border-radius: 12px;
-      padding: 8px 14px; font-size: clamp(11px,1.3vw,15px); font-weight: 700; color: var(--gold-soft); letter-spacing: .5px; }
-    #tv-devices-chip.show { display: block; }
-    #tv-stage:not(.idle) #tv-devices-chip { display: none; }   /* never over playing media */
     #tv-corner-qr img { width: 84px; height: 84px; border-radius: 8px; background: #fff; padding: 5px; display: block; }
     #tv-corner-qr .cq-label { font-size: clamp(11px,1.4vw,15px); font-weight: 700; color: var(--gold-soft); letter-spacing: 1px; line-height: 1.4; }
     #tv-corner-qr .cq-label #tv-corner-code { font-size: clamp(16px,2vw,24px); font-weight: 900; color: var(--gold); letter-spacing: 3px; }
@@ -373,14 +330,12 @@
 
     /* TV floating overlay */
     #tv-overlay {
-      position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; display: flex; flex-direction: column;
+      position: absolute; inset: 0; display: flex; flex-direction: column;
       align-items: center; justify-content: flex-end; padding-bottom: 40px;
       pointer-events: none; opacity: 0; transition: opacity .35s; z-index: 20;
     }
     #tv-overlay.visible { opacity: 1; pointer-events: auto; }
     /* On-TV seek/progress bar */
-    #tv-overlay .ov-title { text-align: center; font-size: clamp(13px,1.6vw,19px); font-weight: 700; color: var(--gold-soft);
-      margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4%; letter-spacing: .5px; }
     #tv-overlay .ov-seek {
       display: flex; align-items: center; gap: 14px; width: min(76%, 900px); margin-bottom: 16px;
       background: rgba(8,12,10,0.6); backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,0.18);
@@ -405,7 +360,7 @@
     #tv-overlay .ov-btn.on { color: var(--gold); }
     #tv-overlay .ov-end { background: rgba(255,80,80,0.18); border: 1px solid rgba(255,100,100,0.3); color: var(--danger); font-size: 16px; padding: 10px 14px; border-radius: 10px; margin-left: 8px; }
 
-    #tv-spinner { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(6,8,6,0.7); z-index: 15; }
+    #tv-spinner { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(6,8,6,0.7); z-index: 15; }
     #tv-spinner.show { display: flex; }
     #tv-spinner .spin-ring { width: 64px; height: 64px; border: 5px solid rgba(255,255,255,0.12); border-top-color: var(--gold); border-radius: 50%; animation: spin .9s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -455,7 +410,7 @@
     }
     #remote-fab.show { display: flex; }
     #remote-fab .fab-glyph { font-size: 26px; line-height: 1; filter: drop-shadow(0 0 6px rgba(109,184,255,0.8)); }
-    #remote-fab .fab-ring { position: absolute; top: 6px; right: 6px; bottom: 6px; left: 6px; inset: 6px; border-radius: 50%; border: 1px dashed rgba(109,184,255,0.45); animation: fabspin 8s linear infinite; }
+    #remote-fab .fab-ring { position: absolute; inset: 6px; border-radius: 50%; border: 1px dashed rgba(109,184,255,0.45); animation: fabspin 8s linear infinite; }
     @keyframes fabspin { to { transform: rotate(360deg); } }
     #remote-fab:active { transform: scale(0.92); }
 
@@ -527,12 +482,6 @@
     /* Scrubber hidden in live mode */
     .scrub-row.hidden-ctrl { display: none; }
 
-    /* Transport + scrubber only appear once something is actually casting.
-       While the TV shows its idle loop, these playback controls stay hidden. */
-    #phone-ctrl.no-cast #scrub-wrap,
-    #phone-ctrl.no-cast #transport-row,
-    #phone-ctrl.no-cast .vol-row { display: none !important; }
-
     /* Transport row (existing card style) */
     .transport { display: flex; gap: 10px; margin-bottom: 10px; }
     .transport button { background: var(--surface2); border: 1px solid rgba(255,255,255,0.08); padding: 16px 8px; font-size: 20px; color: var(--gold-soft); }
@@ -599,7 +548,7 @@
     #source-collapse .source-grid { padding: 0 12px 12px; margin-bottom: 0; }
 
     /* Confirm modal */
-    .modal-backdrop { position: fixed; top: 0; right: 0; bottom: 0; left: 0; inset: 0; z-index: 4000; display: none; align-items: center; justify-content: center; padding: 24px;
+    .modal-backdrop { position: fixed; inset: 0; z-index: 4000; display: none; align-items: center; justify-content: center; padding: 24px;
       background: rgba(4,8,14,0.72); backdrop-filter: blur(6px); }
     .modal-backdrop.show { display: flex; }
     .modal-card { width: 100%; max-width: 380px; text-align: center; padding: 26px 22px;
@@ -643,8 +592,8 @@
     #screen-phone-cast.active { padding-bottom: 96px; }
     /* Live preview mirror on the phone */
     #phone-preview-wrap { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 14px; overflow: hidden; background: #05080d; border: 1px solid var(--edge); box-shadow: 0 0 30px rgba(109,184,255,0.15), inset 0 0 0 1px rgba(109,184,255,0.06); margin-bottom: 14px; }
-    #phone-preview, #phone-preview-img { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #05080d; display: none; }
-    #phone-preview-none { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--gold-soft); font-weight: 700; letter-spacing: 1px; font-size: clamp(14px,3.6vw,20px); text-shadow: 0 0 16px rgba(109,184,255,0.5); }
+    #phone-preview, #phone-preview-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #05080d; display: none; }
+    #phone-preview-none { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--gold-soft); font-weight: 700; letter-spacing: 1px; font-size: clamp(14px,3.6vw,20px); text-shadow: 0 0 16px rgba(109,184,255,0.5); }
     #phone-preview-tag { position: absolute; top: 8px; left: 8px; z-index: 3; font-size: 10px; letter-spacing: 2px; font-weight: 800; color: var(--gold-soft); background: rgba(8,14,24,0.7); border: 1px solid var(--edge); padding: 3px 8px; border-radius: 20px; }
     .pl-item.selected { border-color: var(--gold); background: rgba(109,184,255,0.15); box-shadow: 0 0 0 2px rgba(109,184,255,0.3); }
 
@@ -672,10 +621,6 @@
     .icon { width: 1.15em; height: 1.15em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.18em; flex: none; pointer-events: none; }
     .icon-lg { width: 1.5em; height: 1.5em; }
     .source-btn .ic svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; color: var(--gold-soft); }
-    #pl-confirm-bar .conf-queue { background: rgba(109,184,255,0.15); border: 1px solid rgba(109,184,255,0.45); color: var(--gold-soft); }
-    .pl-clear-btn { float: right; background: transparent; border: 1px solid rgba(255,255,255,0.18); color: var(--muted);
-      border-radius: 8px; padding: 4px 10px; font-size: 11px; cursor: pointer; min-height: 28px; }
-    .pl-clear-btn:active { background: rgba(255,80,80,0.15); color: #ff9c9c; border-color: rgba(255,80,80,0.4); }
     #pl-confirm-bar .conf-cancel { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: var(--muted); }
 
     /* ═══════════ RESPONSIVE HARDENING — no content bleeds off-screen ═══════════ */
@@ -910,16 +855,14 @@
           <div id="tv-flash"><span id="tv-flash-text"></span></div>
           <div id="tv-caster"><span id="tv-caster-text"></span></div>
           <div id="tv-corner-qr"><img id="tv-corner-qr-img" alt="Scan to join" /><div class="cq-label">Scan to join<br><span id="tv-corner-code">——</span></div></div>
-          <div id="tv-devices-chip"></div>
-          <!-- Idle overlay: the looping Player 3 background video IS the idle art -->
+          <!-- Idle overlay: animated wave lines + "AWAITING CONNECTION" (only while idle) -->
           <div id="tv-idle" aria-hidden="true">
-            <!-- 1080p H.264 level-4.0 encode: decodes on far more TV browsers than the 4K
-                 original, loads 4× faster, and is indistinguishable as a background -->
-            <video id="tv-idle-video" src="./Player%203%20loop%201080.mp4?v=1" autoplay loop muted playsinline webkit-playsinline preload="auto"></video>
+            <svg class="idle-wave w-top" viewBox="0 0 1440 200" preserveAspectRatio="none"><path d="M0,100 C45,60 135,140 180,100 C225,60 315,140 360,100 C405,60 495,140 540,100 C585,60 675,140 720,100 C765,60 855,140 900,100 C945,60 1035,140 1080,100 C1125,60 1215,140 1260,100 C1305,60 1395,140 1440,100"/></svg>
+            <div class="idle-text">AWAITING<br>CONNECTION</div>
+            <svg class="idle-wave w-bot" viewBox="0 0 1440 200" preserveAspectRatio="none"><path d="M0,100 C60,150 120,50 180,100 C240,150 300,50 360,100 C420,150 480,50 540,100 C600,150 660,50 720,100 C780,150 840,50 900,100 C960,150 1020,50 1080,100 C1140,150 1200,50 1260,100 C1320,150 1380,50 1440,100"/></svg>
           </div>
           <div id="tv-fade"></div>
           <div id="tv-overlay">
-            <div class="ov-title" id="tv-ov-title"></div>
             <div class="ov-seek">
               <span class="ov-time" id="tv-ov-cur">0:00</span>
               <div class="ov-track" id="tv-ov-track" onclick="tvSeekClick(event)"><div class="ov-fill" id="tv-ov-fill"></div></div>
@@ -1028,13 +971,11 @@
           <p id="cloud-status-note" class="hint" style="margin-top:6px;"></p>
         </div>
         <div class="playlist-panel">
-          <h3>Playlist <span class="count" id="pl-count">0 items</span>
-            <button class="pl-clear-btn" onclick="clearPlaylist()" title="Remove all files from the playlist">✕ Clear all</button></h3>
+          <h3>Playlist <span class="count" id="pl-count">0 items</span></h3>
           <div id="playlist-items"><div class="pl-empty">No media yet.<br>Tap "Add media" to build your playlist.</div></div>
           <div id="pl-confirm-bar">
             <span class="pl-conf-name" id="pl-conf-name"></span>
-            <button class="conf-play" onclick="plCastSelected(true)">▶ Play now</button>
-            <button class="conf-queue" onclick="plCastSelected(false)">⏭ Queue next</button>
+            <button class="conf-play" onclick="plConfirmPlay()">▶ Play first</button>
             <button class="conf-cancel" onclick="plCancelSelect()">✕</button>
           </div>
         </div>
@@ -1111,7 +1052,7 @@
 </button>
 
 <!-- PHONE FLOATING CONTROLLER -->
-<div id="phone-ctrl" class="no-cast">
+<div id="phone-ctrl">
   <div class="ctrl-handle" onclick="toggleRemote()"><span></span></div>
   <div class="ctrl-titlebar"><span class="ctrl-dot"></span><span id="ctrl-now">REMOTE</span><button class="ctrl-menu" onclick="exitToMenu()" title="Back to menu (keeps session)">☰ Menu</button><button class="ctrl-close" onclick="closeRemote()" aria-label="Close">▾</button></div>
   <div class="scrub-row" id="scrub-wrap">
@@ -1119,7 +1060,7 @@
     <input type="range" class="scrub" id="scrubber" min="0" max="100" value="0" step="0.1" />
     <span class="time-label" id="dur-time">0:00</span>
   </div>
-  <div class="ctrl-row" id="transport-row">
+  <div class="ctrl-row">
     <button class="ctrl-btn" onclick="ctrl('rewind')" title="Back 10s"><svg class="icon"><use href="#ic-prev"/></svg></button>
     <button class="ctrl-btn big" id="ph-playpause" onclick="ctrl('toggle')"><svg class="icon icon-lg"><use href="#ic-pause"/></svg></button>
     <button class="ctrl-btn" onclick="ctrl('forward')" title="Forward 10s"><svg class="icon"><use href="#ic-next"/></svg></button>
@@ -1156,37 +1097,11 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-/* ES5-ONLY PRE-FLIGHT — deliberately kept in its own script block BEFORE the main
-   app script. On TV engines too old to parse the main script (async/await needs
-   Chromium 55+), this block still runs and shows a friendly explanation instead
-   of a silent dead page. Do not use modern syntax in this block. */
-(function(){
-  var okRTC = !!(window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection);
-  var okSyntax = true;
-  try { new Function('async function _t(){ await 0; }'); } catch (e) { okSyntax = false; }
-  if (okRTC && okSyntax) return;
-  var show = function(){
-    var d = document.createElement('div');
-    d.setAttribute('style', 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#05080c;color:#dce8f5;font-family:Arial,sans-serif;text-align:center;padding:10% 8% 0 8%;');
-    d.innerHTML = '<div style="font-size:28px;font-weight:bold;margin-bottom:16px;">This browser is a little too old for CastParty</div>' +
-      '<div style="font-size:18px;line-height:1.7;color:#9fb3c8;">' +
-      (okRTC ? '' : 'It does not support the screen-to-screen connection (WebRTC) that CastParty needs.<br>') +
-      'Please try the browser on a 2018-or-newer smart TV, or open this page in Chrome, Edge, Safari or Firefox on a device connected to your TV.</div>';
-    document.body.appendChild(d);
-  };
-  if (document.body) { show(); } else { document.addEventListener('DOMContentLoaded', show); }
-})();
-</script>
-<script>
-var BUILD = '2026-07-04.1';
-console.log('CastParty build ' + BUILD);
 // Clear any stale caches on load
 if('caches' in window){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }
 if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(function(regs){ regs.forEach(function(r){ r.unregister(); }); }); }
-// NOTE: cloud uploads are deliberately NOT purged on pagehide/background.
-// The whole point is that once a video is uploaded, the TV keeps playing it
-// even while the phone is backgrounded, on a call, locked, or fully closed.
-// Temp files are cleaned up only on an explicit End (resetConn → cloudCleanup).
+// Snapchat-style: also purge temp cloud uploads if the tab is closed/backgrounded
+window.addEventListener('pagehide', function(){ try{ cloudCleanup(); }catch(e){} });
 
 // ───────── State ─────────
 var role = null, peer = null, conn = null, call = null, localStream = null, roomId = null, confirmed = false, currentSource = null;
@@ -1204,7 +1119,6 @@ function senderName(){ return (myName||'').trim(); }  /* blank → TV fills in "
 
 var tvQueue = [];
 var tvPlaying = null;
-var tvBusy = false;   // phone: latest known "TV is showing something" state (from queue broadcasts)
 var tvLoop = false;
 var tvLibrary = {};   // TV: id -> item (every file received this session, for instant replay)
 var slideshow = [];   // image items this session, for looping slideshows
@@ -1400,11 +1314,6 @@ function showUnsupported(){
 function goTV(){
   if(!webrtcSupported()){ role='tv'; showUnsupported(); return; }
   role = 'tv';
-  if(typeof Peer === 'undefined'){   // CDN failed / blocked — say so instead of dying silently
-    showScreen('screen-tv-wait');
-    setPill('tv-wait-status','tv-wait-text','error','Couldn’t load the casting engine — check the TV’s internet connection and reload this page.');
-    return;
-  }
   roomId = genCode();
   tvDeviceSeq = 0;
   showScreen('screen-tv-wait');
@@ -1462,10 +1371,8 @@ function tvAutoAccept(cid){
 function updateCornerQR(){
   var box = $('tv-corner-qr'); if(!box) return;
   var stageIdle = $('tv-stage') && $('tv-stage').classList.contains('idle');
-  // Show the join QR ONLY when no phone is connected at all. Once someone is in,
-  // the idle loop stays clean — no QR box popping up between videos or during uploads.
-  var noDevices = countAccepted() === 0;
-  if(role==='tv' && confirmed && noDevices && stageIdle){
+  var hasRoom = countAccepted() < MAX_DEVICES;
+  if(role==='tv' && confirmed && hasRoom && stageIdle){
     if($('tv-corner-code')) $('tv-corner-code').textContent = roomId || '——';
     var img=$('tv-corner-qr-img');
     if(img && !img.src){ drawQR(img, location.origin + location.pathname + '?join=' + roomId); }
@@ -1473,7 +1380,6 @@ function updateCornerQR(){
   } else {
     box.classList.remove('show');
   }
-  updateTVDeviceChip(countAccepted());
 }
 
 function tvAccept(){
@@ -1500,17 +1406,6 @@ function deviceList(){
 function broadcastDevices(){
   var list = deviceList();
   connections.forEach(function(e, cid){ tvSendTo(e.conn, {t:'devices', list:list, you:cid}); });
-  updateTVDeviceChip(list.length);
-}
-// Small on-TV indicator: how many phones are connected (max 3), shown while idle
-function updateTVDeviceChip(n){
-  var chip = $('tv-devices-chip'); if(!chip) return;
-  if(role==='tv' && n > 0){
-    chip.textContent = '📱 ' + n + ' of ' + MAX_DEVICES + ' device' + (n===1?'':'s') + ' connected';
-    chip.classList.add('show');
-  } else {
-    chip.classList.remove('show');
-  }
 }
 // Coordinator promotes another device to Coordinator (control handoff)
 function promoteDevice(id){
@@ -1726,7 +1621,6 @@ function playItem(item){
   $('tv-play-overlay').classList.add('hidden');
   $('tv-transfer').classList.remove('show');
   $('tv-corner-qr').classList.remove('show');
-  if($('tv-ov-title')) $('tv-ov-title').textContent = item.name || '';
   if(item.sender) showCasterBanner(item.sender);
 
   if(item.kind === 'image'){
@@ -1746,26 +1640,6 @@ function playItem(item){
     var vv = $('tv-video');
     if(vv._url && vv._url!==item.url){ try{ URL.revokeObjectURL(vv._url); }catch(e){} }
     vv._url = item.url; vv.srcObject = null; vv.src = item.url; vv.loop = tvLoop;
-    // Resilience: if the stream errors mid-play (Wi-Fi blip on a long movie),
-    // retry from the same position up to 3 times before giving up.
-    item._retries = 0;
-    vv.onerror = function(){
-      if(tvPlaying !== item || !item.url) return;
-      if(item._retries < 3){
-        item._retries++;
-        var pos = vv.currentTime || 0;
-        var bust = item.url.indexOf('blob:')===0 ? item.url
-                 : item.url + (item.url.indexOf('?')>=0 ? '&' : '?') + 'r=' + item._retries;
-        setTimeout(function(){
-          if(tvPlaying !== item) return;
-          vv.src = bust;
-          vv.addEventListener('loadedmetadata', function(){ try{ vv.currentTime = pos; }catch(e){} }, {once:true});
-          autoPlay(vv);
-        }, 800 * item._retries);
-      } else {
-        flashMessageOnTV('⚠ Playback hiccup — tap Refresh on your phone', false);
-      }
-    };
     showOnlyMedia('video');
     // Buffered State: spinner until the video can play through, THEN reveal + start
     bufferedReveal(vv, 'video', item.url, function(){ tvFullscreenAuto(); showTVOverlay(); });
@@ -1889,18 +1763,8 @@ function tvFadeOutThen(cb){
 // "needs a tap on the TV" problem that desynced phone↔TV playback.
 function autoPlay(el, onok){
   el.muted = true;
-  // restore to the current TV volume (not hard 1) so the phone's volume setting sticks.
-  // Some TV builds silently PAUSE when unmuted without a gesture — detect that,
-  // resume muted, and surface the tap-to-play overlay instead of freezing.
-  var run = function(){ if(onok) onok(); setTimeout(function(){
-    try{ el.volume = tvVolume; el.muted = (tvVolume===0); }catch(e){}
-    setTimeout(function(){
-      if(el.paused && !el.ended){
-        try{ el.muted = true; el.play().catch(function(){}); }catch(e){}
-        $('tv-play-overlay').classList.remove('hidden');
-      }
-    }, 300);
-  }, 400); };
+  // restore to the current TV volume (not hard 1) so the phone's volume setting sticks
+  var run = function(){ if(onok) onok(); setTimeout(function(){ try{ el.volume = tvVolume; el.muted = (tvVolume===0); }catch(e){} }, 400); };
   var p;
   try{ p = el.play(); }catch(e){ p = null; }
   if(p && p.then){ p.then(run).catch(function(){
@@ -1921,20 +1785,7 @@ function tvIdle(){
   showOnlyMedia('none');
   $('tv-stage').classList.add('idle');
   $('tv-transfer').classList.remove('show');
-  $('tv-play-overlay').classList.add('hidden');
-  // start the looping idle background video (retry a couple of times if autoplay
-  // is briefly blocked or the media isn't ready yet, so it reliably covers the poster)
-  var iv=$('tv-idle-video');
-  if(iv){
-    iv.muted=true;
-    var tries=0;
-    var kick=function(){
-      if(!$('tv-stage').classList.contains('idle')) return;
-      var p; try{ p=iv.play(); }catch(e){ p=null; }
-      if(p&&p.catch){ p.catch(function(){ if(tries++<4) setTimeout(kick,500); }); }
-    };
-    kick();
-  }
+  $('tv-play-overlay').classList.add('hidden');   // idle = Player 2 artwork only, no play button
   updateCornerQR();
 }
 
@@ -2150,10 +2001,6 @@ function phoneConnect(){
 }
 function startPhonePeer(code){
   if(!webrtcSupported()){ role='phone'; showUnsupported(); return; }
-  if(typeof Peer === 'undefined'){
-    toast('Couldn’t load the casting engine — check your internet connection and reload.');
-    return;
-  }
   role = 'phone'; roomId = code;
   $('phone-join-status').style.display = 'inline-flex';
   $('phone-join-spinner').style.display = 'block';
@@ -2230,45 +2077,11 @@ function fileInputChange(e){
   e.target.value='';
   renderPlaylist();
 }
-var MAX_FILE_BYTES = 2*1024*1024*1024;   // hard product limit: 2 GB per file
 function addToPlaylist(f){
-  // Enforced BEFORE any upload begins — oversized files never enter the playlist
-  if(f.size > MAX_FILE_BYTES){
-    toast('This file is too large. Please choose a file under 2 GB.');
-    return false;
-  }
-  var nm = (f.name||'').toLowerCase();
-  // HEIC/HEIF photos (iPhone default) cannot be displayed by TV browsers at all — block
-  if(/\.(heic|heif)$/.test(nm) || /image\/hei[cf]/.test(f.type||'')){
-    toast('iPhone HEIC photos can’t be shown on TVs — please convert "'+f.name+'" to JPEG first (or change iPhone camera settings to "Most Compatible").');
-    return false;
-  }
-  // Containers TV browsers usually can't play — allow, but warn up-front
-  if(/\.(mkv|avi|wmv|flv)$/.test(nm)){
-    toast('⚠ "'+f.name+'" may not play on TV browsers — MP4 (H.264) is the safe format.');
-  } else if(f.type && /^video\//.test(f.type)){
-    try{
-      var probe = document.createElement('video');
-      if(probe.canPlayType && probe.canPlayType(f.type) === ''){
-        toast('⚠ "'+f.name+'" ('+f.type+') may not play on this or the TV browser — MP4 (H.264) is the safe format.');
-      }
-    }catch(e){}
-  }
+  if(f.size > 500*1024*1024){ toast('⚠ '+f.name+' is over 500MB — may be unreliable'); }
   playlist.push({ id:'it'+(++plSeq), file:f, name:f.name, kind:mediaKind(f.type,f.name), size:f.size, onTV:false, sent:false });
-  return true;
 }
 function removeFromPlaylist(i){ if(!playlist[i]) return; playlist.splice(i,1); if(selectedPlIdx===i) selectedPlIdx=-1; else if(selectedPlIdx>i) selectedPlIdx--; renderPlaylist(); renderCastList(); }
-// Clear the whole local playlist. Whatever is on the TV right now keeps playing —
-// this only empties the phone's list (double-tap safe: asks once via confirm toast).
-var _clearArmed = false;
-function clearPlaylist(){
-  if(!playlist.length){ return; }
-  if(!_clearArmed){ _clearArmed = true; toast('Tap "Clear all" again to remove all ' + playlist.length + ' files'); setTimeout(function(){ _clearArmed=false; }, 3500); return; }
-  _clearArmed = false;
-  playlist = []; selectedPlIdx = -1; nowPlayingIdx = -1;
-  renderPlaylist(); renderCastList();
-  toast('Playlist cleared');
-}
 function movePl(i, dir){
   var j=i+dir; if(j<0||j>=playlist.length) return;
   if(playlist[i].sent || playlist[j].sent){ toast('Can’t reorder sent items'); return; }
@@ -2308,45 +2121,29 @@ function renderPlaylist(){
 }
 // Play/replay any playlist item. If the TV already holds this exact file
 // (cloud URL or received blob) it replays INSTANTLY with no re-upload/re-send.
-function castItem(it, playNow){
+function castItem(it){
   if(!it) return;
   lastCast = {type:'file', it: it};
   enterController(false);
-  // Quiet-queue rule: if the TV is already showing something, new casts join the
-  // queue and play after it — never interrupt. playNow=true (explicit "Play now",
-  // replay, recast) overrides and switches immediately.
-  var interrupt = !!playNow || !tvBusy;
-  if(interrupt) setPhonePreview({kind: it.kind, file: it.file});
+  setPhonePreview({kind: it.kind, file: it.file});
   if(it.onTV){
     // Make sure the link is alive first (fixes "stuck after video ended" cases)
-    var deliver = function(){ send({t: interrupt ? 'playlib' : 'queuelib', id:it.id, name:it.name, kind:it.kind, partyMsg:partyMsg, sender:senderName()}); };
+    var deliver = function(){ send({t:'playlib', id:it.id, name:it.name, kind:it.kind, partyMsg:partyMsg, sender:senderName()}); };
     if(primaryConn && primaryConn.open){ deliver(); }
     else { reviveConnection(); setTimeout(deliver, 800); }   // reconnect, then play
-    if(interrupt){ setPill('phone-cast-status','phone-cast-text','streaming','▶ Playing '+it.name); }
-    else { toast('⏭ Queued next: '+it.name); }
+    setPill('phone-cast-status','phone-cast-text','streaming','▶ Playing '+it.name);
     return;
   }
-  // First delivery only — after this the TV keeps it for the whole session.
-  // Route EVERY video through the cloud when it's enabled: the TV plays straight
-  // from the public URL, so the phone is then free to browse, pick other media,
-  // take a call, lock, or leave the app entirely without freezing TV playback.
-  // Cloud first (fast, native quality, autonomous on the TV). If cloud fails,
-  // fall back to a FULL DataChannel transfer — the TV still gets its own copy and
-  // plays independently. We deliberately no longer use captureStream: it tethers
-  // playback to the phone and freezes the instant the phone backgrounds.
-  var directSend = function(){
-    transferFile(it.file, it.kind, it.name, it.id, interrupt)
-      .then(function(){ it.onTV=true; renderCastList(); })
-      .catch(function(){ toast('Couldn’t send '+it.name+' — tap ▶ on it to retry'); });
-  };
-  if(it.kind==='video' && cloudEnabled()){
-    cloudCastVideo(it, interrupt).then(function(){ it.onTV=true; renderCastList(); if(!interrupt) toast('⏭ Queued next: '+it.name); })
-      .catch(function(err){ console.warn('cloud cast failed, sending directly:', err); toast('Cloud unavailable — sending directly…'); directSend(); });
+  // First delivery only — after this the TV keeps it for the whole session
+  if(it.kind==='video' && it.size>=CLOUD_THRESHOLD && cloudEnabled()){
+    cloudCastVideo(it, true).then(function(){ it.onTV=true; renderCastList(); }).catch(function(){ toast('Cast failed'); });
+  } else if(it.kind==='video' && it.size>=CLOUD_THRESHOLD && supportsCapture()){
+    streamFile(it.file, it.name);   // live stream can't be re-served; stays re-streamable
   } else {
-    directSend();
+    transferFile(it.file, it.kind, it.name, it.id, true).then(function(){ it.onTV=true; renderCastList(); });
   }
 }
-function recastItem(i){ if(!playlist[i]) return; castItem(playlist[i], true); }   // explicit re-cast → plays now
+function recastItem(i){ if(!playlist[i]) return; castItem(playlist[i]); }
 // Recast the current/last file — brings it back to the TV from the start, even
 // if it ended and the TV went to the idle screen. Preview resets to match.
 function recastCurrent(){
@@ -2355,15 +2152,16 @@ function recastCurrent(){
          || playlist.filter(function(p){ return p.onTV; }).slice(-1)[0];
   if(!it){ toast('Nothing to recast — pick a file'); return; }
   toast('⟲ Recasting '+it.name);
-  castItem(it, true);   // explicit recast → plays now
+  castItem(it);
 }
 // Stop whatever is playing on the TV
-function stopCast(){ send({t:'stop'}); nowPlayingIdx=-1; setCastLive(false); renderPlaylist(); renderCastList(); toast('■ Stopped'); }
+function stopCast(){ send({t:'stop'}); nowPlayingIdx=-1; renderPlaylist(); renderCastList(); toast('■ Stopped'); }
 function plItemClick(e, i){
   var it = playlist[i];
-  if(!it || it.sent) return; // sent items have their own Re-cast / Stop buttons
-  // Tap = highlight only. NOTHING plays until the user explicitly chooses
-  // "Play now" or "Queue next" from the confirm bar below the list.
+  if(!it || it.sent) return; // can't select already-sent items
+  // Only show confirm bar when there are multiple unsent items
+  var unsent = playlist.filter(function(p){ return !p.sent; });
+  if(unsent.length <= 1){ return; } // only one unsent item — no ambiguity
   selectedPlIdx = (selectedPlIdx === i) ? -1 : i;
   renderPlaylist();
 }
@@ -2377,20 +2175,23 @@ function updatePlConfirmBar(){
     bar.classList.remove('show');
   }
 }
-function plCastSelected(playNow){
+function plConfirmPlay(){
   if(selectedPlIdx < 0 || !playlist[selectedPlIdx] || playlist[selectedPlIdx].sent){ plCancelSelect(); return; }
-  var item = playlist[selectedPlIdx];
+  // Move selected item to the front of unsent items
+  var firstUnsentIdx = playlist.findIndex(function(p){ return !p.sent; });
+  if(firstUnsentIdx < 0 || firstUnsentIdx === selectedPlIdx){ plCancelSelect(); return; }
+  var item = playlist.splice(selectedPlIdx, 1)[0];
+  playlist.splice(firstUnsentIdx, 0, item);
+  toast('▶ "' + item.name + '" will play next');
   selectedPlIdx = -1;
   renderPlaylist();
-  castItem(item, !!playNow);   // Play now interrupts; Queue next waits its turn
 }
 function plCancelSelect(){
   selectedPlIdx = -1;
   var bar = $('pl-confirm-bar');
   if(bar) bar.classList.remove('show');
 }
-// Per-item ▶: smart cast — plays immediately if the TV is idle, otherwise
-// quietly queues it to play after the current media (no interruption).
+// Per-item "Play now": play this exact item on the TV immediately
 function playNowFromPlaylist(i){
   if(!playlist[i]) return;
   selectedPlIdx = -1;
@@ -2546,21 +2347,21 @@ async function drainPlaylist(){
     var it = playlist[i];
     setPhonePreview({kind: it.kind, file: it.file}); // mirror current item on phone
     lastCast = {type:'file', it: it};
-    // Every video goes to the cloud when available, so playback is independent of
-    // the phone (browse / call / lock / leave the app — TV keeps playing). If the
-    // cloud is off or fails, fall back to a FULL transfer (still autonomous on the
-    // TV). captureStream is intentionally gone — it froze whenever the phone left.
-    var useCloud = it.kind === 'video' && cloudEnabled();
+    var bigVideo = it.kind === 'video' && it.size >= CLOUD_THRESHOLD;
+    var useCloud  = bigVideo && cloudEnabled();
+    var useStream = bigVideo && !useCloud && supportsCapture();
     if(useCloud){
       try{
         await cloudCastVideo(it);   // marks it.onTV on success
       }catch(e){
-        toast('Cloud unavailable — sending directly…');
-        await transferFile(it.file, it.kind, it.name, it.id, false); it.onTV=true;
+        toast('Cloud upload failed — falling back');
+        if(supportsCapture()) await streamFile(it.file, it.name);
+        else { await transferFile(it.file, it.kind, it.name, it.id, false); it.onTV=true; }
       }
     } else {
-      setPill('phone-cast-status','phone-cast-text','streaming', '📤 Sending ' + it.name + '…');
-      await transferFile(it.file, it.kind, it.name, it.id, false); it.onTV=true;
+      setPill('phone-cast-status','phone-cast-text','streaming', (useStream ? '⚡ Streaming ' : '📤 Sending ') + it.name + '…');
+      if(useStream) await streamFile(it.file, it.name);
+      else { await transferFile(it.file, it.kind, it.name, it.id, false); it.onTV=true; }
     }
     it.sent = true;
     renderPlaylist(); renderCastList();
@@ -2590,20 +2391,13 @@ function cloudCastVideo(item, force){
     setPill('phone-cast-status','phone-cast-text','streaming','☁ Uploading '+item.name+'… 0%');
     var upload = new tus.Upload(item.file, {
       endpoint: endpoint,
-      // Long ladder: a 1GB+ movie upload survives several Wi-Fi hiccups before failing
-      retryDelays: [0, 1000, 3000, 5000, 10000, 20000, 30000, 60000],
+      retryDelays: [0, 1000, 3000, 5000, 10000],
       headers: { authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY, 'x-upsert': 'true' },
       uploadDataDuringCreation: true,
       removeFingerprintOnSuccess: true,
       chunkSize: 6 * 1024 * 1024, // Supabase requires 6MB chunks
       metadata: { bucketName: SUPABASE_BUCKET, objectName: objectName, contentType: item.file.type || 'video/mp4', cacheControl: '3600' },
-      onError: function(err){
-        send({t:'load-hide'});
-        // Plan-limit failures deserve a human explanation, not a generic "failed"
-        var st = err && err.originalResponse && err.originalResponse.getStatus ? err.originalResponse.getStatus() : 0;
-        if(st === 413){ toast('⚠ File exceeds your storage plan\'s size limit — check the bucket file-size limit in Supabase (free plan caps at 50MB per file).'); }
-        reject(err);
-      },
+      onError: function(err){ send({t:'load-hide'}); reject(err); },
       onProgress: function(sent, total){
         var pct = total ? Math.round(sent/total*100) : 0;
         setPill('phone-cast-status','phone-cast-text','streaming','☁ Uploading '+item.name+'… '+pct+'%');
@@ -2792,12 +2586,8 @@ function callTV(stream){ if(call){try{call.close();}catch(e){}} call=peer.call(r
 function enterController(liveMode){
   showScreen('screen-phone-cast');
   $('scrub-wrap').style.display = liveMode ? 'none' : 'flex';
-  setCastLive(true);   // something is now being cast → reveal transport controls
   renderCastList();
 }
-// Toggle the phone's playback controls (transport + scrubber + volume). They only
-// make sense while media is actually on the TV; hidden while it shows the idle loop.
-function setCastLive(on){ var c=$('phone-ctrl'); if(c) c.classList.toggle('no-cast', !on); }
 
 // Phone controls
 var scrubEl;
@@ -2842,22 +2632,6 @@ function ctrl(a, val){
       case 'fullscreen': send({t:'pb', a:'fullscreen'}); break;
     }
     return;
-  }
-  // Optimistic preview: reflect the command on the phone's muted preview instantly,
-  // so the mirror feels immediate. The TV heartbeat re-locks exact position moments later.
-  var pv = $('phone-preview');
-  if(pv && phonePreviewKind==='video' && pv.readyState>0){
-    try{
-      switch(a){
-        case 'toggle':  pv.paused ? pv.play().catch(function(){}) : pv.pause(); break;
-        case 'play':    pv.play().catch(function(){}); break;
-        case 'pause':   pv.pause(); break;
-        case 'rewind':  pv.currentTime = Math.max(0, (pv.currentTime||0) - 10); break;
-        case 'forward': pv.currentTime = Math.min(pv.duration||1e9, (pv.currentTime||0) + 10); break;
-        case 'restart': pv.currentTime = 0; pv.play().catch(function(){}); break;
-        case 'seek':    if(val != null) pv.currentTime = val; break;
-      }
-    }catch(e){}
   }
   if(a === 'seek'){ send({t:'pb', a:'seek', v:val}); return; }
   send({t:'pb', a:a, v:val});
@@ -2968,19 +2742,6 @@ function handleData(msg, dc, cid){
         tvSendTo(dc, {t:'need', id: msg.id});   // TV lost it → ask phone to re-send
       }
     } break;
-    case 'queuelib': if(role==='tv'){
-      // Quiet-queue a file the TV already holds: current playback is untouched,
-      // the item plays next with the normal crossfade transition.
-      var qlib = tvLibrary[msg.id];
-      if(qlib){
-        if(msg.partyMsg!=null){ qlib.partyMsg = msg.partyMsg; }
-        if(msg.sender){ qlib.sender = msg.sender; }
-        if(tvPlaying === null){ showScreen('screen-tv-play'); clearTimeout(imgTimer); tvTransitionTo(qlib); }
-        else { tvQueue.push(qlib); broadcastQueue(); }
-      } else {
-        tvSendTo(dc, {t:'need', id: msg.id});
-      }
-    } break;
     case 'need': if(role==='phone'){
       var itn = playlist.filter(function(p){ return p.id===msg.id; })[0];
       if(itn){ itn.onTV=false; castItem(itn); }   // re-deliver once
@@ -3083,8 +2844,6 @@ function onQueue(m){
     for(var k=0;k<playlist.length;k++){ if(playlist[k].name===m.playing.name){ idx=k; } }
   }
   if(idx!==nowPlayingIdx){ nowPlayingIdx = idx; renderPlaylist(); }
-  tvBusy = !!m.playing;       // phone-side knowledge: is the TV showing something right now?
-  setCastLive(!!m.playing);   // reveal controls only while the TV is actually playing
   renderCastList();
 }
 
@@ -3332,16 +3091,7 @@ document.addEventListener('DOMContentLoaded', function(){
 // ───────── Helpers ─────────
 function genCode(){ return Math.floor(100000 + Math.random()*900000).toString(); }
 function setPill(p,t,c,txt){ $(p).className='status-pill'+(c?' '+c:''); $(t).textContent=txt; }
-function drawQR(img,url){
-  // Primary + live fallback QR services (the old chart.googleapis.com fallback is
-  // shut down). If both fail, hide the broken image — the pairing code still works.
-  img.onerror = function(){
-    img.onerror = function(){ img.style.display='none'; };
-    img.src = 'https://quickchart.io/qr?size=210&text=' + encodeURIComponent(url);
-  };
-  img.style.display = '';
-  img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=210x210&margin=0&data=' + encodeURIComponent(url);
-}
+function drawQR(img,url){ img.onerror=function(){ img.src='https://chart.googleapis.com/chart?chs=210x210&cht=qr&chl='+encodeURIComponent(url)+'&choe=UTF-8'; }; img.src='https://api.qrserver.com/v1/create-qr-code/?size=210x210&margin=0&data='+encodeURIComponent(url); }
 function formatBytes(b){ if(b<1048576) return (b/1024).toFixed(1)+' KB'; if(b<1073741824) return (b/1048576).toFixed(1)+' MB'; return (b/1073741824).toFixed(2)+' GB'; }
 function fmt(s){ s=+s; if(!isFinite(s)||s<0) return '0:00'; var m=Math.floor(s/60),x=Math.floor(s%60).toString().padStart(2,'0'); return m+':'+x; }
 function toast(msg){ var t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(function(){ t.classList.remove('show'); },3000); }
@@ -3372,13 +3122,6 @@ setInterval(function(){
   }catch(e){}
 }, 15000);
 
-// TV heartbeat: continuously broadcast exact play/pause/position so the phone
-// preview stays a PERFECT mirror even while the TV is paused (paused media fires
-// no 'timeupdate', so without this the phone would never learn the TV had paused).
-setInterval(function(){
-  if(role==='tv' && tvPlaying){ try{ sendTime(); }catch(e){} }
-}, 400);
-
 // ───────── Auto-join from QR ─────────
 (function(){
   var c = new URLSearchParams(location.search).get('join');
@@ -3390,10 +3133,8 @@ setInterval(function(){
 })();
 
 window.addEventListener('beforeunload', function(){
-  // Only the TV closing should end the session. The phone unloading (closing the
-  // tab, switching apps, getting a call) must NOT end playback — the TV keeps
-  // playing the already-uploaded video on its own.
   if(role === 'tv'){ tvBroadcast({t:'end'}); }
+  if(primaryConn && primaryConn.open){ try{primaryConn.send({t:'end'});}catch(e){} }
 });
 </script>
 
