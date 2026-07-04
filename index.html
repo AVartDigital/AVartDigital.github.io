@@ -15,9 +15,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>CastParty — cast & stream to your TV</title>
-  <!-- BUILD 2026-07-04.3 — quiet queueing · tap-to-select playlist · clean idle loop ·
+  <!-- BUILD 2026-07-04.1 — quiet queueing · tap-to-select playlist · clean idle loop ·
        phone-independent playback · no-scroll UI · resilient long-video uploads -->
-  <meta name="castparty-build" content="2026-07-04.3" />
+  <meta name="castparty-build" content="2026-07-04.1" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap" rel="stylesheet" />
@@ -1178,7 +1178,7 @@
 })();
 </script>
 <script>
-var BUILD = '2026-07-04.3';
+var BUILD = '2026-07-04.1';
 console.log('CastParty build ' + BUILD);
 // Clear any stale caches on load
 if('caches' in window){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }
@@ -1214,8 +1214,7 @@ var rx = null; // current receive state
 var streamVid = null;        // hidden source video (phone side, stream mode)
 var streamSyncIv = null;     // interval for scrubber sync in stream mode
 var tvStreamPendingMeta = null; // TV: metadata from stream-start, consumed by tvShowStream
-// (legacy 40MB stream/cloud routing thresholds removed — every video now routes
-// through cloud storage, and the only size rule is MAX_FILE_BYTES below)
+var STREAM_THRESHOLD = 40 * 1024 * 1024; // 40 MB — files larger than this are streamed (no receiver RAM buffering)
 var scrubbing = false;
 
 /* ═══════════════ SUPABASE EPHEMERAL CLOUD CAST ═══════════════
@@ -1226,6 +1225,7 @@ var scrubbing = false;
 var SUPABASE_URL      = 'https://pbmazmlzxwqsysozxxpe.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBibWF6bWx6eHdxc3lzb3p4eHBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1OTc2ODAsImV4cCI6MjA5ODE3MzY4MH0.vbkKogJZ2bcuUpp7HK3pPZCZFV2rZEOqNLTB_AhZeCo';
 var SUPABASE_BUCKET   = 'cast';
+var CLOUD_THRESHOLD   = 40 * 1024 * 1024; // videos ≥40MB go to cloud when enabled
 function cloudEnabled(){ return !!(SUPABASE_URL && SUPABASE_ANON_KEY); }
 var sessionUploads = [];   // object paths uploaded this session (for cleanup)
 var tusLoaded = false;
@@ -1405,22 +1405,13 @@ function goTV(){
     setPill('tv-wait-status','tv-wait-text','error','Couldn’t load the casting engine — check the TV’s internet connection and reload this page.');
     return;
   }
-  // Stable session code: reuse the same code (and therefore the same QR payload)
-  // across TV page reloads for up to 6 hours. A slow TV browser that reloads, or a
-  // deliberate refresh, keeps its identity — phones auto-reconnect to the same code.
-  roomId = null;
-  try{
-    var savedRoom = JSON.parse(localStorage.getItem('castparty_tv_room') || 'null');
-    if(savedRoom && savedRoom.code && (Date.now() - savedRoom.ts) < 6*3600*1000){ roomId = savedRoom.code; }
-  }catch(e){}
-  if(!roomId) roomId = genCode();
-  try{ localStorage.setItem('castparty_tv_room', JSON.stringify({code: roomId, ts: Date.now()})); }catch(e){}
+  roomId = genCode();
   tvDeviceSeq = 0;
   showScreen('screen-tv-wait');
   $('tv-code').textContent = roomId;
   drawQR($('qr-img'), location.origin + location.pathname + '?join=' + roomId);
   peer = new Peer(roomId, {config: ICE});
-  peer.on('open', function(){ goTV._retried = false; setPill('tv-wait-status','tv-wait-text','','Waiting for phone…'); });
+  peer.on('open', function(){ setPill('tv-wait-status','tv-wait-text','','Waiting for phone…'); });
   peer.on('connection', function(dc){
     var cid = dc.peer || dc.connectionId || ('c'+(Date.now()));
     connections.set(cid, {conn: dc, isPrimary: false});
@@ -1436,23 +1427,8 @@ function goTV(){
     incoming.on('stream', function(rs){ tvShowStream(rs); });
     incoming.on('close', function(){ setPill('tv-wait-status','tv-wait-text','error','Stream ended'); });
   });
-  peer.on('error', function(e){
-    if(e.type === 'unavailable-id'){
-      // Saved code is still registered on the signaling server (e.g. quick reload).
-      // Regenerate once with a fresh code instead of dying.
-      try{ localStorage.removeItem('castparty_tv_room'); }catch(x){}
-      if(!goTV._retried){ goTV._retried = true; try{ peer.destroy(); }catch(x){} setTimeout(goTV, 300); return; }
-    }
-    if(e.type === 'network' || e.type === 'server-error' || e.type === 'socket-error'){
-      setPill('tv-wait-status','tv-wait-text','error','Network hiccup — reconnecting…');
-    } else {
-      toast('Connection error: ' + e.type);
-    }
-  });
-  peer.on('disconnected', function(){
-    setPill('tv-wait-status','tv-wait-text','error','Reconnecting to network…');
-    try{ peer.reconnect(); }catch(e){}
-  });
+  peer.on('error', function(e){ toast('Connection error: ' + e.type); });
+  peer.on('disconnected', function(){ try{ peer.reconnect(); }catch(e){} });
 }
 
 function countAccepted(){ var n=0; connections.forEach(function(e){ if(e.accepted) n++; }); return n; }
@@ -2200,8 +2176,7 @@ function startPhonePeer(code){
       toast('No TV found for code '+code+'. Check the code and that the TV screen is on.');
     } else if(e.type === 'network' || e.type === 'server-error' || e.type === 'socket-error'){
       setPill('phone-join-status','phone-join-text','error','Network issue — retrying…');
-      if(confirmed){ attemptReconnect(); }   // mid-session drop → automatic recovery
-      else { toast('Network issue. Make sure both devices are on the same Wi-Fi.'); }
+      toast('Network issue. Make sure both devices are on the same Wi-Fi.');
     } else {
       toast('Error: '+e.type+'. Check code / Wi-Fi.');
     }
@@ -2255,9 +2230,7 @@ function fileInputChange(e){
   e.target.value='';
   renderPlaylist();
 }
-// Single source of truth for the upload size limit. Matches the Supabase bucket's
-// configured 2 GB per-file limit — if you change one, change the other.
-var MAX_FILE_BYTES = 2*1024*1024*1024;   // 2 GB per file
+var MAX_FILE_BYTES = 2*1024*1024*1024;   // hard product limit: 2 GB per file
 function addToPlaylist(f){
   // Enforced BEFORE any upload begins — oversized files never enter the playlist
   if(f.size > MAX_FILE_BYTES){
@@ -2628,7 +2601,7 @@ function cloudCastVideo(item, force){
         send({t:'load-hide'});
         // Plan-limit failures deserve a human explanation, not a generic "failed"
         var st = err && err.originalResponse && err.originalResponse.getStatus ? err.originalResponse.getStatus() : 0;
-        if(st === 413){ toast('⚠ Upload rejected by storage: file exceeds the configured limit. The bucket is set to 2 GB per file — verify the limit in Supabase → Storage → cast bucket.'); }
+        if(st === 413){ toast('⚠ File exceeds your storage plan\'s size limit — check the bucket file-size limit in Supabase (free plan caps at 50MB per file).'); }
         reject(err);
       },
       onProgress: function(sent, total){
@@ -2897,7 +2870,6 @@ function wireConn(dc, cid){
 }
 
 function handleData(msg, dc, cid){
-  lastRx = Date.now();   // liveness marker for the staleness watchdog
   if(msg instanceof ArrayBuffer || ArrayBuffer.isView(msg)){
     if(role === 'tv') tvFileChunk(msg);
     return;
@@ -2930,23 +2902,8 @@ function handleData(msg, dc, cid){
     case 'hello': if(role==='tv' && cid){ var he=connections.get(cid); if(he){
         var nm=(msg.name||'').trim();
         if(!nm){ tvDeviceSeq++; nm='Device '+tvDeviceSeq; }   // default when left blank
-        // Reconnect dedup: a returning phone (same name, stale/dead old link) takes
-        // over its previous seat — keeps its Coordinator role and share permission,
-        // and never burns one of the 3 device slots on its own ghost.
-        var wasReconnect = false;
-        connections.forEach(function(old, oldCid){
-          if(oldCid !== cid && old.name === nm && (!old.conn || !old.conn.open)){
-            he.isPrimary = he.isPrimary || old.isPrimary;
-            he.canShare  = (old.canShare !== false);
-            he.accepted  = he.accepted || old.accepted;
-            connections.delete(oldCid);
-            wasReconnect = true;
-          }
-        });
         he.name=nm; connections.set(cid,he);
         tvSendTo(he.conn, {t:'assigned', name:nm});           // tell the phone its final name
-        if(he.isPrimary){ tvSendTo(he.conn, {t:'role', role:'primary'}); }
-        if(wasReconnect && tvPlaying){ flashMessageOnTV('📱 ' + nm + ' reconnected ✓', false); }
         broadcastDevices();
       } } break;
     case 'assigned': if(role==='phone'){ myName = msg.name || myName; } break;
@@ -3039,76 +2996,13 @@ function handleData(msg, dc, cid){
 }
 
 function onConnClose(cid){
+  connections.delete(cid);
   if(role === 'phone'){
-    // Never give up instantly — Wi-Fi band switches and brief drops are normal.
-    // Try to get back automatically; the ended screen only appears if we truly fail.
-    attemptReconnect();
+    onDisconnect();
   } else if(role === 'tv'){
-    var gone = connections.get(cid);
-    connections.delete(cid);
-    // On-TV feedback: name who dropped, and only while something is showing
-    if(gone && gone.accepted && tvPlaying){
-      flashMessageOnTV('📱 ' + (gone.name || 'A phone') + ' lost connection — waiting for it to return…', false);
-    }
     updateCornerQR();   // a device left → maybe re-show the join QR
     broadcastDevices();
   }
-}
-
-// ── Phone auto-reconnect: exponential backoff, re-handshake, clear state feedback ──
-var reconnecting = false, reconnTries = 0, MAX_RECONN = 8;
-function reconnStatus(txt, cls){
-  // Reflect state on whichever pill the user can currently see
-  try{ setPill('phone-cast-status','phone-cast-text',cls,txt); }catch(e){}
-  try{ if($('phone-join-text')) setPill('phone-join-status','phone-join-text',cls,txt); }catch(e){}
-}
-function attemptReconnect(){
-  if(reconnecting || !confirmed || !roomId){ if(!confirmed) onDisconnect(); return; }
-  reconnecting = true; reconnTries = 0;
-  reconnStatus('⟳ Reconnecting to TV…','error');
-  toast('Connection lost — reconnecting…');
-  reconnTick();
-}
-function reconnTick(){
-  if(!reconnecting) return;
-  if(primaryConn && primaryConn.open){ reconnDone(); return; }
-  reconnTries++;
-  if(reconnTries > MAX_RECONN){ reconnecting = false; onDisconnect(); return; }
-  reconnStatus('⟳ Reconnecting to TV… (try '+reconnTries+' of '+MAX_RECONN+')','error');
-  try{
-    if(!peer || peer.destroyed){
-      peer = new Peer(undefined, {config: ICE});
-      peer.on('open', reconnConnect);
-      peer.on('error', function(){ /* next tick retries */ });
-      peer.on('disconnected', function(){ try{ peer.reconnect(); }catch(e){} });
-    } else if(peer.disconnected){
-      try{ peer.reconnect(); }catch(e){}
-      setTimeout(reconnConnect, 700);
-    } else {
-      reconnConnect();
-    }
-  }catch(e){}
-  // Backoff: 1s, 1.7s, 2.9s, 4.9s, 8.4s, then 10s caps — ~45s of patience total
-  setTimeout(reconnTick, Math.min(10000, Math.round(1000 * Math.pow(1.7, reconnTries - 1))));
-}
-function reconnConnect(){
-  if(!reconnecting || (primaryConn && primaryConn.open)) return;
-  try{
-    primaryConn = peer.connect(roomId, {reliable:true});
-    wireConn(primaryConn, 'primary');
-    primaryConn.on('open', function(){
-      // Full re-handshake so the TV re-authorizes this device under its old name
-      send({t:'confirm'});
-      send({t:'hello', name: (myName||'').trim()});
-      reconnDone();
-    });
-  }catch(e){}
-}
-function reconnDone(){
-  if(!reconnecting) return;
-  reconnecting = false; reconnTries = 0;
-  reconnStatus('Connected ✓','streaming');
-  toast('✓ Reconnected to TV');
 }
 
 function onRemoteEnd(){
@@ -3368,8 +3262,6 @@ function endAll(notify){
   showScreen('screen-ended');
 }
 function resetConn(){
-  reconnecting = false; reconnTries = 0;                       // deliberate end → stop auto-reconnect
-  if(role==='tv'){ try{ localStorage.removeItem('castparty_tv_room'); }catch(e){} }  // next session = fresh code
   cloudCleanup();        // Snapchat-style: delete this session's temp cloud videos
   try{ setPhonePreview(null); }catch(e){}
   cleanupStreamVid();
@@ -3456,28 +3348,17 @@ function toast(msg){ var t=$('toast'); t.textContent=msg; t.classList.add('show'
 
 // ───────── Connection resilience ─────────
 // Re-establish the peer + data connection when returning from another app / unlock.
-// Routes through the full reconnect engine so the TV re-authorizes the device.
 function reviveConnection(){
   if(!confirmed) return;
   try{ if(peer && peer.disconnected && !peer.destroyed){ peer.reconnect(); } }catch(e){}
   if(role==='phone'){
     setTimeout(function(){
-      if((!primaryConn || !primaryConn.open) && roomId){ attemptReconnect(); }
+      if((!primaryConn || !primaryConn.open) && peer && !peer.destroyed && roomId){
+        try{ primaryConn = peer.connect(roomId, {reliable:true}); wireConn(primaryConn, 'primary'); }catch(e){}
+      }
     }, 500);
   }
 }
-// Staleness watchdog: the TV talks constantly (keepalive every 15s, position
-// heartbeat 400ms during playback). If the phone hears NOTHING for 40s the link
-// is dead even though no 'close' event fired (typical of abrupt Wi-Fi drops) —
-// tear it down and reconnect automatically.
-var lastRx = Date.now();
-setInterval(function(){
-  if(role==='phone' && confirmed && !reconnecting && (Date.now() - lastRx) > 40000){
-    lastRx = Date.now();   // don't re-trigger every 10s while reconnecting
-    try{ if(primaryConn) primaryConn.close(); }catch(e){}
-    attemptReconnect();
-  }
-}, 10000);
 document.addEventListener('visibilitychange', function(){
   if(document.visibilityState === 'visible') reviveConnection();
 });
@@ -3525,9 +3406,7 @@ window.addEventListener('beforeunload', function(){
        • anon public key → paste into SUPABASE_ANON_KEY
   2. Storage → New bucket:
        • Name: cast   • Public bucket: ON
-       • File size limit: 2 GB  (REQUIRED — must match MAX_FILE_BYTES in the app;
-         per-file limits above 50 MB need a paid Supabase plan)
-       • Allowed MIME: video/*
+       • (optional) File size limit: 2 GB   • Allowed MIME: video/*
   3. Storage → Policies → on the 'cast' bucket, add policies for the
      anon role (or "public") allowing INSERT and DELETE. Quick SQL
      (Supabase → SQL Editor):
