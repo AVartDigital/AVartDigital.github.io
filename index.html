@@ -15,9 +15,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>CastParty — cast & stream to your TV</title>
-  <!-- BUILD 2026-07-04.1 — quiet queueing · tap-to-select playlist · clean idle loop ·
+  <!-- BUILD 2026-07-04.4 — quiet queueing · tap-to-select playlist · clean idle loop ·
        phone-independent playback · no-scroll UI · resilient long-video uploads -->
-  <meta name="castparty-build" content="2026-07-04.1" />
+  <meta name="castparty-build" content="2026-07-04.4" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap" rel="stylesheet" />
@@ -1178,7 +1178,7 @@
 })();
 </script>
 <script>
-var BUILD = '2026-07-04.1';
+var BUILD = '2026-07-04.4';
 console.log('CastParty build ' + BUILD);
 // Clear any stale caches on load
 if('caches' in window){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }
@@ -1214,7 +1214,8 @@ var rx = null; // current receive state
 var streamVid = null;        // hidden source video (phone side, stream mode)
 var streamSyncIv = null;     // interval for scrubber sync in stream mode
 var tvStreamPendingMeta = null; // TV: metadata from stream-start, consumed by tvShowStream
-var STREAM_THRESHOLD = 40 * 1024 * 1024; // 40 MB — files larger than this are streamed (no receiver RAM buffering)
+// (legacy 40MB stream/cloud routing thresholds removed — every video now routes
+// through cloud storage, and the only size rule is MAX_FILE_BYTES below)
 var scrubbing = false;
 
 /* ═══════════════ SUPABASE EPHEMERAL CLOUD CAST ═══════════════
@@ -1225,7 +1226,6 @@ var scrubbing = false;
 var SUPABASE_URL      = 'https://pbmazmlzxwqsysozxxpe.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBibWF6bWx6eHdxc3lzb3p4eHBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1OTc2ODAsImV4cCI6MjA5ODE3MzY4MH0.vbkKogJZ2bcuUpp7HK3pPZCZFV2rZEOqNLTB_AhZeCo';
 var SUPABASE_BUCKET   = 'cast';
-var CLOUD_THRESHOLD   = 40 * 1024 * 1024; // videos ≥40MB go to cloud when enabled
 function cloudEnabled(){ return !!(SUPABASE_URL && SUPABASE_ANON_KEY); }
 var sessionUploads = [];   // object paths uploaded this session (for cleanup)
 var tusLoaded = false;
@@ -1405,13 +1405,22 @@ function goTV(){
     setPill('tv-wait-status','tv-wait-text','error','Couldn’t load the casting engine — check the TV’s internet connection and reload this page.');
     return;
   }
-  roomId = genCode();
+  // Stable session code: reuse the same code (and therefore the same QR payload)
+  // across TV page reloads for up to 6 hours. A slow TV browser that reloads, or a
+  // deliberate refresh, keeps its identity — phones auto-reconnect to the same code.
+  roomId = null;
+  try{
+    var savedRoom = JSON.parse(localStorage.getItem('castparty_tv_room') || 'null');
+    if(savedRoom && savedRoom.code && (Date.now() - savedRoom.ts) < 6*3600*1000){ roomId = savedRoom.code; }
+  }catch(e){}
+  if(!roomId) roomId = genCode();
+  try{ localStorage.setItem('castparty_tv_room', JSON.stringify({code: roomId, ts: Date.now()})); }catch(e){}
   tvDeviceSeq = 0;
   showScreen('screen-tv-wait');
   $('tv-code').textContent = roomId;
   drawQR($('qr-img'), location.origin + location.pathname + '?join=' + roomId);
   peer = new Peer(roomId, {config: ICE});
-  peer.on('open', function(){ setPill('tv-wait-status','tv-wait-text','','Waiting for phone…'); });
+  peer.on('open', function(){ goTV._retried = false; setPill('tv-wait-status','tv-wait-text','','Waiting for phone…'); });
   peer.on('connection', function(dc){
     var cid = dc.peer || dc.connectionId || ('c'+(Date.now()));
     connections.set(cid, {conn: dc, isPrimary: false});
@@ -1427,8 +1436,23 @@ function goTV(){
     incoming.on('stream', function(rs){ tvShowStream(rs); });
     incoming.on('close', function(){ setPill('tv-wait-status','tv-wait-text','error','Stream ended'); });
   });
-  peer.on('error', function(e){ toast('Connection error: ' + e.type); });
-  peer.on('disconnected', function(){ try{ peer.reconnect(); }catch(e){} });
+  peer.on('error', function(e){
+    if(e.type === 'unavailable-id'){
+      // Saved code is still registered on the signaling server (e.g. quick reload).
+      // Regenerate once with a fresh code instead of dying.
+      try{ localStorage.removeItem('castparty_tv_room'); }catch(x){}
+      if(!goTV._retried){ goTV._retried = true; try{ peer.destroy(); }catch(x){} setTimeout(goTV, 300); return; }
+    }
+    if(e.type === 'network' || e.type === 'server-error' || e.type === 'socket-error'){
+      setPill('tv-wait-status','tv-wait-text','error','Network hiccup — reconnecting…');
+    } else {
+      toast('Connection error: ' + e.type);
+    }
+  });
+  peer.on('disconnected', function(){
+    setPill('tv-wait-status','tv-wait-text','error','Reconnecting to network…');
+    try{ peer.reconnect(); }catch(e){}
+  });
 }
 
 function countAccepted(){ var n=0; connections.forEach(function(e){ if(e.accepted) n++; }); return n; }
@@ -2176,7 +2200,8 @@ function startPhonePeer(code){
       toast('No TV found for code '+code+'. Check the code and that the TV screen is on.');
     } else if(e.type === 'network' || e.type === 'server-error' || e.type === 'socket-error'){
       setPill('phone-join-status','phone-join-text','error','Network issue — retrying…');
-      toast('Network issue. Make sure both devices are on the same Wi-Fi.');
+      if(confirmed){ attemptReconnect(); }   // mid-session drop → automatic recovery
+      else { toast('Network issue. Make sure both devices are on the same Wi-Fi.'); }
     } else {
       toast('Error: '+e.type+'. Check code / Wi-Fi.');
     }
@@ -2214,6 +2239,23 @@ function mediaKind(mime, name){
   if(/^audio\//.test(mime||'') || /\.(mp3|m4a|wav|aac|ogg)$/i.test(name||'')) return 'audio';
   return 'video';
 }
+// Detect the ACTUAL video codec by scanning the file's MP4/MOV boxes for codec
+// fourCC markers. MIME type alone can't tell an H.264 .mov (plays fine on TVs)
+// from an HEVC .mov/.mp4 (fails on most TV browsers). Reads only the first 128KB
+// + last 256KB — covers both moov-at-front (Android) and moov-at-end (iPhone).
+function sniffVideoCodec(file){
+  function toStr(buf){ var b=new Uint8Array(buf), s=''; for(var i=0;i<b.length;i++){ s+=String.fromCharCode(b[i]); } return s; }
+  var head = file.slice(0, 131072);
+  var tail = file.slice(Math.max(0, file.size - 262144));
+  return Promise.all([head.arrayBuffer(), tail.arrayBuffer()]).then(function(bufs){
+    var s = toStr(bufs[0]) + toStr(bufs[1]);
+    if(s.indexOf('hvc1')>=0 || s.indexOf('hev1')>=0 || s.indexOf('dvh1')>=0 || s.indexOf('dvhe')>=0) return 'hevc';
+    if(s.indexOf('av01')>=0) return 'av1';
+    if(s.indexOf('vp09')>=0) return 'vp9';
+    if(s.indexOf('avc1')>=0 || s.indexOf('avc3')>=0) return 'h264';
+    return 'unknown';
+  }).catch(function(){ return 'unknown'; });
+}
 function kindIcon(k){ var id = k==='image'?'ic-image':(k==='audio'?'ic-music':'ic-film'); return '<svg class="icon"><use href="#'+id+'"/></svg>'; }
 
 // ── Phone playlist ──
@@ -2230,7 +2272,9 @@ function fileInputChange(e){
   e.target.value='';
   renderPlaylist();
 }
-var MAX_FILE_BYTES = 2*1024*1024*1024;   // hard product limit: 2 GB per file
+// Single source of truth for the upload size limit. Matches the Supabase bucket's
+// configured 2 GB per-file limit — if you change one, change the other.
+var MAX_FILE_BYTES = 2*1024*1024*1024;   // 2 GB per file
 function addToPlaylist(f){
   // Enforced BEFORE any upload begins — oversized files never enter the playlist
   if(f.size > MAX_FILE_BYTES){
@@ -2246,13 +2290,23 @@ function addToPlaylist(f){
   // Containers TV browsers usually can't play — allow, but warn up-front
   if(/\.(mkv|avi|wmv|flv)$/.test(nm)){
     toast('⚠ "'+f.name+'" may not play on TV browsers — MP4 (H.264) is the safe format.');
-  } else if(f.type && /^video\//.test(f.type)){
-    try{
-      var probe = document.createElement('video');
-      if(probe.canPlayType && probe.canPlayType(f.type) === ''){
-        toast('⚠ "'+f.name+'" ('+f.type+') may not play on this or the TV browser — MP4 (H.264) is the safe format.');
+  } else if(f.type && /^video\//.test(f.type) && typeof f.slice === 'function'){
+    // Sniff the real codec (MIME can't distinguish H.264 from HEVC in .mp4/.mov)
+    sniffVideoCodec(f).then(function(codec){
+      if(codec === 'hevc'){
+        toast('⚠ "'+f.name+'" is HEVC/H.265 — most TV browsers can\'t decode it. On iPhone: Settings → Camera → Formats → "Most Compatible" records TV-safe H.264.');
+      } else if(codec === 'av1' || codec === 'vp9'){
+        toast('⚠ "'+f.name+'" uses '+codec.toUpperCase()+' — may not play on older TV browsers. H.264 MP4 is the safe format.');
+      } else if(codec === 'unknown'){
+        try{
+          var probe = document.createElement('video');
+          if(probe.canPlayType && probe.canPlayType(f.type) === ''){
+            toast('⚠ "'+f.name+'" ('+f.type+') may not play on the TV — H.264 MP4 is the safe format.');
+          }
+        }catch(e){}
       }
-    }catch(e){}
+      // 'h264' → TV-safe, no noise
+    });
   }
   playlist.push({ id:'it'+(++plSeq), file:f, name:f.name, kind:mediaKind(f.type,f.name), size:f.size, onTV:false, sent:false });
   return true;
@@ -2601,7 +2655,7 @@ function cloudCastVideo(item, force){
         send({t:'load-hide'});
         // Plan-limit failures deserve a human explanation, not a generic "failed"
         var st = err && err.originalResponse && err.originalResponse.getStatus ? err.originalResponse.getStatus() : 0;
-        if(st === 413){ toast('⚠ File exceeds your storage plan\'s size limit — check the bucket file-size limit in Supabase (free plan caps at 50MB per file).'); }
+        if(st === 413){ toast('⚠ Upload rejected by storage: file exceeds the configured limit. The bucket is set to 2 GB per file — verify the limit in Supabase → Storage → cast bucket.'); }
         reject(err);
       },
       onProgress: function(sent, total){
@@ -2870,6 +2924,7 @@ function wireConn(dc, cid){
 }
 
 function handleData(msg, dc, cid){
+  lastRx = Date.now();   // liveness marker for the staleness watchdog
   if(msg instanceof ArrayBuffer || ArrayBuffer.isView(msg)){
     if(role === 'tv') tvFileChunk(msg);
     return;
@@ -2902,8 +2957,23 @@ function handleData(msg, dc, cid){
     case 'hello': if(role==='tv' && cid){ var he=connections.get(cid); if(he){
         var nm=(msg.name||'').trim();
         if(!nm){ tvDeviceSeq++; nm='Device '+tvDeviceSeq; }   // default when left blank
+        // Reconnect dedup: a returning phone (same name, stale/dead old link) takes
+        // over its previous seat — keeps its Coordinator role and share permission,
+        // and never burns one of the 3 device slots on its own ghost.
+        var wasReconnect = false;
+        connections.forEach(function(old, oldCid){
+          if(oldCid !== cid && old.name === nm && (!old.conn || !old.conn.open)){
+            he.isPrimary = he.isPrimary || old.isPrimary;
+            he.canShare  = (old.canShare !== false);
+            he.accepted  = he.accepted || old.accepted;
+            connections.delete(oldCid);
+            wasReconnect = true;
+          }
+        });
         he.name=nm; connections.set(cid,he);
         tvSendTo(he.conn, {t:'assigned', name:nm});           // tell the phone its final name
+        if(he.isPrimary){ tvSendTo(he.conn, {t:'role', role:'primary'}); }
+        if(wasReconnect && tvPlaying){ flashMessageOnTV('📱 ' + nm + ' reconnected ✓', false); }
         broadcastDevices();
       } } break;
     case 'assigned': if(role==='phone'){ myName = msg.name || myName; } break;
@@ -2996,13 +3066,76 @@ function handleData(msg, dc, cid){
 }
 
 function onConnClose(cid){
-  connections.delete(cid);
   if(role === 'phone'){
-    onDisconnect();
+    // Never give up instantly — Wi-Fi band switches and brief drops are normal.
+    // Try to get back automatically; the ended screen only appears if we truly fail.
+    attemptReconnect();
   } else if(role === 'tv'){
+    var gone = connections.get(cid);
+    connections.delete(cid);
+    // On-TV feedback: name who dropped, and only while something is showing
+    if(gone && gone.accepted && tvPlaying){
+      flashMessageOnTV('📱 ' + (gone.name || 'A phone') + ' lost connection — waiting for it to return…', false);
+    }
     updateCornerQR();   // a device left → maybe re-show the join QR
     broadcastDevices();
   }
+}
+
+// ── Phone auto-reconnect: exponential backoff, re-handshake, clear state feedback ──
+var reconnecting = false, reconnTries = 0, MAX_RECONN = 8;
+function reconnStatus(txt, cls){
+  // Reflect state on whichever pill the user can currently see
+  try{ setPill('phone-cast-status','phone-cast-text',cls,txt); }catch(e){}
+  try{ if($('phone-join-text')) setPill('phone-join-status','phone-join-text',cls,txt); }catch(e){}
+}
+function attemptReconnect(){
+  if(reconnecting || !confirmed || !roomId){ if(!confirmed) onDisconnect(); return; }
+  reconnecting = true; reconnTries = 0;
+  reconnStatus('⟳ Reconnecting to TV…','error');
+  toast('Connection lost — reconnecting…');
+  reconnTick();
+}
+function reconnTick(){
+  if(!reconnecting) return;
+  if(primaryConn && primaryConn.open){ reconnDone(); return; }
+  reconnTries++;
+  if(reconnTries > MAX_RECONN){ reconnecting = false; onDisconnect(); return; }
+  reconnStatus('⟳ Reconnecting to TV… (try '+reconnTries+' of '+MAX_RECONN+')','error');
+  try{
+    if(!peer || peer.destroyed){
+      peer = new Peer(undefined, {config: ICE});
+      peer.on('open', reconnConnect);
+      peer.on('error', function(){ /* next tick retries */ });
+      peer.on('disconnected', function(){ try{ peer.reconnect(); }catch(e){} });
+    } else if(peer.disconnected){
+      try{ peer.reconnect(); }catch(e){}
+      setTimeout(reconnConnect, 700);
+    } else {
+      reconnConnect();
+    }
+  }catch(e){}
+  // Backoff: 1s, 1.7s, 2.9s, 4.9s, 8.4s, then 10s caps — ~45s of patience total
+  setTimeout(reconnTick, Math.min(10000, Math.round(1000 * Math.pow(1.7, reconnTries - 1))));
+}
+function reconnConnect(){
+  if(!reconnecting || (primaryConn && primaryConn.open)) return;
+  try{
+    primaryConn = peer.connect(roomId, {reliable:true});
+    wireConn(primaryConn, 'primary');
+    primaryConn.on('open', function(){
+      // Full re-handshake so the TV re-authorizes this device under its old name
+      send({t:'confirm'});
+      send({t:'hello', name: (myName||'').trim()});
+      reconnDone();
+    });
+  }catch(e){}
+}
+function reconnDone(){
+  if(!reconnecting) return;
+  reconnecting = false; reconnTries = 0;
+  reconnStatus('Connected ✓','streaming');
+  toast('✓ Reconnected to TV');
 }
 
 function onRemoteEnd(){
@@ -3181,10 +3314,22 @@ function openHLS(url){
   var v = $('tv-video');
   $('tv-spinner').classList.add('show');
   function startHls(Hls){
-    var hls = new Hls({enableWorker:true, lowLatencyMode:true});
+    // startLevel:-1 = adaptive bitrate ON from the first segment (hls.js default,
+    // made explicit); capLevelToPlayerSize stops a 720p TV pulling 4K renditions.
+    // lowLatencyMode removed — it's for LL-HLS live streams and hurts VOD.
+    var hls = new Hls({enableWorker:true, autoStartLoad:true, startLevel:-1, capLevelToPlayerSize:true, backBufferLength:60});
     hls.loadSource(url); hls.attachMedia(v);
     hls.on(Hls.Events.MANIFEST_PARSED, function(){ v.muted=false; v.volume=1; v.play().then(function(){ $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); tvBroadcast({t:'ready'}); }).catch(function(){ v.muted=true; v.play().then(function(){ setTimeout(function(){ v.muted=false; },600); $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); }).catch(function(){}); }); });
-    hls.on(Hls.Events.ERROR, function(e,d){ if(d.fatal){ $('tv-spinner').classList.remove('show'); toast('HLS error: '+d.type); tvIdle(); } });
+    // Confirm ABR is actually switching (visible in the TV console)
+    hls.on(Hls.Events.LEVEL_SWITCHED, function(e,d){ console.log('HLS ABR: now at level', d.level); });
+    // Standard hls.js recovery ladder instead of instant give-up
+    var recov = {net:0, media:0};
+    hls.on(Hls.Events.ERROR, function(e,d){
+      if(!d.fatal) return;
+      if(d.type === Hls.ErrorTypes.NETWORK_ERROR && recov.net < 3){ recov.net++; hls.startLoad(); }
+      else if(d.type === Hls.ErrorTypes.MEDIA_ERROR && recov.media < 2){ recov.media++; hls.recoverMediaError(); }
+      else { try{ hls.destroy(); }catch(x){} $('tv-spinner').classList.remove('show'); toast('HLS error: '+d.type); tvIdle(); }
+    });
   }
   if(window.Hls && Hls.isSupported()){
     showOnlyMedia('video'); startHls(window.Hls);
@@ -3194,7 +3339,7 @@ function openHLS(url){
     v.play().then(function(){ $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); tvBroadcast({t:'ready'}); }).catch(function(){});
   } else {
     // Load hls.js on demand
-    var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js';
+    var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js';   // pinned: @latest can break without warning
     s.onload=function(){ showOnlyMedia('video'); startHls(window.Hls); };
     s.onerror=function(){ $('tv-spinner').classList.remove('show'); toast('HLS not supported'); };
     document.head.appendChild(s);
@@ -3207,15 +3352,29 @@ function openDASH(url){
   $('tv-spinner').classList.add('show');
   function startDash(dashjs){
     var player = dashjs.MediaPlayer().create();
+    // Make adaptive bitrate explicit (on by default, but guaranteed here) and
+    // let quality switches apply quickly instead of draining the old buffer.
+    try{
+      player.updateSettings({ streaming: {
+        abr: { autoSwitchBitrate: { video: true, audio: true } },
+        buffer: { fastSwitchEnabled: true }
+      }});
+    }catch(e){}
     player.initialize(v, url, true);
     player.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, function(){ $('tv-spinner').classList.remove('show'); v.muted=false; v.volume=1; playFadeIn(); tvFullscreenAuto(); showTVOverlay(); tvBroadcast({t:'ready'}); });
-    player.on(dashjs.MediaPlayer.events.ERROR, function(e){ $('tv-spinner').classList.remove('show'); toast('DASH error'); tvIdle(); });
+    // Confirm ABR is actually switching (visible in the TV console)
+    player.on(dashjs.MediaPlayer.events.QUALITY_CHANGE_RENDERED, function(e){ console.log('DASH ABR: now at quality', e && e.newQuality); });
+    var retried = false;
+    player.on(dashjs.MediaPlayer.events.ERROR, function(e){
+      if(!retried){ retried = true; try{ player.attachSource(url); return; }catch(x){} }
+      $('tv-spinner').classList.remove('show'); toast('DASH error'); tvIdle();
+    });
   }
   showOnlyMedia('video');
   if(window.dashjs){
     startDash(window.dashjs);
   } else {
-    var s=document.createElement('script'); s.src='https://cdn.dashjs.org/latest/dash.all.min.js';
+    var s=document.createElement('script'); s.src='https://cdn.dashjs.org/v4.7.4/dash.all.min.js';   // pinned: 'latest' can break without warning
     s.onload=function(){ startDash(window.dashjs); };
     s.onerror=function(){ $('tv-spinner').classList.remove('show'); toast('DASH not supported'); };
     document.head.appendChild(s);
@@ -3262,6 +3421,8 @@ function endAll(notify){
   showScreen('screen-ended');
 }
 function resetConn(){
+  reconnecting = false; reconnTries = 0;                       // deliberate end → stop auto-reconnect
+  if(role==='tv'){ try{ localStorage.removeItem('castparty_tv_room'); }catch(e){} }  // next session = fresh code
   cloudCleanup();        // Snapchat-style: delete this session's temp cloud videos
   try{ setPhonePreview(null); }catch(e){}
   cleanupStreamVid();
@@ -3348,17 +3509,28 @@ function toast(msg){ var t=$('toast'); t.textContent=msg; t.classList.add('show'
 
 // ───────── Connection resilience ─────────
 // Re-establish the peer + data connection when returning from another app / unlock.
+// Routes through the full reconnect engine so the TV re-authorizes the device.
 function reviveConnection(){
   if(!confirmed) return;
   try{ if(peer && peer.disconnected && !peer.destroyed){ peer.reconnect(); } }catch(e){}
   if(role==='phone'){
     setTimeout(function(){
-      if((!primaryConn || !primaryConn.open) && peer && !peer.destroyed && roomId){
-        try{ primaryConn = peer.connect(roomId, {reliable:true}); wireConn(primaryConn, 'primary'); }catch(e){}
-      }
+      if((!primaryConn || !primaryConn.open) && roomId){ attemptReconnect(); }
     }, 500);
   }
 }
+// Staleness watchdog: the TV talks constantly (keepalive every 15s, position
+// heartbeat 400ms during playback). If the phone hears NOTHING for 40s the link
+// is dead even though no 'close' event fired (typical of abrupt Wi-Fi drops) —
+// tear it down and reconnect automatically.
+var lastRx = Date.now();
+setInterval(function(){
+  if(role==='phone' && confirmed && !reconnecting && (Date.now() - lastRx) > 40000){
+    lastRx = Date.now();   // don't re-trigger every 10s while reconnecting
+    try{ if(primaryConn) primaryConn.close(); }catch(e){}
+    attemptReconnect();
+  }
+}, 10000);
 document.addEventListener('visibilitychange', function(){
   if(document.visibilityState === 'visible') reviveConnection();
 });
@@ -3378,6 +3550,32 @@ setInterval(function(){
 setInterval(function(){
   if(role==='tv' && tvPlaying){ try{ sendTime(); }catch(e){} }
 }, 400);
+
+// Stall watchdog: smartphone variable-frame-rate video can wedge a TV browser's
+// decoder — the element says "playing" but currentTime stops advancing. Escalate:
+// gentle seek-nudge → reload at the same position → tell the viewer what's wrong.
+// (readyState<2 = normal network buffering, NOT a decoder stall — left alone.)
+var _stallT = -1, _stallN = 0;
+setInterval(function(){
+  if(role!=='tv' || !tvPlaying || tvPlaying.kind!=='video'){ _stallT=-1; _stallN=0; return; }
+  var v = $('tv-video');
+  if(!v || v.paused || v.ended || v.seeking || v.readyState < 2){ _stallT = v ? v.currentTime : -1; return; }
+  if(v.currentTime === _stallT){
+    _stallN++;
+    if(_stallN === 1){ try{ v.currentTime = v.currentTime + 0.1; }catch(e){} }
+    else if(_stallN === 2 && tvPlaying.url){
+      var pos = v.currentTime, u = tvPlaying.url;
+      var bust = u.indexOf('blob:')===0 ? u : u + (u.indexOf('?')>=0 ? '&' : '?') + 's=' + Date.now();
+      v.src = bust;
+      v.addEventListener('loadedmetadata', function(){ try{ v.currentTime = pos; }catch(e){} }, {once:true});
+      autoPlay(v);
+    } else if(_stallN >= 4){
+      flashMessageOnTV('⚠ This video keeps stalling — it may use a format this TV struggles with. H.264 MP4 with a constant frame rate plays best.', false);
+      _stallN = 0;
+    }
+  } else { _stallN = 0; }
+  _stallT = v.currentTime;
+}, 3000);
 
 // ───────── Auto-join from QR ─────────
 (function(){
@@ -3406,7 +3604,9 @@ window.addEventListener('beforeunload', function(){
        • anon public key → paste into SUPABASE_ANON_KEY
   2. Storage → New bucket:
        • Name: cast   • Public bucket: ON
-       • (optional) File size limit: 2 GB   • Allowed MIME: video/*
+       • File size limit: 2 GB  (REQUIRED — must match MAX_FILE_BYTES in the app;
+         per-file limits above 50 MB need a paid Supabase plan)
+       • Allowed MIME: video/*
   3. Storage → Policies → on the 'cast' bucket, add policies for the
      anon role (or "public") allowing INSERT and DELETE. Quick SQL
      (Supabase → SQL Editor):
