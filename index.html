@@ -15,9 +15,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>CastParty — cast & stream to your TV</title>
-  <!-- BUILD 2026-07-04.4 — quiet queueing · tap-to-select playlist · clean idle loop ·
+  <!-- BUILD 2026-07-04.6 — quiet queueing · tap-to-select playlist · clean idle loop ·
        phone-independent playback · no-scroll UI · resilient long-video uploads -->
-  <meta name="castparty-build" content="2026-07-04.4" />
+  <meta name="castparty-build" content="2026-07-04.6" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap" rel="stylesheet" />
@@ -862,6 +862,7 @@
     <div class="section-title">Scan to connect your phone</div>
     <div class="card" style="max-width:460px;margin:0 auto;">
       <img id="qr-img" alt="QR code" />
+      <p id="qr-fail-note" class="hint" style="display:none;">QR code unavailable right now — on your phone, open this same website, choose <strong>Share from Device</strong>, and type in the pairing code below.</p>
       <div class="code-display"><div class="label">PAIRING CODE</div><div class="code" id="tv-code">——</div></div>
       <div id="tv-wait-status" class="status-pill"><span class="dot"></span><span id="tv-wait-text">Waiting for phone…</span></div>
       <p class="hint">Point your phone's <strong>camera</strong> (iPhone or Android) at this QR code, then tap the link.<br>Or choose <em>Share from Device</em> and enter the code above.</p>
@@ -1178,7 +1179,7 @@
 })();
 </script>
 <script>
-var BUILD = '2026-07-04.4';
+var BUILD = '2026-07-04.6';
 console.log('CastParty build ' + BUILD);
 // Clear any stale caches on load
 if('caches' in window){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }
@@ -1217,6 +1218,8 @@ var tvStreamPendingMeta = null; // TV: metadata from stream-start, consumed by t
 // (legacy 40MB stream/cloud routing thresholds removed — every video now routes
 // through cloud storage, and the only size rule is MAX_FILE_BYTES below)
 var scrubbing = false;
+var seekMuteUntil = 0;       // ignore incoming TV positions briefly after a local seek
+var lastPausedGuess = true;  // phone's instant play/pause icon state (confirmed by heartbeat)
 
 /* ═══════════════ SUPABASE EPHEMERAL CLOUD CAST ═══════════════
    Fill these in from your Supabase project (Settings → API).
@@ -1420,7 +1423,15 @@ function goTV(){
   $('tv-code').textContent = roomId;
   drawQR($('qr-img'), location.origin + location.pathname + '?join=' + roomId);
   peer = new Peer(roomId, {config: ICE});
-  peer.on('open', function(){ goTV._retried = false; setPill('tv-wait-status','tv-wait-text','','Waiting for phone…'); });
+  var tvOpened = false;
+  peer.on('open', function(){ tvOpened = true; goTV._retried = false; setPill('tv-wait-status','tv-wait-text','','Waiting for phone…'); });
+  // If the signaling service never answers, say so instead of waiting forever
+  // (Enter/OK on the remote already regenerates the session from this screen)
+  setTimeout(function(){
+    if(role==='tv' && !tvOpened && !confirmed){
+      setPill('tv-wait-status','tv-wait-text','error','Can’t reach the connection service — check the TV’s internet, then press OK / Enter to retry.');
+    }
+  }, 20000);
   peer.on('connection', function(dc){
     var cid = dc.peer || dc.connectionId || ('c'+(Date.now()));
     connections.set(cid, {conn: dc, isPrimary: false});
@@ -1787,7 +1798,14 @@ function playItem(item){
           autoPlay(vv);
         }, 800 * item._retries);
       } else {
-        flashMessageOnTV('⚠ Playback hiccup — tap Refresh on your phone', false);
+        // Retries exhausted (unsupported codec / dead URL). Don't strand the TV on
+        // black: explain, tell the phones, then return to the idle loop so the
+        // session stays fully usable for the next file.
+        flashMessageOnTV('⚠ Couldn’t play “' + (item.name||'this video') + '” — it may use a format this TV can’t decode. H.264 MP4 plays best.', false);
+        tvBroadcast({t:'pberr', name: item.name || ''});
+        setTimeout(function(){
+          if(tvPlaying === item){ tvPlaying = null; if(tvQueue.length > 0){ playNext(); } else { tvEndToIdle(); } broadcastQueue(); }
+        }, 3500);
       }
     };
     showOnlyMedia('video');
@@ -1820,7 +1838,10 @@ function bufferedReveal(el, kind, url, after){
     el.addEventListener('playing', reveal, {once:true});
     autoPlay(el, function(){ /* started; reveal fires on canplaythrough/playing */ });
   }
-  setTimeout(reveal, 4000); // never hang forever
+  // Safety-net: never hang the spinner forever — but if the element is in an
+  // error state, DON'T reveal a black player; the error handler's retry/idle
+  // path owns recovery from here.
+  setTimeout(function(){ if(!(el.error)) reveal(); }, 4000);
 }
 
 function playNext(){
@@ -2701,7 +2722,10 @@ async function transferFile(file, kind, name, id, force){
   if(file.size > 2*1073741824){ toast('Very large file — TV may run low on memory'); }
   send({t:'fstart', id:id||null, force:!!force, name:name||file.name, size:file.size, mime:file.type||'application/octet-stream', kind:kind||mediaKind(file.type,file.name), partyMsg:partyMsg, sender:senderName()});
   var CHUNK = 512*1024;
-  var HIGH = 32*1024*1024;
+  // Keep the send backlog small: control messages (play/pause/seek/volume) share
+  // this ordered channel, so a 32MB chunk queue meant seconds of control lag
+  // during transfers. 6MB keeps the pipe saturated with ~sub-second control latency.
+  var HIGH = 6*1024*1024;
   var DRAIN = HIGH / 4;
   var offset = 0;
   var dc = primaryConn && primaryConn.dataChannel;
@@ -2859,7 +2883,19 @@ var tvVol = 100, tvMuted = false;
 function onVolInput(){
   var el=$('volslider'); tvVol = parseInt(el.value,10);
   if(tvVol>0 && tvMuted){ tvMuted=false; }
-  send({t:'pb', a:'volume', v: tvVol/100});
+  // Throttle to ~1 message per 90ms while dragging (trailing send keeps the final
+  // value exact) — a fast slider drag was flooding the ordered control channel.
+  var now = Date.now();
+  if(!onVolInput._last || now - onVolInput._last >= 90){
+    onVolInput._last = now;
+    send({t:'pb', a:'volume', v: tvVol/100});
+  } else {
+    clearTimeout(onVolInput._t);
+    onVolInput._t = setTimeout(function(){
+      onVolInput._last = Date.now();
+      send({t:'pb', a:'volume', v: tvVol/100});
+    }, 90);
+  }
   updateVolUI();
 }
 function updateVolUI(){
@@ -2897,22 +2933,34 @@ function ctrl(a, val){
     }
     return;
   }
-  // Optimistic preview: reflect the command on the phone's muted preview instantly,
-  // so the mirror feels immediate. The TV heartbeat re-locks exact position moments later.
+  // Optimistic UI: reflect the command on the phone instantly (preview video,
+  // scrubber position, play/pause icon). The TV heartbeat re-locks exact state
+  // moments later; incoming positions are muted briefly after a seek so a stale
+  // pre-seek heartbeat can't snap the scrubber backwards.
   var pv = $('phone-preview');
-  if(pv && phonePreviewKind==='video' && pv.readyState>0){
-    try{
-      switch(a){
-        case 'toggle':  pv.paused ? pv.play().catch(function(){}) : pv.pause(); break;
-        case 'play':    pv.play().catch(function(){}); break;
-        case 'pause':   pv.pause(); break;
-        case 'rewind':  pv.currentTime = Math.max(0, (pv.currentTime||0) - 10); break;
-        case 'forward': pv.currentTime = Math.min(pv.duration||1e9, (pv.currentTime||0) + 10); break;
-        case 'restart': pv.currentTime = 0; pv.play().catch(function(){}); break;
-        case 'seek':    if(val != null) pv.currentTime = val; break;
-      }
-    }catch(e){}
-  }
+  var hasPv = pv && phonePreviewKind==='video' && pv.readyState>0;
+  var optPos = null;
+  try{
+    switch(a){
+      case 'toggle':
+        lastPausedGuess = !lastPausedGuess;
+        setPPIcon($('ph-playpause'), lastPausedGuess);
+        if(hasPv){ pv.paused ? pv.play().catch(function(){}) : pv.pause(); }
+        break;
+      case 'play':  lastPausedGuess=false; setPPIcon($('ph-playpause'), false); if(hasPv) pv.play().catch(function(){}); break;
+      case 'pause': lastPausedGuess=true;  setPPIcon($('ph-playpause'), true);  if(hasPv) pv.pause(); break;
+      case 'rewind':  optPos = Math.max(0, (+scrubEl.value||0) - 10); if(hasPv) pv.currentTime = optPos; break;
+      case 'forward': optPos = Math.min(+scrubEl.max||1e9, (+scrubEl.value||0) + 10); if(hasPv) pv.currentTime = optPos; break;
+      case 'restart': optPos = 0; lastPausedGuess=false; setPPIcon($('ph-playpause'), false); if(hasPv){ pv.currentTime = 0; pv.play().catch(function(){}); } break;
+      case 'seek':    if(val != null){ optPos = val; if(hasPv) pv.currentTime = val; } break;
+    }
+    if(optPos != null && scrubEl && !scrubbing){
+      scrubEl.value = optPos;
+      var mx = +scrubEl.max||0;
+      if(mx){ $('cur-time').textContent = fmt(mx); $('dur-time').textContent = '-'+fmt(Math.max(0, mx-optPos)); }
+      seekMuteUntil = Date.now() + 1200;   // ignore stale positions until the TV echoes the seek
+    }
+  }catch(e){}
   if(a === 'seek'){ send({t:'pb', a:'seek', v:val}); return; }
   send({t:'pb', a:a, v:val});
 }
@@ -3061,6 +3109,11 @@ function handleData(msg, dc, cid){
     case 'flashmsg': if(role==='tv') flashMessageOnTV(msg.text||'', !!msg.hold); break;
     case 'flashclear': if(role==='tv') clearFlashOnTV(); break;
     case 'queue': if(role==='phone') onQueue(msg); break;
+    case 'pberr': if(role==='phone'){
+      setCastLive(false);
+      setPill('phone-cast-status','phone-cast-text','error','⚠ TV couldn’t play ' + (msg.name || 'that file'));
+      toast('⚠ The TV couldn’t play "' + (msg.name || 'that file') + '" — it may be an unsupported format. Try another file, or re-export it as H.264 MP4.');
+    } break;
     case 'end': onRemoteEnd(); break;
   }
 }
@@ -3185,16 +3238,19 @@ function setPhonePreview(opts){
 
 function onTime(m){
   if(!scrubEl) return;
+  // A heartbeat sent BEFORE the TV applied our seek would snap everything
+  // backwards — mute incoming positions briefly after any local seek.
+  var seekMuted = Date.now() < seekMuteUntil;
   // Mirror TV playback position in the phone's muted preview
   // Single-player lock: the muted preview is a strict slave to the TV's position.
   var pv=$('phone-preview');
   if(phonePreviewKind==='video' && pv && pv.readyState>0 && !scrubbing){
     if(m.paused){
       if(!pv.paused) pv.pause();
-      if(m.dur && Math.abs((pv.currentTime||0)-m.ct) > 0.10){ try{ pv.currentTime=m.ct; }catch(e){} }   // freeze on TV frame
+      if(!seekMuted && m.dur && Math.abs((pv.currentTime||0)-m.ct) > 0.10){ try{ pv.currentTime=m.ct; }catch(e){} }   // freeze on TV frame
     } else {
       if(pv.paused) pv.play().catch(function(){});
-      if(m.dur && Math.abs((pv.currentTime||0)-m.ct) > 0.25){ try{ pv.currentTime=m.ct; }catch(e){} }   // keep locked to TV
+      if(!seekMuted && m.dur && Math.abs((pv.currentTime||0)-m.ct) > 0.25){ try{ pv.currentTime=m.ct; }catch(e){} }   // keep locked to TV
     }
   }
   // images have no timeline — hide scrubber
@@ -3202,10 +3258,15 @@ function onTime(m){
   else if(currentSource==='file'){ $('scrub-wrap').style.display='flex'; }
   var dur = (isFinite(m.dur) && m.dur > 0) ? m.dur : 0;
   var ct  = (isFinite(m.ct)  && m.ct  >= 0) ? m.ct  : 0;
-  if(!scrubbing && dur){ scrubEl.max = dur; scrubEl.value = Math.min(ct, dur); }
-  // Left = total length; Right = countdown to zero (time remaining)
-  $('cur-time').textContent = dur ? fmt(dur) : '·:··';
-  $('dur-time').textContent = dur ? '-'+fmt(Math.max(0, dur-ct)) : '·:··';
+  if(!scrubbing && !seekMuted && dur){
+    scrubEl.max = dur; scrubEl.value = Math.min(ct, dur);
+    // Left = total length; Right = countdown to zero (time remaining)
+    $('cur-time').textContent = fmt(dur);
+    $('dur-time').textContent = '-'+fmt(Math.max(0, dur-ct));
+  } else if(!dur){
+    $('cur-time').textContent = '·:··'; $('dur-time').textContent = '·:··';
+  }
+  lastPausedGuess = !!m.paused;                 // TV state is the truth — confirm the guess
   setPPIcon($('ph-playpause'), m.paused);
   $('ph-loop').classList.toggle('on', !!m.loop);
 }
@@ -3497,10 +3558,14 @@ function drawQR(img,url){
   // Primary + live fallback QR services (the old chart.googleapis.com fallback is
   // shut down). If both fail, hide the broken image — the pairing code still works.
   img.onerror = function(){
-    img.onerror = function(){ img.style.display='none'; };
+    img.onerror = function(){
+      img.style.display='none';
+      var n = $('qr-fail-note'); if(n) n.style.display='block';   // guide to code entry
+    };
     img.src = 'https://quickchart.io/qr?size=210&text=' + encodeURIComponent(url);
   };
   img.style.display = '';
+  var n0 = $('qr-fail-note'); if(n0) n0.style.display='none';
   img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=210x210&margin=0&data=' + encodeURIComponent(url);
 }
 function formatBytes(b){ if(b<1048576) return (b/1024).toFixed(1)+' KB'; if(b<1073741824) return (b/1048576).toFixed(1)+' MB'; return (b/1073741824).toFixed(2)+' GB'; }
@@ -3536,6 +3601,16 @@ document.addEventListener('visibilitychange', function(){
 });
 window.addEventListener('focus', reviveConnection);
 window.addEventListener('online', reviveConnection);
+// TV-side network feedback: name the problem while it's happening, recover quietly
+window.addEventListener('offline', function(){
+  if(role==='tv'){ flashMessageOnTV('⚠ The TV lost its internet connection — playback may pause soon. Check the TV’s Wi-Fi.', false); }
+});
+window.addEventListener('online', function(){
+  if(role==='tv'){
+    flashMessageOnTV('✓ TV back online', false);
+    try{ if(peer && peer.disconnected && !peer.destroyed) peer.reconnect(); }catch(e){}
+  }
+});
 // Lightweight keepalive so the data channel doesn't idle-close during long playback
 setInterval(function(){
   try{
