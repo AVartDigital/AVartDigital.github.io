@@ -15,9 +15,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>CastParty — cast & stream to your TV</title>
-  <!-- BUILD 2026-07-03.2 — quiet queueing · tap-to-select playlist · clean idle loop ·
+  <!-- BUILD 2026-07-04.3 — quiet queueing · tap-to-select playlist · clean idle loop ·
        phone-independent playback · no-scroll UI · resilient long-video uploads -->
-  <meta name="castparty-build" content="2026-07-03.2" />
+  <meta name="castparty-build" content="2026-07-04.3" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap" rel="stylesheet" />
@@ -101,7 +101,7 @@
     #screen-home.active { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
     /* Image layer: cover the entire viewport regardless of #app width */
     #screen-home.active::before {
-      content: ''; position: fixed; inset: 0; z-index: -2;
+      content: ''; position: fixed; top: 0; right: 0; bottom: 0; left: 0; inset: 0; z-index: -2;
       background: radial-gradient(120% 90% at 50% 0%, #12202e 0%, #0a121b 45%, #05080c 100%);
       background-position: center center;
       background-size: cover;            /* fills width AND height, crops overflow → never any black bars */
@@ -110,7 +110,7 @@
     }
     /* Scrim layer: dark gradient over the image so text/cards stay legible */
     #screen-home.active::after {
-      content: ''; position: fixed; inset: 0; z-index: -1;
+      content: ''; position: fixed; top: 0; right: 0; bottom: 0; left: 0; inset: 0; z-index: -1;
       background: linear-gradient(180deg, rgba(7,10,17,0.55) 0%, rgba(7,10,17,0.62) 50%, rgba(7,10,17,0.82) 100%);
     }
     #screen-tv-wait.active { display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -238,17 +238,24 @@
     body.tv-playing .tv-monitor-outer { padding: 0; border-radius: 0; border: none; background: #000; box-shadow: none; }
     body.tv-playing .tv-monitor-outer::before { display: none; }
     body.tv-playing #tv-stage { aspect-ratio: unset; width: 100vw; height: 100dvh; border-radius: 0; }
+    /* Older TV engines without aspect-ratio: keep the 16:9 stage via padding hack
+       (its children are absolutely positioned, so height-from-padding works) */
+    @supports not (aspect-ratio: 16/9) {
+      #tv-stage { height: 0; padding-top: 56.25%; }
+      body.tv-playing #tv-stage { height: 100vh; padding-top: 0; }
+      .home-card { min-height: 160px; }
+    }
     #tv-stage.idle { background: #05080c; }
-    #tv-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
-    #tv-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
-    #tv-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: #000; }
-    #tv-yt    { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; }
+    #tv-video { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
+    #tv-image { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
+    #tv-iframe { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: #000; }
+    #tv-yt    { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; width: 100%; height: 100%; border: 0; display: none; }
 
     /* Audio visualizer stage */
-    #tv-audio-stage { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; overflow: hidden;
+    #tv-audio-stage { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; display: none; align-items: center; justify-content: center; overflow: hidden;
       background: radial-gradient(ellipse 120% 90% at 50% 30%, #16243a 0%, #0b101a 70%, #070a11 100%); }
     #tv-audio-stage.show { display: flex; }
-    #tv-viz { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #tv-viz { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; width: 100%; height: 100%; }
     #tv-party-msg {
       position: relative; z-index: 4; text-align: center; padding: 0 6%;
       font-weight: 900; letter-spacing: 1px; line-height: 1.1;
@@ -259,7 +266,7 @@
     }
     #tv-audio-note { position: absolute; bottom: 8%; left: 0; right: 0; z-index:4; text-align: center; color: var(--muted); font-size: 14px; letter-spacing: 2px; }
     #tv-play-overlay {
-      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;
+      position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;
     }
     /* When shown (autoplay blocked / paused) the button is tappable/clickable */
     #tv-play-overlay:not(.hidden) .pbtn { pointer-events: auto; cursor: pointer; }
@@ -273,7 +280,7 @@
     #tv-play-overlay.hidden { display: none; }
 
     /* Transfer progress */
-    #tv-transfer { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10;
+    #tv-transfer { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10;
       background: radial-gradient(ellipse 90% 70% at 50% 50%, rgba(13,26,42,0.92), rgba(4,8,14,0.96)); }
     #tv-transfer.show { display: flex; }
     #tv-transfer .xfer-title { font-size: clamp(16px,2.4vw,24px); font-weight: 800; letter-spacing: 4px; text-transform: uppercase; color: var(--gold-soft); text-shadow: 0 0 18px rgba(109,184,255,0.6); margin-bottom: 18px; animation: pulse 1.4s ease-in-out infinite; }
@@ -295,14 +302,14 @@
     /* TV fade-in overlay */
     /* ═══ Idle overlay: looping wave lines + AWAITING CONNECTION ═══ */
     #tv-idle {
-      position: absolute; inset: 0; z-index: 9; pointer-events: none;
+      position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; z-index: 9; pointer-events: none;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vh;
       opacity: 0; transition: opacity .5s ease; overflow: hidden;
     }
     #tv-stage.idle #tv-idle { opacity: 1; }          /* visible ONLY when idle */
     /* Looping 4K video background behind the waves + text */
-    #tv-idle-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
-    #tv-idle::after { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    #tv-idle-video { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+    #tv-idle::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; z-index: 1; pointer-events: none;
       background: linear-gradient(180deg, rgba(7,10,17,0.35), rgba(7,10,17,0.55)); }  /* scrim for text legibility */
     .idle-wave {
       position: absolute; left: -50%; width: 200%; height: 22vh; z-index: 2;
@@ -330,7 +337,7 @@
       50%     { text-shadow: 0 1px 0 #bcd8ff, 0 2px 0 #9cc4f5, 0 3px 6px rgba(0,0,0,0.55), 0 0 14px #fff, 0 0 34px #add3fd, 0 0 68px rgba(173,211,253,0.95); }
     }
 
-    #tv-fade { position: absolute; inset: 0; background: #000; z-index: 30; opacity: 0; pointer-events: none; transition: opacity 1s ease; }
+    #tv-fade { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; background: #000; z-index: 30; opacity: 0; pointer-events: none; transition: opacity 1s ease; }
     /* "Casting from NAME" banner — auto-shows 4s at the start of each file */
     #tv-caster { position: absolute; top: 5%; left: 0; right: 0; display: flex; justify-content: center; z-index: 26; opacity: 0; pointer-events: none; transition: opacity .5s ease; }
     #tv-caster.show { opacity: 1; }
@@ -366,7 +373,7 @@
 
     /* TV floating overlay */
     #tv-overlay {
-      position: absolute; inset: 0; display: flex; flex-direction: column;
+      position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; display: flex; flex-direction: column;
       align-items: center; justify-content: flex-end; padding-bottom: 40px;
       pointer-events: none; opacity: 0; transition: opacity .35s; z-index: 20;
     }
@@ -398,7 +405,7 @@
     #tv-overlay .ov-btn.on { color: var(--gold); }
     #tv-overlay .ov-end { background: rgba(255,80,80,0.18); border: 1px solid rgba(255,100,100,0.3); color: var(--danger); font-size: 16px; padding: 10px 14px; border-radius: 10px; margin-left: 8px; }
 
-    #tv-spinner { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(6,8,6,0.7); z-index: 15; }
+    #tv-spinner { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(6,8,6,0.7); z-index: 15; }
     #tv-spinner.show { display: flex; }
     #tv-spinner .spin-ring { width: 64px; height: 64px; border: 5px solid rgba(255,255,255,0.12); border-top-color: var(--gold); border-radius: 50%; animation: spin .9s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -448,7 +455,7 @@
     }
     #remote-fab.show { display: flex; }
     #remote-fab .fab-glyph { font-size: 26px; line-height: 1; filter: drop-shadow(0 0 6px rgba(109,184,255,0.8)); }
-    #remote-fab .fab-ring { position: absolute; inset: 6px; border-radius: 50%; border: 1px dashed rgba(109,184,255,0.45); animation: fabspin 8s linear infinite; }
+    #remote-fab .fab-ring { position: absolute; top: 6px; right: 6px; bottom: 6px; left: 6px; inset: 6px; border-radius: 50%; border: 1px dashed rgba(109,184,255,0.45); animation: fabspin 8s linear infinite; }
     @keyframes fabspin { to { transform: rotate(360deg); } }
     #remote-fab:active { transform: scale(0.92); }
 
@@ -592,7 +599,7 @@
     #source-collapse .source-grid { padding: 0 12px 12px; margin-bottom: 0; }
 
     /* Confirm modal */
-    .modal-backdrop { position: fixed; inset: 0; z-index: 4000; display: none; align-items: center; justify-content: center; padding: 24px;
+    .modal-backdrop { position: fixed; top: 0; right: 0; bottom: 0; left: 0; inset: 0; z-index: 4000; display: none; align-items: center; justify-content: center; padding: 24px;
       background: rgba(4,8,14,0.72); backdrop-filter: blur(6px); }
     .modal-backdrop.show { display: flex; }
     .modal-card { width: 100%; max-width: 380px; text-align: center; padding: 26px 22px;
@@ -636,8 +643,8 @@
     #screen-phone-cast.active { padding-bottom: 96px; }
     /* Live preview mirror on the phone */
     #phone-preview-wrap { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 14px; overflow: hidden; background: #05080d; border: 1px solid var(--edge); box-shadow: 0 0 30px rgba(109,184,255,0.15), inset 0 0 0 1px rgba(109,184,255,0.06); margin-bottom: 14px; }
-    #phone-preview, #phone-preview-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #05080d; display: none; }
-    #phone-preview-none { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--gold-soft); font-weight: 700; letter-spacing: 1px; font-size: clamp(14px,3.6vw,20px); text-shadow: 0 0 16px rgba(109,184,255,0.5); }
+    #phone-preview, #phone-preview-img { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #05080d; display: none; }
+    #phone-preview-none { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--gold-soft); font-weight: 700; letter-spacing: 1px; font-size: clamp(14px,3.6vw,20px); text-shadow: 0 0 16px rgba(109,184,255,0.5); }
     #phone-preview-tag { position: absolute; top: 8px; left: 8px; z-index: 3; font-size: 10px; letter-spacing: 2px; font-weight: 800; color: var(--gold-soft); background: rgba(8,14,24,0.7); border: 1px solid var(--edge); padding: 3px 8px; border-radius: 20px; }
     .pl-item.selected { border-color: var(--gold); background: rgba(109,184,255,0.15); box-shadow: 0 0 0 2px rgba(109,184,255,0.3); }
 
@@ -906,7 +913,9 @@
           <div id="tv-devices-chip"></div>
           <!-- Idle overlay: the looping Player 3 background video IS the idle art -->
           <div id="tv-idle" aria-hidden="true">
-            <video id="tv-idle-video" src="./Player%203%20loop.mp4?v=2" autoplay loop muted playsinline webkit-playsinline preload="auto"></video>
+            <!-- 1080p H.264 level-4.0 encode: decodes on far more TV browsers than the 4K
+                 original, loads 4× faster, and is indistinguishable as a background -->
+            <video id="tv-idle-video" src="./Player%203%20loop%201080.mp4?v=1" autoplay loop muted playsinline webkit-playsinline preload="auto"></video>
           </div>
           <div id="tv-fade"></div>
           <div id="tv-overlay">
@@ -1147,7 +1156,29 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-var BUILD = '2026-07-03.2';
+/* ES5-ONLY PRE-FLIGHT — deliberately kept in its own script block BEFORE the main
+   app script. On TV engines too old to parse the main script (async/await needs
+   Chromium 55+), this block still runs and shows a friendly explanation instead
+   of a silent dead page. Do not use modern syntax in this block. */
+(function(){
+  var okRTC = !!(window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection);
+  var okSyntax = true;
+  try { new Function('async function _t(){ await 0; }'); } catch (e) { okSyntax = false; }
+  if (okRTC && okSyntax) return;
+  var show = function(){
+    var d = document.createElement('div');
+    d.setAttribute('style', 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#05080c;color:#dce8f5;font-family:Arial,sans-serif;text-align:center;padding:10% 8% 0 8%;');
+    d.innerHTML = '<div style="font-size:28px;font-weight:bold;margin-bottom:16px;">This browser is a little too old for CastParty</div>' +
+      '<div style="font-size:18px;line-height:1.7;color:#9fb3c8;">' +
+      (okRTC ? '' : 'It does not support the screen-to-screen connection (WebRTC) that CastParty needs.<br>') +
+      'Please try the browser on a 2018-or-newer smart TV, or open this page in Chrome, Edge, Safari or Firefox on a device connected to your TV.</div>';
+    document.body.appendChild(d);
+  };
+  if (document.body) { show(); } else { document.addEventListener('DOMContentLoaded', show); }
+})();
+</script>
+<script>
+var BUILD = '2026-07-04.3';
 console.log('CastParty build ' + BUILD);
 // Clear any stale caches on load
 if('caches' in window){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }
@@ -1183,7 +1214,8 @@ var rx = null; // current receive state
 var streamVid = null;        // hidden source video (phone side, stream mode)
 var streamSyncIv = null;     // interval for scrubber sync in stream mode
 var tvStreamPendingMeta = null; // TV: metadata from stream-start, consumed by tvShowStream
-var STREAM_THRESHOLD = 40 * 1024 * 1024; // 40 MB — files larger than this are streamed (no receiver RAM buffering)
+// (legacy 40MB stream/cloud routing thresholds removed — every video now routes
+// through cloud storage, and the only size rule is MAX_FILE_BYTES below)
 var scrubbing = false;
 
 /* ═══════════════ SUPABASE EPHEMERAL CLOUD CAST ═══════════════
@@ -1194,7 +1226,6 @@ var scrubbing = false;
 var SUPABASE_URL      = 'https://pbmazmlzxwqsysozxxpe.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBibWF6bWx6eHdxc3lzb3p4eHBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1OTc2ODAsImV4cCI6MjA5ODE3MzY4MH0.vbkKogJZ2bcuUpp7HK3pPZCZFV2rZEOqNLTB_AhZeCo';
 var SUPABASE_BUCKET   = 'cast';
-var CLOUD_THRESHOLD   = 40 * 1024 * 1024; // videos ≥40MB go to cloud when enabled
 function cloudEnabled(){ return !!(SUPABASE_URL && SUPABASE_ANON_KEY); }
 var sessionUploads = [];   // object paths uploaded this session (for cleanup)
 var tusLoaded = false;
@@ -1369,13 +1400,27 @@ function showUnsupported(){
 function goTV(){
   if(!webrtcSupported()){ role='tv'; showUnsupported(); return; }
   role = 'tv';
-  roomId = genCode();
+  if(typeof Peer === 'undefined'){   // CDN failed / blocked — say so instead of dying silently
+    showScreen('screen-tv-wait');
+    setPill('tv-wait-status','tv-wait-text','error','Couldn’t load the casting engine — check the TV’s internet connection and reload this page.');
+    return;
+  }
+  // Stable session code: reuse the same code (and therefore the same QR payload)
+  // across TV page reloads for up to 6 hours. A slow TV browser that reloads, or a
+  // deliberate refresh, keeps its identity — phones auto-reconnect to the same code.
+  roomId = null;
+  try{
+    var savedRoom = JSON.parse(localStorage.getItem('castparty_tv_room') || 'null');
+    if(savedRoom && savedRoom.code && (Date.now() - savedRoom.ts) < 6*3600*1000){ roomId = savedRoom.code; }
+  }catch(e){}
+  if(!roomId) roomId = genCode();
+  try{ localStorage.setItem('castparty_tv_room', JSON.stringify({code: roomId, ts: Date.now()})); }catch(e){}
   tvDeviceSeq = 0;
   showScreen('screen-tv-wait');
   $('tv-code').textContent = roomId;
   drawQR($('qr-img'), location.origin + location.pathname + '?join=' + roomId);
   peer = new Peer(roomId, {config: ICE});
-  peer.on('open', function(){ setPill('tv-wait-status','tv-wait-text','','Waiting for phone…'); });
+  peer.on('open', function(){ goTV._retried = false; setPill('tv-wait-status','tv-wait-text','','Waiting for phone…'); });
   peer.on('connection', function(dc){
     var cid = dc.peer || dc.connectionId || ('c'+(Date.now()));
     connections.set(cid, {conn: dc, isPrimary: false});
@@ -1391,8 +1436,23 @@ function goTV(){
     incoming.on('stream', function(rs){ tvShowStream(rs); });
     incoming.on('close', function(){ setPill('tv-wait-status','tv-wait-text','error','Stream ended'); });
   });
-  peer.on('error', function(e){ toast('Connection error: ' + e.type); });
-  peer.on('disconnected', function(){ try{ peer.reconnect(); }catch(e){} });
+  peer.on('error', function(e){
+    if(e.type === 'unavailable-id'){
+      // Saved code is still registered on the signaling server (e.g. quick reload).
+      // Regenerate once with a fresh code instead of dying.
+      try{ localStorage.removeItem('castparty_tv_room'); }catch(x){}
+      if(!goTV._retried){ goTV._retried = true; try{ peer.destroy(); }catch(x){} setTimeout(goTV, 300); return; }
+    }
+    if(e.type === 'network' || e.type === 'server-error' || e.type === 'socket-error'){
+      setPill('tv-wait-status','tv-wait-text','error','Network hiccup — reconnecting…');
+    } else {
+      toast('Connection error: ' + e.type);
+    }
+  });
+  peer.on('disconnected', function(){
+    setPill('tv-wait-status','tv-wait-text','error','Reconnecting to network…');
+    try{ peer.reconnect(); }catch(e){}
+  });
 }
 
 function countAccepted(){ var n=0; connections.forEach(function(e){ if(e.accepted) n++; }); return n; }
@@ -1853,8 +1913,18 @@ function tvFadeOutThen(cb){
 // "needs a tap on the TV" problem that desynced phone↔TV playback.
 function autoPlay(el, onok){
   el.muted = true;
-  // restore to the current TV volume (not hard 1) so the phone's volume setting sticks
-  var run = function(){ if(onok) onok(); setTimeout(function(){ try{ el.volume = tvVolume; el.muted = (tvVolume===0); }catch(e){} }, 400); };
+  // restore to the current TV volume (not hard 1) so the phone's volume setting sticks.
+  // Some TV builds silently PAUSE when unmuted without a gesture — detect that,
+  // resume muted, and surface the tap-to-play overlay instead of freezing.
+  var run = function(){ if(onok) onok(); setTimeout(function(){
+    try{ el.volume = tvVolume; el.muted = (tvVolume===0); }catch(e){}
+    setTimeout(function(){
+      if(el.paused && !el.ended){
+        try{ el.muted = true; el.play().catch(function(){}); }catch(e){}
+        $('tv-play-overlay').classList.remove('hidden');
+      }
+    }, 300);
+  }, 400); };
   var p;
   try{ p = el.play(); }catch(e){ p = null; }
   if(p && p.then){ p.then(run).catch(function(){
@@ -2104,6 +2174,10 @@ function phoneConnect(){
 }
 function startPhonePeer(code){
   if(!webrtcSupported()){ role='phone'; showUnsupported(); return; }
+  if(typeof Peer === 'undefined'){
+    toast('Couldn’t load the casting engine — check your internet connection and reload.');
+    return;
+  }
   role = 'phone'; roomId = code;
   $('phone-join-status').style.display = 'inline-flex';
   $('phone-join-spinner').style.display = 'block';
@@ -2126,7 +2200,8 @@ function startPhonePeer(code){
       toast('No TV found for code '+code+'. Check the code and that the TV screen is on.');
     } else if(e.type === 'network' || e.type === 'server-error' || e.type === 'socket-error'){
       setPill('phone-join-status','phone-join-text','error','Network issue — retrying…');
-      toast('Network issue. Make sure both devices are on the same Wi-Fi.');
+      if(confirmed){ attemptReconnect(); }   // mid-session drop → automatic recovery
+      else { toast('Network issue. Make sure both devices are on the same Wi-Fi.'); }
     } else {
       toast('Error: '+e.type+'. Check code / Wi-Fi.');
     }
@@ -2180,12 +2255,31 @@ function fileInputChange(e){
   e.target.value='';
   renderPlaylist();
 }
-var MAX_FILE_BYTES = 2*1024*1024*1024;   // hard product limit: 2 GB per file
+// Single source of truth for the upload size limit. Matches the Supabase bucket's
+// configured 2 GB per-file limit — if you change one, change the other.
+var MAX_FILE_BYTES = 2*1024*1024*1024;   // 2 GB per file
 function addToPlaylist(f){
   // Enforced BEFORE any upload begins — oversized files never enter the playlist
   if(f.size > MAX_FILE_BYTES){
     toast('This file is too large. Please choose a file under 2 GB.');
     return false;
+  }
+  var nm = (f.name||'').toLowerCase();
+  // HEIC/HEIF photos (iPhone default) cannot be displayed by TV browsers at all — block
+  if(/\.(heic|heif)$/.test(nm) || /image\/hei[cf]/.test(f.type||'')){
+    toast('iPhone HEIC photos can’t be shown on TVs — please convert "'+f.name+'" to JPEG first (or change iPhone camera settings to "Most Compatible").');
+    return false;
+  }
+  // Containers TV browsers usually can't play — allow, but warn up-front
+  if(/\.(mkv|avi|wmv|flv)$/.test(nm)){
+    toast('⚠ "'+f.name+'" may not play on TV browsers — MP4 (H.264) is the safe format.');
+  } else if(f.type && /^video\//.test(f.type)){
+    try{
+      var probe = document.createElement('video');
+      if(probe.canPlayType && probe.canPlayType(f.type) === ''){
+        toast('⚠ "'+f.name+'" ('+f.type+') may not play on this or the TV browser — MP4 (H.264) is the safe format.');
+      }
+    }catch(e){}
   }
   playlist.push({ id:'it'+(++plSeq), file:f, name:f.name, kind:mediaKind(f.type,f.name), size:f.size, onTV:false, sent:false });
   return true;
@@ -2534,7 +2628,7 @@ function cloudCastVideo(item, force){
         send({t:'load-hide'});
         // Plan-limit failures deserve a human explanation, not a generic "failed"
         var st = err && err.originalResponse && err.originalResponse.getStatus ? err.originalResponse.getStatus() : 0;
-        if(st === 413){ toast('⚠ File exceeds your storage plan\'s size limit — check the bucket file-size limit in Supabase (free plan caps at 50MB per file).'); }
+        if(st === 413){ toast('⚠ Upload rejected by storage: file exceeds the configured limit. The bucket is set to 2 GB per file — verify the limit in Supabase → Storage → cast bucket.'); }
         reject(err);
       },
       onProgress: function(sent, total){
@@ -2803,6 +2897,7 @@ function wireConn(dc, cid){
 }
 
 function handleData(msg, dc, cid){
+  lastRx = Date.now();   // liveness marker for the staleness watchdog
   if(msg instanceof ArrayBuffer || ArrayBuffer.isView(msg)){
     if(role === 'tv') tvFileChunk(msg);
     return;
@@ -2835,8 +2930,23 @@ function handleData(msg, dc, cid){
     case 'hello': if(role==='tv' && cid){ var he=connections.get(cid); if(he){
         var nm=(msg.name||'').trim();
         if(!nm){ tvDeviceSeq++; nm='Device '+tvDeviceSeq; }   // default when left blank
+        // Reconnect dedup: a returning phone (same name, stale/dead old link) takes
+        // over its previous seat — keeps its Coordinator role and share permission,
+        // and never burns one of the 3 device slots on its own ghost.
+        var wasReconnect = false;
+        connections.forEach(function(old, oldCid){
+          if(oldCid !== cid && old.name === nm && (!old.conn || !old.conn.open)){
+            he.isPrimary = he.isPrimary || old.isPrimary;
+            he.canShare  = (old.canShare !== false);
+            he.accepted  = he.accepted || old.accepted;
+            connections.delete(oldCid);
+            wasReconnect = true;
+          }
+        });
         he.name=nm; connections.set(cid,he);
         tvSendTo(he.conn, {t:'assigned', name:nm});           // tell the phone its final name
+        if(he.isPrimary){ tvSendTo(he.conn, {t:'role', role:'primary'}); }
+        if(wasReconnect && tvPlaying){ flashMessageOnTV('📱 ' + nm + ' reconnected ✓', false); }
         broadcastDevices();
       } } break;
     case 'assigned': if(role==='phone'){ myName = msg.name || myName; } break;
@@ -2929,13 +3039,76 @@ function handleData(msg, dc, cid){
 }
 
 function onConnClose(cid){
-  connections.delete(cid);
   if(role === 'phone'){
-    onDisconnect();
+    // Never give up instantly — Wi-Fi band switches and brief drops are normal.
+    // Try to get back automatically; the ended screen only appears if we truly fail.
+    attemptReconnect();
   } else if(role === 'tv'){
+    var gone = connections.get(cid);
+    connections.delete(cid);
+    // On-TV feedback: name who dropped, and only while something is showing
+    if(gone && gone.accepted && tvPlaying){
+      flashMessageOnTV('📱 ' + (gone.name || 'A phone') + ' lost connection — waiting for it to return…', false);
+    }
     updateCornerQR();   // a device left → maybe re-show the join QR
     broadcastDevices();
   }
+}
+
+// ── Phone auto-reconnect: exponential backoff, re-handshake, clear state feedback ──
+var reconnecting = false, reconnTries = 0, MAX_RECONN = 8;
+function reconnStatus(txt, cls){
+  // Reflect state on whichever pill the user can currently see
+  try{ setPill('phone-cast-status','phone-cast-text',cls,txt); }catch(e){}
+  try{ if($('phone-join-text')) setPill('phone-join-status','phone-join-text',cls,txt); }catch(e){}
+}
+function attemptReconnect(){
+  if(reconnecting || !confirmed || !roomId){ if(!confirmed) onDisconnect(); return; }
+  reconnecting = true; reconnTries = 0;
+  reconnStatus('⟳ Reconnecting to TV…','error');
+  toast('Connection lost — reconnecting…');
+  reconnTick();
+}
+function reconnTick(){
+  if(!reconnecting) return;
+  if(primaryConn && primaryConn.open){ reconnDone(); return; }
+  reconnTries++;
+  if(reconnTries > MAX_RECONN){ reconnecting = false; onDisconnect(); return; }
+  reconnStatus('⟳ Reconnecting to TV… (try '+reconnTries+' of '+MAX_RECONN+')','error');
+  try{
+    if(!peer || peer.destroyed){
+      peer = new Peer(undefined, {config: ICE});
+      peer.on('open', reconnConnect);
+      peer.on('error', function(){ /* next tick retries */ });
+      peer.on('disconnected', function(){ try{ peer.reconnect(); }catch(e){} });
+    } else if(peer.disconnected){
+      try{ peer.reconnect(); }catch(e){}
+      setTimeout(reconnConnect, 700);
+    } else {
+      reconnConnect();
+    }
+  }catch(e){}
+  // Backoff: 1s, 1.7s, 2.9s, 4.9s, 8.4s, then 10s caps — ~45s of patience total
+  setTimeout(reconnTick, Math.min(10000, Math.round(1000 * Math.pow(1.7, reconnTries - 1))));
+}
+function reconnConnect(){
+  if(!reconnecting || (primaryConn && primaryConn.open)) return;
+  try{
+    primaryConn = peer.connect(roomId, {reliable:true});
+    wireConn(primaryConn, 'primary');
+    primaryConn.on('open', function(){
+      // Full re-handshake so the TV re-authorizes this device under its old name
+      send({t:'confirm'});
+      send({t:'hello', name: (myName||'').trim()});
+      reconnDone();
+    });
+  }catch(e){}
+}
+function reconnDone(){
+  if(!reconnecting) return;
+  reconnecting = false; reconnTries = 0;
+  reconnStatus('Connected ✓','streaming');
+  toast('✓ Reconnected to TV');
 }
 
 function onRemoteEnd(){
@@ -3195,6 +3368,8 @@ function endAll(notify){
   showScreen('screen-ended');
 }
 function resetConn(){
+  reconnecting = false; reconnTries = 0;                       // deliberate end → stop auto-reconnect
+  if(role==='tv'){ try{ localStorage.removeItem('castparty_tv_room'); }catch(e){} }  // next session = fresh code
   cloudCleanup();        // Snapchat-style: delete this session's temp cloud videos
   try{ setPhonePreview(null); }catch(e){}
   cleanupStreamVid();
@@ -3265,24 +3440,44 @@ document.addEventListener('DOMContentLoaded', function(){
 // ───────── Helpers ─────────
 function genCode(){ return Math.floor(100000 + Math.random()*900000).toString(); }
 function setPill(p,t,c,txt){ $(p).className='status-pill'+(c?' '+c:''); $(t).textContent=txt; }
-function drawQR(img,url){ img.onerror=function(){ img.src='https://chart.googleapis.com/chart?chs=210x210&cht=qr&chl='+encodeURIComponent(url)+'&choe=UTF-8'; }; img.src='https://api.qrserver.com/v1/create-qr-code/?size=210x210&margin=0&data='+encodeURIComponent(url); }
+function drawQR(img,url){
+  // Primary + live fallback QR services (the old chart.googleapis.com fallback is
+  // shut down). If both fail, hide the broken image — the pairing code still works.
+  img.onerror = function(){
+    img.onerror = function(){ img.style.display='none'; };
+    img.src = 'https://quickchart.io/qr?size=210&text=' + encodeURIComponent(url);
+  };
+  img.style.display = '';
+  img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=210x210&margin=0&data=' + encodeURIComponent(url);
+}
 function formatBytes(b){ if(b<1048576) return (b/1024).toFixed(1)+' KB'; if(b<1073741824) return (b/1048576).toFixed(1)+' MB'; return (b/1073741824).toFixed(2)+' GB'; }
 function fmt(s){ s=+s; if(!isFinite(s)||s<0) return '0:00'; var m=Math.floor(s/60),x=Math.floor(s%60).toString().padStart(2,'0'); return m+':'+x; }
 function toast(msg){ var t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(function(){ t.classList.remove('show'); },3000); }
 
 // ───────── Connection resilience ─────────
 // Re-establish the peer + data connection when returning from another app / unlock.
+// Routes through the full reconnect engine so the TV re-authorizes the device.
 function reviveConnection(){
   if(!confirmed) return;
   try{ if(peer && peer.disconnected && !peer.destroyed){ peer.reconnect(); } }catch(e){}
   if(role==='phone'){
     setTimeout(function(){
-      if((!primaryConn || !primaryConn.open) && peer && !peer.destroyed && roomId){
-        try{ primaryConn = peer.connect(roomId, {reliable:true}); wireConn(primaryConn, 'primary'); }catch(e){}
-      }
+      if((!primaryConn || !primaryConn.open) && roomId){ attemptReconnect(); }
     }, 500);
   }
 }
+// Staleness watchdog: the TV talks constantly (keepalive every 15s, position
+// heartbeat 400ms during playback). If the phone hears NOTHING for 40s the link
+// is dead even though no 'close' event fired (typical of abrupt Wi-Fi drops) —
+// tear it down and reconnect automatically.
+var lastRx = Date.now();
+setInterval(function(){
+  if(role==='phone' && confirmed && !reconnecting && (Date.now() - lastRx) > 40000){
+    lastRx = Date.now();   // don't re-trigger every 10s while reconnecting
+    try{ if(primaryConn) primaryConn.close(); }catch(e){}
+    attemptReconnect();
+  }
+}, 10000);
 document.addEventListener('visibilitychange', function(){
   if(document.visibilityState === 'visible') reviveConnection();
 });
@@ -3330,7 +3525,9 @@ window.addEventListener('beforeunload', function(){
        • anon public key → paste into SUPABASE_ANON_KEY
   2. Storage → New bucket:
        • Name: cast   • Public bucket: ON
-       • (optional) File size limit: 2 GB   • Allowed MIME: video/*
+       • File size limit: 2 GB  (REQUIRED — must match MAX_FILE_BYTES in the app;
+         per-file limits above 50 MB need a paid Supabase plan)
+       • Allowed MIME: video/*
   3. Storage → Policies → on the 'cast' bucket, add policies for the
      anon role (or "public") allowing INSERT and DELETE. Quick SQL
      (Supabase → SQL Editor):
