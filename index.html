@@ -15,9 +15,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>CastParty — cast & stream to your TV</title>
-  <!-- BUILD 2026-07-04.6 — quiet queueing · tap-to-select playlist · clean idle loop ·
+  <!-- BUILD 2026-07-05.1 — quiet queueing · tap-to-select playlist · clean idle loop ·
        phone-independent playback · no-scroll UI · resilient long-video uploads -->
-  <meta name="castparty-build" content="2026-07-04.6" />
+  <meta name="castparty-build" content="2026-07-05.1" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap" rel="stylesheet" />
@@ -200,7 +200,10 @@
       outline: none; font-variant-numeric: tabular-nums; transition: border-color .2s; width: 100%;
     }
     .join-form input:focus { border-color: var(--gold); }
-    .back-btn { background: none; border: none; color: var(--muted); font-size: 13px; cursor: pointer; padding: 8px 0; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 6px; flex: none; min-width: 0; min-height: 44px; }
+    .back-btn { background: rgba(109,184,255,0.08); border: 1px solid var(--edge); border-radius: 22px; color: var(--gold-soft);
+      font-size: 13px; font-weight: 700; cursor: pointer; padding: 8px 16px; margin-bottom: 12px; display: inline-flex;
+      align-items: center; gap: 6px; flex: none; min-width: 0; min-height: 44px; align-self: flex-start; }
+    .back-btn:active { background: rgba(109,184,255,0.16); transform: scale(0.97); }
 
     /* TV cinematic player */
     #screen-tv-play { display: none; }
@@ -427,7 +430,10 @@
     /* Source picker */
     .source-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
     .source-btn { background: var(--surface); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius); padding: 20px 12px; text-align: center; cursor: pointer; transition: border-color .2s, transform .1s; min-height: 48px; }
-    .source-btn:active { transform: scale(.97); }
+    .source-btn:active { transform: scale(.97); background-color: rgba(109,184,255,0.10); box-shadow: 0 0 0 2px var(--edge); }
+    /* Keyboard/switch-access affordance across all interactive elements */
+    button:focus-visible, .source-btn:focus-visible, .home-card:focus-visible, input:focus-visible {
+      outline: 2px solid var(--gold); outline-offset: 2px; }
     .source-btn.sel { border-color: var(--gold); background: var(--surface2); }
     .source-btn .ic { font-size: 30px; margin-bottom: 8px; }
     .source-btn .nm { font-size: 13px; font-weight: 700; }
@@ -465,6 +471,7 @@
       background: linear-gradient(180deg, rgba(150,178,205,0.22), rgba(26,40,58,0.96) 38%, rgba(10,16,26,0.98));
       backdrop-filter: blur(30px) saturate(1.2);
       border-top: 1px solid rgba(180,210,240,0.45);
+      border-radius: 22px 22px 0 0;
       box-shadow: 0 -8px 40px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.18) inset, 0 0 40px rgba(109,184,255,0.14) inset;
       padding: 6px 14px calc(12px + env(safe-area-inset-bottom));
       padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right));
@@ -472,20 +479,23 @@
       max-height: 80vh; overflow-y: auto;
     }
     #phone-ctrl.open { transform: translateY(0); }
-    .ctrl-handle { display: flex; justify-content: center; padding: 6px 0 8px; cursor: pointer; }
-    .ctrl-handle span { width: 44px; height: 4px; border-radius: 3px; background: rgba(109,184,255,0.5); box-shadow: 0 0 8px rgba(109,184,255,0.5); }
-    .ctrl-titlebar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 11px; letter-spacing: 2px; font-weight: 800; color: var(--gold-soft); text-transform: uppercase; }
-    .ctrl-titlebar .ctrl-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); animation: pulse 1.4s infinite; }
+    .ctrl-handle { display: flex; justify-content: center; padding: 8px 0 10px; cursor: pointer; }
+    .ctrl-handle span { width: 38px; height: 5px; border-radius: 3px; background: rgba(174,212,255,0.55); box-shadow: 0 0 10px rgba(109,184,255,0.55); }
+    .ctrl-titlebar { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; font-size: 12px; letter-spacing: 1.6px; font-weight: 800; color: var(--gold-soft); text-transform: uppercase; }
+    .ctrl-titlebar .ctrl-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); animation: pulse 1.4s infinite; flex: none; }
     .ctrl-titlebar #ctrl-now { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .ctrl-menu { flex: none; min-height: 32px; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 800; letter-spacing: 1px;
+    .ctrl-menu { flex: none; min-height: 40px; padding: 8px 14px; border-radius: 11px; font-size: 11px; font-weight: 800; letter-spacing: 1px;
       background: rgba(109,184,255,0.12); border: 1px solid var(--edge); color: var(--gold-soft); }
-    .ctrl-close { flex: none; min-width: 32px; width: 32px; height: 32px; min-height: 32px; padding: 0; border-radius: 8px; background: transparent; border: 1px solid var(--edge); color: var(--gold-soft); font-size: 16px; }
+    .ctrl-close { flex: none; min-width: 40px; width: 40px; height: 40px; min-height: 40px; padding: 0; border-radius: 11px; background: transparent; border: 1px solid var(--edge); color: var(--gold-soft); font-size: 16px; }
 
     .scrub-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-    .time-label { font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; min-width: 40px; }
-    input[type=range].scrub { flex: 1; -webkit-appearance: none; height: 6px; background: rgba(109,184,255,0.18); border-radius: 4px; outline: none; }
-    input[type=range].scrub::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--gold); cursor: pointer; box-shadow: 0 0 10px rgba(109,184,255,0.9); }
-    input[type=range].scrub::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; background: var(--gold); }
+    .time-label { font-size: 12px; color: rgba(174,212,255,0.85); white-space: nowrap; font-variant-numeric: tabular-nums; min-width: 40px; font-weight: 600; }
+    input[type=range].scrub { flex: 1; -webkit-appearance: none; appearance: none; height: 5px; background: rgba(109,184,255,0.18); border-radius: 4px; outline: none; }
+    input[type=range].scrub::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--gold);
+      border: 2px solid rgba(255,255,255,0.85); cursor: pointer; box-shadow: 0 0 12px rgba(109,184,255,0.9); transition: transform .12s; }
+    input[type=range].scrub:active::-webkit-slider-thumb { transform: scale(1.25); }
+    input[type=range].scrub::-moz-range-thumb { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.85); border-radius: 50%; background: var(--gold); }
+    input[type=range].scrub::-moz-range-progress { background: var(--gold); height: 5px; border-radius: 4px; }
     .ctrl-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
     .ctrl-row:last-child { margin-bottom: 0; }
     .ctrl-btn {
@@ -497,18 +507,36 @@
       transition: background .15s, transform .1s, box-shadow .15s;
     }
     .ctrl-btn:active { transform: scale(0.94); background: rgba(109,184,255,0.2); box-shadow: 0 0 16px rgba(109,184,255,0.4); }
-    .ctrl-btn.big { flex: 1.6; font-size: 26px; color: var(--gold); }
+    /* Transport row: circular keys around one filled hero play/pause — clear focal point */
+    #transport-row { justify-content: space-between; margin-bottom: 4px; }
+    #transport-row .ctrl-btn { flex: none; width: 50px; height: 50px; min-height: 50px; border-radius: 50%;
+      background: rgba(220,235,250,0.06); border: 1px solid rgba(180,210,240,0.28); box-shadow: none; }
+    .ctrl-btn.big { flex: none; width: 62px; height: 62px; min-height: 62px; border-radius: 50%; font-size: 26px; color: #042038;
+      background: linear-gradient(180deg, var(--gold-soft), var(--gold));
+      border: none; box-shadow: 0 4px 18px rgba(109,184,255,0.45), 0 1px 0 rgba(255,255,255,0.5) inset; }
+    #transport-row .ctrl-btn.big { width: 62px; height: 62px; min-height: 62px; background: linear-gradient(180deg, var(--gold-soft), var(--gold)); border: none; box-shadow: 0 4px 18px rgba(109,184,255,0.45), 0 1px 0 rgba(255,255,255,0.5) inset; }
+    .ctrl-btn.big:active { transform: scale(0.92); background: var(--gold); }
     .ctrl-btn.on { background: rgba(109,184,255,0.25); border-color: var(--gold); color: var(--gold); box-shadow: 0 0 16px rgba(109,184,255,0.45); }
     .ctrl-btn.danger { color: var(--danger); border-color: rgba(255,120,120,0.4); }
+    .ctrl-btn.danger:active { background: rgba(255,100,100,0.18); box-shadow: 0 0 14px rgba(255,110,110,0.35); }
     .ctrl-btn .lbl { font-size: 11px; color: var(--muted); }
+    /* Utility row: quieter text chips so they don't compete with the transport keys */
+    .util-row .ctrl-btn { background: rgba(220,235,250,0.05); border: 1px solid rgba(180,210,240,0.22);
+      box-shadow: none; font-size: 15px; min-height: 44px; border-radius: 12px; flex-direction: column; gap: 2px; padding: 6px 4px; }
+    .util-row .ctrl-btn .lbl { display: block !important; font-size: 10px; letter-spacing: .4px; color: var(--gold-soft); opacity: .85; }
+    .util-row .ctrl-btn.danger .lbl { color: #ff9a9a; }
+    /* Message zone: grouped + labelled so it reads as one feature, not stray rows */
+    .ctrl-msg { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(180,210,240,0.14); }
+    .ctrl-msg-label { font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
     /* Party message quick-input inside controller */
-    .ctrl-party { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+    .ctrl-party { display: flex; align-items: center; gap: 8px; }
     .ctrl-party input { flex: 1; min-width: 0; background: rgba(109,184,255,0.08); border: 1px solid var(--edge); border-radius: 10px; padding: 11px 12px; color: var(--text); font-size: 14px; outline: none; }
     .ctrl-party input:focus { border-color: var(--gold); box-shadow: 0 0 12px rgba(109,184,255,0.3); }
     .ctrl-party-count { flex: none; font-size: 11px; color: var(--muted); min-width: 28px; text-align: right; }
-    /* TV volume row */
+    /* TV volume row — mute is a round ghost key matching the transport keys */
     .vol-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-    .vol-btn { flex: none; width: 52px; }
+    .vol-btn { flex: none; width: 44px; height: 44px; min-height: 44px; border-radius: 50%;
+      background: rgba(220,235,250,0.06); border: 1px solid rgba(180,210,240,0.28); box-shadow: none; font-size: 17px; }
     .vol-btn.muted { color: var(--danger); border-color: rgba(255,120,120,0.4); }
     input[type=range].vol { flex: 1; min-width: 0; }
     .vol-pct { flex: none; min-width: 42px; text-align: right; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -520,9 +548,10 @@
     .msg-mode-btn.on { background: rgba(109,184,255,0.25); border-color: var(--gold); color: var(--gold); box-shadow: 0 0 12px rgba(109,184,255,0.35); }
     .msg-mode-btn.clear { flex: none; color: #ff9a9a; border-color: rgba(255,120,120,0.4); background: rgba(255,80,80,0.1); }
     .ctrl-flash { flex: none; min-width: 44px; width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 10px; font-size: 18px; background: linear-gradient(180deg, var(--gold-soft), var(--gold)); color: #042038; border: none; box-shadow: 0 0 12px rgba(109,184,255,0.4); }
-    .ctrl-resync { width: 100%; margin-top: 10px; min-height: 46px; border-radius: 11px; font-size: 14px; font-weight: 700; color: var(--gold-soft);
-      background: linear-gradient(180deg, rgba(109,184,255,0.18), rgba(109,184,255,0.06)); border: 1px solid var(--edge); box-shadow: 0 0 14px rgba(109,184,255,0.2); }
-    .ctrl-resync:active { transform: scale(0.97); }
+    /* Resync is a rescue tool, not a primary CTA — quiet ghost styling */
+    .ctrl-resync { width: 100%; margin-top: 10px; min-height: 44px; border-radius: 12px; font-size: 13px; font-weight: 700; color: var(--muted);
+      background: transparent; border: 1px dashed rgba(180,210,240,0.28); box-shadow: none; }
+    .ctrl-resync:active { transform: scale(0.97); color: var(--gold-soft); border-color: var(--edge); background: rgba(109,184,255,0.08); }
 
     /* Scrubber hidden in live mode */
     .scrub-row.hidden-ctrl { display: none; }
@@ -629,7 +658,9 @@
     .pl-item .pl-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
     .pl-item .pl-sub { font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
     .pl-item .pl-act { display:flex; gap:5px; flex:0 0 auto; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; margin-left:8px; max-width:60%; }
-    .pl-item .pl-act button { flex:none; min-width:34px; width:34px; height:34px; min-height:34px; padding:0; font-size:13px; background:rgba(109,184,255,0.08); border:1px solid var(--edge); color:var(--gold-soft); border-radius:8px; }
+    .pl-item .pl-act button { flex:none; min-width:40px; width:40px; height:40px; min-height:40px; padding:0; font-size:14px; background:rgba(109,184,255,0.08); border:1px solid var(--edge); color:var(--gold-soft); border-radius:10px; position:relative; }
+    /* Invisible tap-target expansion → ~48px effective hit area without crowding the row */
+    .pl-item .pl-act button::after { content:''; position:absolute; top:-4px; right:-4px; bottom:-4px; left:-4px; }
     .pl-item .pl-act button.play { background:linear-gradient(180deg, var(--gold-soft), var(--gold)); color:#042038; border:none; box-shadow:0 0 10px rgba(109,184,255,0.35); }
     .pl-item .pl-act button.del { color: var(--danger); border-color:rgba(255,120,120,0.35); }
     .pl-item .pl-act button.stop { color:#ff9a9a; border-color:rgba(255,120,120,0.45); background:rgba(255,80,80,0.12); }
@@ -645,7 +676,8 @@
     #phone-preview-wrap { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 14px; overflow: hidden; background: #05080d; border: 1px solid var(--edge); box-shadow: 0 0 30px rgba(109,184,255,0.15), inset 0 0 0 1px rgba(109,184,255,0.06); margin-bottom: 14px; }
     #phone-preview, #phone-preview-img { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #05080d; display: none; }
     #phone-preview-none { position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--gold-soft); font-weight: 700; letter-spacing: 1px; font-size: clamp(14px,3.6vw,20px); text-shadow: 0 0 16px rgba(109,184,255,0.5); }
-    #phone-preview-tag { position: absolute; top: 8px; left: 8px; z-index: 3; font-size: 10px; letter-spacing: 2px; font-weight: 800; color: var(--gold-soft); background: rgba(8,14,24,0.7); border: 1px solid var(--edge); padding: 3px 8px; border-radius: 20px; }
+    #phone-preview-tag { position: absolute; top: 8px; left: 8px; z-index: 3; font-size: 10px; letter-spacing: 2px; font-weight: 800; color: var(--gold-soft); background: rgba(8,14,24,0.78); border: 1px solid var(--edge); padding: 4px 10px 4px 8px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px; }
+    #phone-preview-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); animation: pulse 1.4s infinite; }
     .pl-item.selected { border-color: var(--gold); background: rgba(109,184,255,0.15); box-shadow: 0 0 0 2px rgba(109,184,255,0.3); }
 
     /* URL presets + recents */
@@ -666,7 +698,7 @@
     #pl-confirm-bar { display: none; background: rgba(109,184,255,0.1); border: 1px solid rgba(109,184,255,0.35); border-radius: 12px; padding: 12px 14px; margin-top: 10px; display: none; align-items: center; gap: 10px; }
     #pl-confirm-bar.show { display: flex; }
     #pl-confirm-bar .pl-conf-name { flex: 1; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--gold-soft); }
-    #pl-confirm-bar button { flex: none; padding: 8px 14px; font-size: 13px; min-height: 36px; border-radius: 8px; }
+    #pl-confirm-bar button { flex: none; padding: 10px 14px; font-size: 13px; font-weight: 700; min-height: 44px; border-radius: 11px; }
     #pl-confirm-bar .conf-play { background: linear-gradient(180deg, var(--gold-soft), var(--gold)); color: #042038; border: none; }
     /* Shared SVG icon styling — inherits the button's text color so every icon matches */
     .icon { width: 1.15em; height: 1.15em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.18em; flex: none; pointer-events: none; }
@@ -674,9 +706,10 @@
     .source-btn .ic svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; color: var(--gold-soft); }
     #pl-confirm-bar .conf-queue { background: rgba(109,184,255,0.15); border: 1px solid rgba(109,184,255,0.45); color: var(--gold-soft); }
     .pl-clear-btn { float: right; background: transparent; border: 1px solid rgba(255,255,255,0.18); color: var(--muted);
-      border-radius: 8px; padding: 4px 10px; font-size: 11px; cursor: pointer; min-height: 28px; }
+      border-radius: 10px; padding: 7px 12px; font-size: 11px; font-weight: 700; cursor: pointer; min-height: 36px; position: relative; }
+    .pl-clear-btn::after { content:''; position:absolute; top:-6px; right:-6px; bottom:-6px; left:-6px; }  /* 48px effective tap area */
     .pl-clear-btn:active { background: rgba(255,80,80,0.15); color: #ff9c9c; border-color: rgba(255,80,80,0.4); }
-    #pl-confirm-bar .conf-cancel { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: var(--muted); }
+    #pl-confirm-bar .conf-cancel { background: transparent; border: 1px solid var(--edge); color: var(--gold-soft); }
 
     /* ═══════════ RESPONSIVE HARDENING — no content bleeds off-screen ═══════════ */
     html, body { max-width: 100%; overflow-x: hidden; }
@@ -1133,22 +1166,25 @@
     <input type="range" class="scrub vol" id="volslider" min="0" max="100" value="100" step="1" oninput="onVolInput()" aria-label="TV volume" />
     <span class="vol-pct" id="vol-pct">100%</span>
   </div>
-  <div class="ctrl-row">
-    <button class="ctrl-btn" onclick="ctrl('restart')" title="Replay from start"><svg class="icon"><use href="#ic-replay"/></svg><span class="lbl"> Replay</span></button>
-    <button class="ctrl-btn" onclick="recastCurrent()" title="Re-cast this file to the TV"><svg class="icon"><use href="#ic-cast"/></svg><span class="lbl"> Recast</span></button>
-    <button class="ctrl-btn" onclick="ctrl('reload')" title="Refresh the TV video (if frozen)"><svg class="icon"><use href="#ic-refresh"/></svg><span class="lbl"> Refresh</span></button>
-    <button class="ctrl-btn danger" onclick="confirmTerminate()" title="End session"><svg class="icon"><use href="#ic-power"/></svg><span class="lbl"> End</span></button>
+  <div class="ctrl-row util-row">
+    <button class="ctrl-btn" onclick="ctrl('restart')" title="Replay from start" aria-label="Replay from start"><svg class="icon"><use href="#ic-replay"/></svg><span class="lbl">Replay</span></button>
+    <button class="ctrl-btn" onclick="recastCurrent()" title="Re-cast this file to the TV" aria-label="Recast to TV"><svg class="icon"><use href="#ic-cast"/></svg><span class="lbl">Recast</span></button>
+    <button class="ctrl-btn" onclick="ctrl('reload')" title="Refresh the TV video (if frozen)" aria-label="Refresh TV video"><svg class="icon"><use href="#ic-refresh"/></svg><span class="lbl">Refresh</span></button>
+    <button class="ctrl-btn danger" onclick="confirmTerminate()" title="End session" aria-label="End session"><svg class="icon"><use href="#ic-power"/></svg><span class="lbl">End</span></button>
   </div>
   <button class="ctrl-resync" onclick="resyncSession()"><svg class="icon"><use href="#ic-resync"/></svg> Resync / Reconnect to TV</button>
-  <div class="ctrl-party">
-    <input type="text" id="party-msg-input2" maxlength="100" placeholder="On-screen message…" oninput="onPartyInput2()" />
-    <button class="ctrl-flash" onclick="flashMessageToTV()" title="Show on screen"><svg class="icon"><use href="#ic-chat"/></svg></button>
-    <span class="ctrl-party-count" id="party-count2">0</span>
-  </div>
-  <div class="msg-mode-row">
-    <button class="msg-mode-btn on" id="msg-mode-timed" onclick="setFlashHold(false)">⏱ 5 seconds</button>
-    <button class="msg-mode-btn" id="msg-mode-hold" onclick="setFlashHold(true)"><svg class="icon"><use href="#ic-pin"/></svg> Keep on until off</button>
-    <button class="msg-mode-btn clear" id="msg-clear" onclick="clearFlash()" style="display:none;">✕ Clear</button>
+  <div class="ctrl-msg">
+    <div class="ctrl-msg-label">TV message</div>
+    <div class="ctrl-party">
+      <input type="text" id="party-msg-input2" maxlength="100" placeholder="On-screen message…" oninput="onPartyInput2()" />
+      <button class="ctrl-flash" onclick="flashMessageToTV()" title="Show on screen" aria-label="Show message on TV"><svg class="icon"><use href="#ic-chat"/></svg></button>
+      <span class="ctrl-party-count" id="party-count2">0</span>
+    </div>
+    <div class="msg-mode-row">
+      <button class="msg-mode-btn on" id="msg-mode-timed" onclick="setFlashHold(false)">⏱ 5 seconds</button>
+      <button class="msg-mode-btn" id="msg-mode-hold" onclick="setFlashHold(true)"><svg class="icon"><use href="#ic-pin"/></svg> Keep on until off</button>
+      <button class="msg-mode-btn clear" id="msg-clear" onclick="clearFlash()" style="display:none;">✕ Clear</button>
+    </div>
   </div>
 </div>
 
@@ -1179,7 +1215,7 @@
 })();
 </script>
 <script>
-var BUILD = '2026-07-04.6';
+var BUILD = '2026-07-05.1';
 console.log('CastParty build ' + BUILD);
 // Clear any stale caches on load
 if('caches' in window){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }
@@ -1342,9 +1378,12 @@ function resyncSession(){
     toast('🔄 Re-cast to TV');
   }, 600);
 }
-function toggleRemote(){ $('phone-ctrl').classList.toggle('open'); }
-function openRemote(){ $('phone-ctrl').classList.add('open'); }
-function closeRemote(){ $('phone-ctrl').classList.remove('open'); }
+// UI: the floating launcher hides while the panel is open (it overlapped the
+// bottom controls) and returns when the panel closes.
+function _fabSync(){ var f=$('remote-fab'); if(f){ f.style.visibility = $('phone-ctrl').classList.contains('open') ? 'hidden' : ''; } }
+function toggleRemote(){ $('phone-ctrl').classList.toggle('open'); _fabSync(); }
+function openRemote(){ $('phone-ctrl').classList.add('open'); _fabSync(); }
+function closeRemote(){ $('phone-ctrl').classList.remove('open'); _fabSync(); }
 
 // Draggable remote FAB — tap toggles, drag repositions (position persisted)
 function initFabDrag(){
@@ -2248,8 +2287,8 @@ function pickSource(s){
     var note = $('cloud-status-note');
     if(note){
       note.innerHTML = cloudEnabled()
-        ? '☁ Large videos (≥40MB) upload to temporary cloud storage for fast, seekable playback — auto-deleted when you end the session.'
-        : '⚡ Large videos stream live to the TV. (Add Supabase keys in the code to enable cloud upload for full seek + replay.)';
+        ? '☁ Videos upload once to temporary cloud storage (up to 2 GB) for smooth, seekable playback — auto-deleted when you end the session. Your phone stays free while the TV plays.'
+        : '⚡ Files send directly to the TV. (Add Supabase keys in the code to enable cloud upload for large files + instant replay.)';
     }
   }
 }
@@ -2901,9 +2940,17 @@ function onVolInput(){
 function updateVolUI(){
   var pct=$('vol-pct'), mb=$('ph-mute'), sl=$('volslider');
   if(sl && !tvMuted) sl.value = tvVol;
+  paintRangeFill(sl);
   if(pct) pct.textContent = tvMuted ? 'muted' : (tvVol+'%');
   if(mb){ mb.classList.toggle('muted', tvMuted || tvVol===0);
     mb.querySelector('use').setAttribute('href', (tvMuted||tvVol===0) ? '#ic-mute' : '#ic-vol'); }
+}
+// UI-only: paint the played portion of a range track (webkit has no ::-range-progress)
+function paintRangeFill(el){
+  if(!el) return;
+  var mx = +el.max || 0, v = +el.value || 0;
+  var p = mx ? Math.max(0, Math.min(100, v / mx * 100)) : 0;
+  el.style.background = 'linear-gradient(90deg, var(--gold) 0%, var(--gold) ' + p + '%, rgba(109,184,255,0.18) ' + p + '%)';
 }
 function initScrubber(){
   scrubEl = $('scrubber');
@@ -2911,8 +2958,11 @@ function initScrubber(){
     var mx=+scrubEl.max||0, vv=+scrubEl.value||0;
     $('cur-time').textContent = mx ? fmt(mx) : '·:··';
     $('dur-time').textContent = mx ? '-'+fmt(Math.max(0,mx-vv)) : '·:··';
+    paintRangeFill(scrubEl);
     var pv=$('phone-preview'); if(phonePreviewKind==='video' && pv){ try{ pv.currentTime=vv; }catch(e){} } });
   scrubEl.addEventListener('change', function(){ ctrl('seek', parseFloat(scrubEl.value)); scrubbing=false; });
+  paintRangeFill(scrubEl);
+  paintRangeFill($('volslider'));
 }
 function ctrl(a, val){
   // Volume/mute always target the TV output, regardless of cast mode
@@ -2956,6 +3006,7 @@ function ctrl(a, val){
     }
     if(optPos != null && scrubEl && !scrubbing){
       scrubEl.value = optPos;
+      paintRangeFill(scrubEl);
       var mx = +scrubEl.max||0;
       if(mx){ $('cur-time').textContent = fmt(mx); $('dur-time').textContent = '-'+fmt(Math.max(0, mx-optPos)); }
       seekMuteUntil = Date.now() + 1200;   // ignore stale positions until the TV echoes the seek
@@ -3260,6 +3311,7 @@ function onTime(m){
   var ct  = (isFinite(m.ct)  && m.ct  >= 0) ? m.ct  : 0;
   if(!scrubbing && !seekMuted && dur){
     scrubEl.max = dur; scrubEl.value = Math.min(ct, dur);
+    paintRangeFill(scrubEl);
     // Left = total length; Right = countdown to zero (time remaining)
     $('cur-time').textContent = fmt(dur);
     $('dur-time').textContent = '-'+fmt(Math.max(0, dur-ct));
