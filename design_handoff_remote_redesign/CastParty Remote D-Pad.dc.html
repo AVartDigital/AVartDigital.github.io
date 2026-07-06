@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Fredoka:wght@400;500;600;700&family=League+Spartan:wght@400;600;700;800&family=Nunito:wght@400;600;700&family=Montserrat:wght@400;500;600;700&family=Cinzel:wght@400;500;600;700&family=Great+Vibes&family=Allura&family=Alex+Brush&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:#070b12;font-family:'Manrope',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:99px;outline:none;margin:0;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;background:#8cc4ff;border:2px solid #eef6ff;box-shadow:0 0 14px rgba(74,158,255,.75);cursor:pointer;margin-top:0}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#8cc4ff;border:2px solid #eef6ff;box-shadow:0 0 14px rgba(74,158,255,.75);cursor:pointer}
+  input[type=text]::placeholder{color:rgba(180,200,226,.42)}
+  @keyframes cpPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(74,158,255,.5)}50%{opacity:.55;box-shadow:0 0 0 5px rgba(74,158,255,0)}}
+</style>
+</helmet>
+
+<div style="max-width:432px;margin:0 auto;padding:22px 18px 40px;color:#e9f0f9;min-height:100%">
+
+  <!-- HEADER -->
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:26px">
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <div style="font-size:23px;font-weight:800;letter-spacing:.3px;line-height:1"><span style="color:#4a9eff">Cast</span><span style="color:#eaf1fb">Party</span></div>
+      <div style="font-size:9.5px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:rgba(185,203,230,.5)">Cast media over Wi-Fi</div>
+    </div>
+    <button onClick="{{ endSession }}" aria-label="End casting session" style="display:flex;align-items:center;gap:8px;padding:11px 18px;border-radius:99px;border:1px solid rgba(255,110,110,.5);background:transparent;color:#ff8080;font-family:inherit;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer" style-hover="background:rgba(255,110,110,.08)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 4v7"/><path d="M7.5 7a7 7 0 1 0 9 0"/></svg>
+      End Session
+    </button>
+  </div>
+
+  <!-- STATUS PILL / CONNECTION HEALTH -->
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:12px 16px;border-radius:99px;border:1px solid rgba(122,170,235,.25);margin-bottom:18px">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0">
+      <span style="width:8px;height:8px;border-radius:50%;background:#4a9eff;animation:cpPulse 2.2s ease-in-out infinite;flex:none"></span>
+      <span style="font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#7cbcff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ statusText }}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex:none">
+      <span style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(185,203,230,.6)">{{ deviceLine }}</span>
+      <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="14" width="3" height="6" rx="1" fill="#4a9eff"/><rect x="8" y="10" width="3" height="10" rx="1" fill="#4a9eff"/><rect x="14" y="6" width="3" height="14" rx="1" fill="#4a9eff"/><rect x="20" y="14" width="3" height="6" rx="1" fill="rgba(122,170,235,.3)"/></svg>
+    </div>
+  </div>
+
+  <!-- LIVE PREVIEW -->
+  <div style="position:relative;width:100%;height:224px;border-radius:18px;border:1px solid rgba(122,170,235,.22);background:linear-gradient(180deg,rgba(12,20,34,.6),rgba(6,10,18,.6));display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:16px">
+    <div style="position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:8px;padding:7px 13px;border-radius:99px;border:1px solid rgba(122,170,235,.28)">
+      <span style="width:6px;height:6px;border-radius:50%;background:#4a9eff"></span>
+      <span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(200,216,240,.72)">{{ previewBadge }}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;color:#cfe0f5">
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="#cfe0f5"/></svg>
+      <span style="font-size:13px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase">Playing on TV</span>
+    </div>
+  </div>
+
+  <!-- DRAG HANDLE (player sheet) -->
+  <div style="display:flex;justify-content:center;margin-bottom:20px"><span style="width:44px;height:4px;border-radius:99px;background:rgba(122,170,235,.35)"></span></div>
+
+  <!-- NOW PLAYING -->
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px">
+    <span style="font-size:13px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#eaf1fb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ nowPlayingTitle }}</span>
+    <div style="display:flex;align-items:center;gap:9px;flex:none">
+      <button aria-label="Open menu" style="display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:99px;border:1px solid rgba(122,170,235,.25);background:transparent;color:#cfe0f5;font-family:inherit;font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;cursor:pointer" style-hover="border-color:rgba(122,170,235,.5)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        Menu
+      </button>
+      <button aria-label="Collapse player" style="display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;border:1px solid rgba(122,170,235,.25);background:transparent;color:#cfe0f5;cursor:pointer" style-hover="border-color:rgba(122,170,235,.5)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:26px">
+    <span style="font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:rgba(200,216,240,.65);min-width:34px">{{ elapsed }}</span>
+    <input type="range" min="0" max="100" value="{{ progress }}" onChange="{{ onProgress }}" aria-label="Seek" style="{{ progressStyle }}">
+    <span style="font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:rgba(200,216,240,.65);min-width:38px;text-align:right">{{ remaining }}</span>
+  </div>
+
+  <!-- D-PAD -->
+  <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:24px">
+
+    <!-- LEFT KEYS -->
+    <div style="display:flex;flex-direction:column;justify-content:space-between;height:186px;padding:6px 0">
+      <button onClick="{{ toggleLoop }}" aria-label="Toggle loop" style="{{ loopStyle }}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 4l3 3-3 3"/><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M7 20l-3-3 3-3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/></svg>
+        <span style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase">{{ loopLabel }}</span>
+      </button>
+      <button onClick="{{ toggleMute }}" aria-label="Toggle mute" style="{{ muteStyle }}">
+        <sc-if value="{{ muted }}" hint-placeholder-val="{{ false }}">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M22 4L4 22"/></svg>
+        </sc-if>
+        <sc-if value="{{ soundOn }}" hint-placeholder-val="{{ true }}">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>
+        </sc-if>
+        <span style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase">{{ muteLabel }}</span>
+      </button>
+    </div>
+
+    <!-- DPAD RING -->
+    <div style="position:relative;width:200px;height:200px;border-radius:50%;border:1px solid rgba(122,170,235,.28);background:radial-gradient(circle at 50% 40%,rgba(74,158,255,.05),transparent 70%)">
+      <button onClick="{{ volUp }}" aria-label="Volume up" style="position:absolute;top:14px;left:0;right:0;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:1px;width:56px;border:none;background:transparent;color:#cfe0f5;cursor:pointer" style-hover="color:#8cc4ff">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>
+        <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:rgba(190,208,232,.6)">VOL +</span>
+      </button>
+      <button onClick="{{ volDown }}" aria-label="Volume down" style="position:absolute;bottom:14px;left:0;right:0;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:1px;width:56px;border:none;background:transparent;color:#cfe0f5;cursor:pointer" style-hover="color:#8cc4ff">
+        <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:rgba(190,208,232,.6)">VOL −</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <button onClick="{{ skipBack }}" aria-label="Previous / skip back" style="position:absolute;left:12px;top:0;bottom:0;margin:auto 0;display:flex;flex-direction:column;align-items:center;gap:2px;height:50px;justify-content:center;border:none;background:transparent;color:#cfe0f5;cursor:pointer" style-hover="color:#8cc4ff">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6v12"/><path d="M18 6l-8 6 8 6z"/></svg>
+        <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:rgba(190,208,232,.6)">PREV</span>
+      </button>
+      <button onClick="{{ skipFwd }}" aria-label="Next / skip forward" style="position:absolute;right:12px;top:0;bottom:0;margin:auto 0;display:flex;flex-direction:column;align-items:center;gap:2px;height:50px;justify-content:center;border:none;background:transparent;color:#cfe0f5;cursor:pointer" style-hover="color:#8cc4ff">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 6v12"/><path d="M6 6l8 6-8 6z"/></svg>
+        <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:rgba(190,208,232,.6)">NEXT</span>
+      </button>
+      <button onClick="{{ togglePlay }}" aria-label="Play or pause" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;width:82px;height:82px;border-radius:50%;border:none;background:radial-gradient(circle at 50% 35%,#8cc4ff,#4a9eff);color:#06101f;cursor:pointer;box-shadow:0 0 36px rgba(74,158,255,.55)" style-hover="filter:brightness(1.05)">
+        <sc-if value="{{ playing }}" hint-placeholder-val="{{ true }}">
+          <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2" fill="#06101f"/><rect x="13.5" y="5" width="4" height="14" rx="1.2" fill="#06101f"/></svg>
+        </sc-if>
+        <sc-if value="{{ paused }}">
+          <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="#06101f"/></svg>
+        </sc-if>
+      </button>
+    </div>
+
+    <!-- RIGHT KEYS -->
+    <div style="display:flex;flex-direction:column;justify-content:space-between;height:186px;padding:6px 0">
+      <button aria-label="Fullscreen" style="display:flex;flex-direction:column;align-items:center;gap:6px;width:58px;border:none;background:transparent;color:#cfe0f5;font-family:inherit;cursor:pointer" style-hover="color:#8cc4ff">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V5a1 1 0 0 1 1-1h4"/><path d="M20 9V5a1 1 0 0 0-1-1h-4"/><path d="M4 15v4a1 1 0 0 0 1 1h4"/><path d="M20 15v4a1 1 0 0 1-1 1h-4"/></svg>
+        <span style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase">Full</span>
+      </button>
+      <button onClick="{{ reconnect }}" aria-label="Recast to TV" style="display:flex;flex-direction:column;align-items:center;gap:6px;width:58px;border:none;background:transparent;color:#cfe0f5;font-family:inherit;cursor:pointer" style-hover="color:#8cc4ff">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16v9h-5"/><path d="M4 12a6 6 0 0 1 6 6"/><path d="M4 16a2 2 0 0 1 2 2"/></svg>
+        <span style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase">Recast</span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- VOLUME -->
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
+    <sc-if value="{{ muted }}" hint-placeholder-val="{{ false }}">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(160,178,204,.55)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M22 4L4 22"/></svg>
+    </sc-if>
+    <sc-if value="{{ soundOn }}" hint-placeholder-val="{{ true }}">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#cfe0f5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a4.5 4.5 0 0 1 0 7"/></svg>
+    </sc-if>
+    <input type="range" min="0" max="100" value="{{ volume }}" onChange="{{ onVolume }}" aria-label="Volume" style="{{ volumeStyle }}">
+    <span style="font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;min-width:44px;text-align:right;{{ volLabelColor }}">{{ volumeLabel }}</span>
+  </div>
+
+  <!-- ACTIONS -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end;margin-bottom:22px">
+    <button aria-label="Replay from start" style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 4px;border:none;background:transparent;color:#cfe0f5;font-family:inherit;cursor:pointer">
+      <span style="display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;border:1px solid rgba(122,170,235,.28)" style-hover="border-color:rgba(122,170,235,.55)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 0 0-13.7-5.6L4 9"/><path d="M4 4v5h5"/></svg>
+      </span>
+      <span style="font-size:10px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase">Replay</span>
+    </button>
+    <button onClick="{{ openPlaylist }}" aria-label="Open playlist" style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 4px;border:none;background:transparent;color:#8cc4ff;font-family:inherit;cursor:pointer">
+      <span style="display:flex;align-items:center;justify-content:center;width:68px;height:68px;border-radius:50%;border:1px solid #4a9eff;background:radial-gradient(circle at 50% 35%,rgba(140,196,255,.22),rgba(74,158,255,.12));box-shadow:0 0 26px rgba(74,158,255,.3)" style-hover="filter:brightness(1.12)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8cc4ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h11M4 12h11M4 17h6"/><path d="M16 13.5v7l5.5-3.5z" fill="#8cc4ff"/></svg>
+      </span>
+      <span style="font-size:10px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase">Playlist</span>
+    </button>
+    <button aria-label="Refresh stream" style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 4px;border:none;background:transparent;color:#cfe0f5;font-family:inherit;cursor:pointer">
+      <span style="display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;border:1px solid rgba(122,170,235,.28)" style-hover="border-color:rgba(122,170,235,.55)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 9"/><path d="M20 4v5h-5"/></svg>
+      </span>
+      <span style="font-size:10px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase">Refresh</span>
+    </button>
+  </div>
+
+  <!-- SOURCE / ADD -->
+  <div style="display:flex;gap:12px;margin-bottom:16px">
+    <button style="flex:1;display:flex;align-items:center;justify-content:center;gap:9px;padding:15px;border-radius:14px;border:1px solid rgba(122,170,235,.25);background:transparent;color:#cfe0f5;font-family:inherit;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer" style-hover="border-color:rgba(122,170,235,.5)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 0 0-13.7-5.6L4 9"/><path d="M4 4v5h5"/></svg>
+      Other source
+    </button>
+    <button style="flex:1;display:flex;align-items:center;justify-content:center;gap:9px;padding:15px;border-radius:14px;border:1px solid #4a9eff;background:#4a9eff;color:#06101f;font-family:inherit;font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 22px rgba(74,158,255,.32)" style-hover="background:#5aa8ff">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>
+      Add media
+    </button>
+  </div>
+
+  <!-- RESYNC -->
+  <button onClick="{{ reconnect }}" style="display:flex;align-items:center;justify-content:center;gap:11px;width:100%;padding:16px;border-radius:14px;border:1px dashed rgba(122,170,235,.4);background:transparent;color:#cfe0f5;font-family:inherit;font-size:11px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;cursor:pointer;margin-bottom:30px" style-hover="border-color:rgba(122,170,235,.7);color:#eaf1fb">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 4l3 3-3 3"/><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M7 20l-3-3 3-3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/></svg>
+    Resync / Reconnect to TV
+  </button>
+
+  <!-- TV MESSAGE (collapsible) -->
+  <button onClick="{{ toggleMsg }}" aria-label="Toggle TV message section" style="display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:15px 16px;border-radius:14px;border:1px solid rgba(122,170,235,.25);background:transparent;color:#eaf1fb;font-family:inherit;cursor:pointer" style-hover="border-color:rgba(122,170,235,.5)">
+    <span style="display:flex;align-items:center;gap:11px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8cc4ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-4 4z"/></svg>
+      <span style="font-size:11px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase">TV Message</span>
+    </span>
+    <span style="display:flex;align-items:center;gap:13px">
+      <span style="font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;{{ counterColor }}">{{ msgCounter }}</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="{{ msgChevronStyle }}"><path d="M6 9l6 6 6-6"/></svg>
+    </span>
+  </button>
+
+  <sc-if value="{{ msgOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="margin-top:14px">
+  <!-- LIVE PREVIEW OF ON-SCREEN TEXT -->
+  <div style="position:relative;width:100%;min-height:74px;border-radius:14px;border:1px solid rgba(122,170,235,.2);background:linear-gradient(180deg,rgba(12,20,34,.5),rgba(6,10,18,.5));display:flex;align-items:center;justify-content:center;padding:14px 18px;margin-bottom:12px;overflow:hidden">
+    <span style="position:absolute;top:8px;left:12px;font-size:8px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:rgba(160,178,204,.4)">TV Preview</span>
+    <span style="{{ previewStyle }}">{{ previewText }}</span>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+    <input type="text" value="{{ msg }}" onChange="{{ onMsg }}" maxLength="60" placeholder="On-screen message…" aria-label="On-screen message" style="flex:1;height:52px;padding:0 18px;border-radius:14px;border:1px solid rgba(122,170,235,.25);background:transparent;color:#eaf1fb;font-family:inherit;font-size:14px;outline:none">
+    <button aria-label="Send message to TV" style="display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:14px;border:1px solid #4a9eff;background:#4a9eff;color:#06101f;cursor:pointer;flex:none" style-hover="background:#5aa8ff">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5h14v10H9l-4 4z"/></svg>
+    </button>
+  </div>
+
+  <!-- FONT STYLE -->
+  <div style="font-size:9px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:rgba(185,203,230,.42);margin-bottom:9px">Font Style</div>
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:18px">
+    <sc-for list="{{ fonts }}" as="f" hint-placeholder-count="10">
+      <button onClick="{{ f.onClick }}" aria-label="Font {{ f.name }}" style="{{ f.btnStyle }}">
+        <span style="{{ f.nameStyle }}">{{ f.name }}</span>
+        <span style="font-size:9px;font-weight:600;letter-spacing:.4px;color:rgba(170,190,216,.6)">{{ f.desc }}</span>
+      </button>
+    </sc-for>
+  </div>
+
+  <!-- COLOR + SHADOW -->
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:8px">
+    <div style="font-size:9px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:rgba(185,203,230,.42)">Text Color</div>
+    <button onClick="{{ toggleShadow }}" aria-label="Toggle drop shadow" style="{{ shadowBtnStyle }}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5h6a5 5 0 0 1 0 10H8z" fill="currentColor" fill-opacity=".25"/><path d="M8 5v14"/></svg>
+      {{ shadowLabel }}
+    </button>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <sc-for list="{{ colors }}" as="c" hint-placeholder-count="6">
+      <button onClick="{{ c.onClick }}" aria-label="Color {{ c.hex }}" style="{{ c.style }}"></button>
+    </sc-for>
+  </div>
+
+  <!-- DURATION TOGGLE -->
+  <div style="display:flex;gap:12px;margin-top:16px">
+    <button onClick="{{ set5s }}" style="{{ dur5Style }}">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="14" r="7"/><path d="M12 14V10"/><path d="M9.5 3h5"/></svg>
+      5 seconds
+    </button>
+    <button onClick="{{ setKeep }}" style="{{ durKeepStyle }}">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6"/><path d="M10 4l-1 6-3 2.5V15h12v-2.5L15 10l-1-6"/><path d="M12 15v5"/></svg>
+      Keep on until off
+    </button>
+  </div>
+  </div>
+  </sc-if>
+
+  <!-- PLAYLIST OVERLAY -->
+  <sc-if value="{{ showPlaylist }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePlaylist }}" style="position:fixed;inset:0;z-index:60;background:rgba(4,7,13,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;flex-direction:column;justify-content:flex-end">
+      <div onClick="{{ stopProp }}" style="width:100%;max-width:432px;margin:0 auto;background:#0a1120;border:1px solid rgba(122,170,235,.22);border-bottom:none;border-radius:22px 22px 0 0;padding:16px 18px 30px;max-height:82vh;overflow-y:auto;box-shadow:0 -20px 60px rgba(0,0,0,.55)">
+        <div style="display:flex;justify-content:center;margin-bottom:16px"><span style="width:44px;height:4px;border-radius:99px;background:rgba(122,170,235,.35)"></span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+          <span style="font-size:15px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:#eaf1fb">Playlist</span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <button onClick="{{ toggleEdit }}" style="{{ editBtnStyle }}">{{ editLabel }}</button>
+            <button onClick="{{ closePlaylist }}" aria-label="Close playlist" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;border:1px solid rgba(122,170,235,.25);background:transparent;color:#cfe0f5;cursor:pointer" style-hover="border-color:rgba(122,170,235,.55)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div style="font-size:9.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(185,203,230,.45);margin-bottom:16px">{{ playlistMeta }}</div>
+
+        <sc-if value="{{ queueEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:40px 0 30px;text-align:center">
+            <span style="display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;border:1px solid rgba(122,170,235,.25)">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(160,178,204,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h11M4 12h8M4 17h6"/><path d="M18 8v9M13.5 12.5H22.5" transform="rotate(45 18 12.5)"/></svg>
+            </span>
+            <div style="font-size:13px;font-weight:700;color:#e9f0f9">Your queue is empty</div>
+            <div style="font-size:12px;color:rgba(185,203,230,.55);max-width:240px">Add media to start building your cast queue.</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ queueHasItems }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ playlist }}" as="track" hint-placeholder-count="5">
+              <div style="{{ track.rowStyle }}">
+                <button onClick="{{ track.onPlay }}" aria-label="Play track" style="{{ track.iconWrap }}">
+                  <sc-if value="{{ track.active }}" hint-placeholder-val="{{ false }}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="3.5" height="14" rx="1" fill="#06101f"/><rect x="14" y="5" width="3.5" height="14" rx="1" fill="#06101f"/></svg>
+                  </sc-if>
+                  <sc-if value="{{ track.inactive }}" hint-placeholder-val="{{ true }}">
+                    <span style="{{ track.numStyle }}">{{ track.num }}</span>
+                  </sc-if>
+                </button>
+                <span style="{{ track.titleStyle }}">{{ track.title }}</span>
+                <sc-if value="{{ editMode }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;align-items:center;gap:4px;flex:none">
+                    <button onClick="{{ track.onUp }}" aria-label="Move up" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;border:1px solid rgba(122,170,235,.22);background:transparent;color:#cfe0f5;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
+                    <button onClick="{{ track.onDown }}" aria-label="Move down" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;border:1px solid rgba(122,170,235,.22);background:transparent;color:#cfe0f5;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+                    <button onClick="{{ track.onRemove }}" aria-label="Remove from queue" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,110,110,.3);background:transparent;color:#ff8080;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13"/></svg></button>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ track.showDur }}" hint-placeholder-val="{{ true }}">
+                  <span style="{{ track.durStyle }}">{{ track.dur }}</span>
+                </sc-if>
+                <sc-if value="{{ track.showBar }}" hint-placeholder-val="{{ false }}">
+                  <span style="{{ track.barStyle }}"></span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <button onClick="{{ addTrack }}" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;margin-top:14px;padding:14px;border-radius:12px;border:1px dashed rgba(122,170,235,.4);background:transparent;color:#8cc4ff;font-family:inherit;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer" style-hover="border-color:rgba(122,170,235,.7)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>
+          Add to queue
+        </button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- DISCONNECTED STATE -->
+  <sc-if value="{{ disconnected }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:70;background:rgba(5,8,14,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:32px;text-align:center">
+      <span style="display:flex;align-items:center;justify-content:center;width:88px;height:88px;border-radius:50%;border:1px solid rgba(122,170,235,.28)">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(160,178,204,.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/><path d="M4 4l16 16"/></svg>
+      </span>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:16px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#eaf1fb">Not connected to TV</div>
+        <div style="font-size:13px;color:rgba(185,203,230,.6);max-width:260px">Your casting session has ended. Reconnect to pick up where you left off.</div>
+      </div>
+      <button onClick="{{ reconnect }}" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 30px;border-radius:14px;border:1px solid #4a9eff;background:#4a9eff;color:#06101f;font-family:inherit;font-size:12px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;cursor:pointer;box-shadow:0 8px 26px rgba(74,158,255,.35)" style-hover="background:#5aa8ff">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 4l3 3-3 3"/><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M7 20l-3-3 3-3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/></svg>
+        Reconnect to TV
+      </button>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:432,&quot;height&quot;:1420},&quot;microLabels&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Layout&quot;},&quot;startPaused&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;State&quot;}}">
+class Component extends DCLogic {
+  state = {
+    playing: this.props.startPaused ? false : true,
+    volume: 100,
+    progress: 61,
+    msg: '',
+    duration: '5s',
+    currentTrack: 0,
+    showPlaylist: false,
+    fontKey: 'poppins',
+    fontColor: '#ffffff',
+    shadow: true,
+    msgOpen: false,
+    muted: false,
+    loop: false,
+    connected: true,
+    editMode: false,
+    addCount: 0,
+    queue: [
+      { title: 'Beach Party 4K.mp4', dur: '6:43' },
+      { title: 'Sunset Timelapse.mov', dur: '3:12' },
+      { title: 'Rooftop Session.mp4', dur: '5:28' },
+      { title: 'City Lights 4K.mp4', dur: '8:04' },
+      { title: 'Acoustic Set.mp4', dur: '4:15' },
+      { title: 'Drone Reel.mp4', dur: '2:47' },
+    ],
+  };
+
+  addPool = [
+    { title: 'Concert Encore.mp4', dur: '5:02' },
+    { title: 'Morning Run.mov', dur: '2:20' },
+    { title: 'Studio Cut 2.mp4', dur: '3:48' },
+    { title: 'Vacation Edit.mp4', dur: '7:10' },
+  ];
+
+  durToSec(d) {
+    const [m, s] = d.split(':').map(Number);
+    return m * 60 + s;
+  }
+
+  fmt(s) {
+    const m = Math.floor(s / 60);
+    const ss = String(Math.round(s % 60)).padStart(2, '0');
+    return m + ':' + ss;
+  }
+
+  clampCur(len, cur) {
+    return Math.max(0, Math.min(cur, len - 1));
+  }
+
+  selectTrack(i) {
+    this.setState({ currentTrack: i, playing: true, progress: 0, showPlaylist: false, editMode: false });
+  }
+
+  moveTrack(i, dir) {
+    const j = i + dir;
+    this.setState(s => {
+      const q = s.queue.slice();
+      if (j < 0 || j >= q.length) return {};
+      [q[i], q[j]] = [q[j], q[i]];
+      let cur = s.currentTrack;
+      if (cur === i) cur = j; else if (cur === j) cur = i;
+      return { queue: q, currentTrack: cur };
+    });
+  }
+
+  removeTrack(i) {
+    this.setState(s => {
+      const q = s.queue.slice();
+      q.splice(i, 1);
+      let cur = s.currentTrack;
+      if (i < cur) cur -= 1;
+      cur = q.length ? Math.max(0, Math.min(cur, q.length - 1)) : 0;
+      return { queue: q, currentTrack: cur };
+    });
+  }
+
+  addTrack() {
+    this.setState(s => {
+      const item = this.addPool[s.addCount % this.addPool.length];
+      return { queue: s.queue.concat([{ ...item }]), addCount: s.addCount + 1 };
+    });
+  }
+
+  renderVals() {
+    const parse = (str) => {
+      const o = {};
+      str.split(';').filter(Boolean).forEach(r => {
+        const i = r.indexOf(':');
+        const k = r.slice(0, i).trim().replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        o[k] = r.slice(i + 1).trim();
+      });
+      return o;
+    };
+
+    const fontDefs = [
+      { key: 'poppins',  name: 'Poppins',        desc: 'Primary UI',          family: 'Poppins',        weight: 600 },
+      { key: 'outfit',   name: 'Outfit',         desc: 'Premium look',        family: 'Outfit',         weight: 600 },
+      { key: 'fredoka',  name: 'Fredoka',        desc: 'Celebration titles',  family: 'Fredoka',        weight: 600 },
+      { key: 'spartan',  name: 'League Spartan', desc: 'Large announcements', family: 'League Spartan', weight: 700 },
+      { key: 'nunito',   name: 'Nunito',         desc: 'Instructions',        family: 'Nunito',         weight: 700 },
+      { key: 'montserrat', name: 'Montserrat',   desc: 'Formal events',       family: 'Montserrat',     weight: 600 },
+      { key: 'cinzel',     name: 'Cinzel',        desc: 'Classic engraved',    family: 'Cinzel',         weight: 600 },
+      { key: 'greatvibes', name: 'Great Vibes',   desc: 'Elegant script',      family: 'Great Vibes',    weight: 400 },
+      { key: 'allura',     name: 'Allura',        desc: 'Flowing script',      family: 'Allura',         weight: 400 },
+      { key: 'alexbrush',  name: 'Alex Brush',    desc: 'Brush handwriting',   family: 'Alex Brush',     weight: 400 },
+    ];
+    const colorDefs = ['#ffffff', '#4a9eff', '#ffd24a', '#ff6b6b', '#4ade80', '#c084fc'];
+    const curFont = fontDefs.find(f => f.key === this.state.fontKey) || fontDefs[0];
+
+    const q = this.state.queue;
+    const hasItems = q.length > 0;
+    const cur = this.clampCur(q.length, this.state.currentTrack);
+    const total = hasItems ? this.durToSec(q[cur].dur) : 0;
+    const p = this.state.progress;
+    const elapsed = Math.round(p / 100 * total);
+    const remaining = total - elapsed;
+
+    const grad = (val, color) =>
+      ({ background: `linear-gradient(90deg, ${color} 0%, ${color} ${val}%, rgba(122,170,235,.18) ${val}%, rgba(122,170,235,.18) 100%)` });
+
+    // duration pill styles
+    const pillBase = 'display:flex;align-items:center;justify-content:center;gap:9px;flex:1;padding:16px;border-radius:14px;font-family:inherit;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;';
+    const pillOn = pillBase + 'border:1px solid #4a9eff;background:rgba(74,158,255,.14);color:#8cc4ff;box-shadow:inset 0 0 0 1px rgba(74,158,255,.25);';
+    const pillOff = pillBase + 'border:1px solid rgba(122,170,235,.25);background:transparent;color:#cfe0f5;';
+    const is5 = this.state.duration === '5s';
+
+    // corner key styles (loop / mute)
+    const corner = (on) => parse('display:flex;flex-direction:column;align-items:center;gap:6px;width:58px;border:none;background:transparent;font-family:inherit;cursor:pointer;color:' + (on ? '#8cc4ff' : '#cfe0f5') + ';' + (on ? 'text-shadow:0 0 12px rgba(74,158,255,.5);' : ''));
+
+    // playlist rows
+    const playlist = q.map((t, i) => {
+      const active = i === cur;
+      return {
+        title: t.title, dur: t.dur, num: String(i + 1), active, inactive: !active,
+        showDur: !this.state.editMode,
+        showBar: active && !this.state.editMode,
+        onPlay: () => this.selectTrack(i),
+        onUp: () => this.moveTrack(i, -1),
+        onDown: () => this.moveTrack(i, 1),
+        onRemove: () => this.removeTrack(i),
+        rowStyle: parse('position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;width:100%;padding:12px 14px;border-radius:12px;border:1px solid ' + (active ? 'rgba(74,158,255,.4)' : 'rgba(122,170,235,.13)') + ';background:' + (active ? 'rgba(74,158,255,.1)' : 'transparent') + ';'),
+        iconWrap: parse('display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;flex:none;border:none;cursor:pointer;padding:0;' + (active ? 'background:radial-gradient(circle at 50% 35%,#8cc4ff,#4a9eff);' : 'background:transparent;box-shadow:inset 0 0 0 1px rgba(122,170,235,.3);')),
+        numStyle: parse('font-size:12px;font-weight:700;color:rgba(200,216,240,.6);'),
+        titleStyle: parse('flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600;color:' + (active ? '#8cc4ff' : '#e9f0f9') + ';'),
+        durStyle: parse('font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:rgba(185,203,230,.5);flex:none;'),
+        barStyle: parse('position:absolute;left:0;bottom:0;height:2px;background:#4a9eff;width:' + p + '%;'),
+      };
+    });
+
+    const totalSec = q.reduce((a, t) => a + this.durToSec(t.dur), 0);
+    const msgLen = this.state.msg.length;
+
+    return {
+      // connection
+      connected: this.state.connected,
+      disconnected: !this.state.connected,
+      endSession: () => this.setState({ connected: false }),
+      reconnect: () => this.setState({ connected: true }),
+      statusText: !hasItems ? 'Nothing queued' : (this.state.playing ? 'Playing on TV' : 'Paused on TV'),
+      deviceLine: 'LG OLED · Strong',
+      previewBadge: this.state.muted ? 'Live Preview · Muted' : 'Live Preview · Sound On',
+
+      // now playing
+      nowPlayingTitle: hasItems ? q[cur].title : 'Nothing queued',
+      elapsed: this.fmt(elapsed),
+      remaining: '-' + this.fmt(remaining),
+      progress: this.state.progress,
+      onProgress: (e) => this.setState({ progress: +e.target.value }),
+      progressStyle: grad(this.state.progress, '#4a9eff'),
+
+      // transport
+      playing: this.state.playing,
+      paused: !this.state.playing,
+      togglePlay: () => this.setState(s => ({ playing: !s.playing })),
+      skipBack: () => this.setState(s => ({ progress: Math.max(0, s.progress - 2.5) })),
+      skipFwd: () => this.setState(s => ({ progress: Math.min(100, s.progress + 2.5) })),
+
+      // volume + mute
+      volume: this.state.volume,
+      volumeLabel: this.state.muted ? 'Muted' : this.state.volume + '%',
+      volLabelColor: this.state.muted ? 'color:rgba(160,178,204,.5);' : 'color:rgba(200,216,240,.65);',
+      onVolume: (e) => this.setState({ volume: +e.target.value, muted: false }),
+      volumeStyle: grad(this.state.muted ? 0 : this.state.volume, this.state.muted ? '#5a6b82' : '#4a9eff'),
+      volUp: () => this.setState(s => ({ volume: Math.min(100, s.volume + 5), muted: false })),
+      volDown: () => this.setState(s => ({ volume: Math.max(0, s.volume - 5), muted: false })),
+      muted: this.state.muted,
+      soundOn: !this.state.muted,
+      toggleMute: () => this.setState(s => ({ muted: !s.muted })),
+      muteStyle: corner(this.state.muted),
+      muteLabel: this.state.muted ? 'Muted' : 'Mute',
+
+      // loop
+      loop: this.state.loop,
+      toggleLoop: () => this.setState(s => ({ loop: !s.loop })),
+      loopStyle: corner(this.state.loop),
+      loopLabel: this.state.loop ? 'Loop On' : 'Loop',
+
+      // playlist
+      showPlaylist: this.state.showPlaylist,
+      openPlaylist: () => this.setState({ showPlaylist: true }),
+      closePlaylist: () => this.setState({ showPlaylist: false, editMode: false }),
+      stopProp: (e) => e.stopPropagation(),
+      playlist,
+      queueEmpty: !hasItems,
+      queueHasItems: hasItems,
+      playlistMeta: hasItems ? (q.length + ' items · ' + this.fmt(totalSec) + ' · My Cast Queue') : 'My Cast Queue',
+      editMode: this.state.editMode,
+      toggleEdit: () => this.setState(s => ({ editMode: !s.editMode })),
+      editLabel: this.state.editMode ? 'Done' : 'Edit',
+      editBtnStyle: parse('padding:8px 14px;border-radius:99px;font-family:inherit;font-size:10px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;cursor:pointer;border:1px solid ' + (this.state.editMode ? '#4a9eff' : 'rgba(122,170,235,.25)') + ';background:' + (this.state.editMode ? 'rgba(74,158,255,.14)' : 'transparent') + ';color:' + (this.state.editMode ? '#8cc4ff' : '#cfe0f5') + ';'),
+      addTrack: () => this.addTrack(),
+
+      // tv message
+      msg: this.state.msg,
+      onMsg: (e) => this.setState({ msg: e.target.value.slice(0, 60) }),
+      msgCounter: msgLen + '/60',
+      counterColor: msgLen >= 60 ? 'color:#ff8080;' : 'color:rgba(185,203,230,.5);',
+
+      // tv message styling
+      fonts: fontDefs.map(f => {
+        const on = f.key === this.state.fontKey;
+        return {
+          name: f.name, desc: f.desc,
+          onClick: () => this.setState({ fontKey: f.key }),
+          btnStyle: parse('display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:11px 13px;border-radius:12px;cursor:pointer;text-align:left;font-family:inherit;border:1px solid ' + (on ? '#4a9eff' : 'rgba(122,170,235,.2)') + ';background:' + (on ? 'rgba(74,158,255,.12)' : 'transparent') + ';'),
+          nameStyle: parse("font-family:'" + f.family + "',sans-serif;font-weight:" + f.weight + ";font-size:16px;line-height:1.1;color:" + (on ? '#eaf1fb' : '#cfe0f5') + ';'),
+        };
+      }),
+      colors: colorDefs.map(hex => {
+        const on = hex.toLowerCase() === this.state.fontColor.toLowerCase();
+        const ring = on ? 'box-shadow:0 0 0 2px #0a1120,0 0 0 4px #4a9eff;' : '';
+        const border = hex.toLowerCase() === '#ffffff' ? 'border:1px solid rgba(122,170,235,.35);' : 'border:none;';
+        return {
+          hex,
+          onClick: () => this.setState({ fontColor: hex }),
+          style: parse('width:34px;height:34px;border-radius:50%;cursor:pointer;padding:0;background:' + hex + ';' + border + ring),
+        };
+      }),
+      toggleShadow: () => this.setState(s => ({ shadow: !s.shadow })),
+      shadowLabel: 'Text Shadow',
+      msgOpen: this.state.msgOpen,
+      toggleMsg: () => this.setState(s => ({ msgOpen: !s.msgOpen })),
+      msgChevronStyle: parse('transition:transform .2s;transform:rotate(' + (this.state.msgOpen ? '180deg' : '0deg') + ');'),
+      shadowBtnStyle: parse('display:flex;align-items:center;gap:7px;padding:8px 13px;border-radius:99px;font-family:inherit;font-size:10px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;cursor:pointer;border:1px solid ' + (this.state.shadow ? '#4a9eff' : 'rgba(122,170,235,.25)') + ';background:' + (this.state.shadow ? 'rgba(74,158,255,.14)' : 'transparent') + ';color:' + (this.state.shadow ? '#8cc4ff' : '#cfe0f5') + ';'),
+      previewText: this.state.msg || 'Your message on TV',
+      previewStyle: parse("font-family:'" + curFont.family + "',sans-serif;font-weight:" + curFont.weight + ";font-size:26px;line-height:1.2;text-align:center;word-break:break-word;color:" + (this.state.msg ? this.state.fontColor : 'rgba(180,200,226,.35)') + ';' + (this.state.shadow ? 'text-shadow:0 3px 10px rgba(0,0,0,.7),0 1px 2px rgba(0,0,0,.6);' : '')),
+
+      // duration
+      set5s: () => this.setState({ duration: '5s' }),
+      setKeep: () => this.setState({ duration: 'keep' }),
+      dur5Style: parse(is5 ? pillOn : pillOff),
+      durKeepStyle: parse(is5 ? pillOff : pillOn),
+
+      microLabels: this.props.microLabels ?? true,
+    };
+  }
+}
+</script>
+</body>
+</html>
