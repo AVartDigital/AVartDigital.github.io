@@ -15,12 +15,14 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>CastParty — cast & stream to your TV</title>
-  <!-- BUILD 2026-07-05.2 — quiet queueing · tap-to-select playlist · clean idle loop ·
+  <!-- BUILD 2026-07-05.4 — quiet queueing · tap-to-select playlist · clean idle loop ·
        phone-independent playback · no-scroll UI · resilient long-video uploads -->
-  <meta name="castparty-build" content="2026-07-05.2" />
+  <meta name="castparty-build" content="2026-07-05.4" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap" rel="stylesheet" />
+  <!-- Manrope = remote UI font; the 10 families below are TV-message styles -->
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Fredoka:wght@400;500;600;700&family=League+Spartan:wght@400;600;700;800&family=Nunito:wght@400;600;700&family=Montserrat:wght@400;500;600;700&family=Cinzel:wght@400;500;600;700&family=Great+Vibes&family=Allura&family=Alex+Brush&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     /* Cross-device: smooth scrolling + iOS Safari dynamic-height fallback */
@@ -51,6 +53,7 @@
     header { width: 100%; padding: 16px 22px 12px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(109,184,255,0.12); flex-shrink: 0; }
     header .logo { font-size: clamp(20px, 5vw, 30px); font-weight: 800; letter-spacing: -0.02em; color: #4ea3ff; line-height: 1; }
     header .logo span { color: #eaf2ff; font-weight: 800; }
+    header .logo-img { height: clamp(26px, 6.5vw, 38px); width: auto; max-width: 62vw; display: block; }
     .subtitle { font-size: clamp(10px, 2.4vw, 13px); color: #6f83a3; margin-top: 6px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
     /* App fills the remaining viewport; never grows the page */
     #app { width: 100%; max-width: 1100px; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
@@ -174,28 +177,12 @@
     @media (max-width: 400px) { .home-card { aspect-ratio: auto; min-height: 180px; } .home-card .mode-icon { font-size: 38px; } .home-card h2 { font-size: 15px; } }
     @media (min-width: 768px) { .mode-grid { max-width: 880px; } .home-card { min-height: 420px; padding: 52px 40px; } .home-card h2 { font-size: 30px; } .home-card p { font-size: 16px; } }
 
-    /* ═══ Splash intro ═══ */
+    /* ═══ Splash intro (animated logo video) ═══ */
     #cp-splash { position: fixed; top:0; right:0; bottom:0; left:0; inset:0; z-index: 500; display: flex; align-items: center; justify-content: center;
-      background: radial-gradient(120% 90% at 50% 40%, #10203a 0%, #0a1220 42%, #05070d 78%); }
-    #cp-splash.fading { animation: cp-splash-out .4s ease forwards; }
-    .cps-ring { position: absolute; width: min(520px, 120vw); height: min(520px, 120vw); border-radius: 50%; }
-    .cps-ring.r1 { border: 1.5px solid rgba(78,163,255,0.5);  animation: cp-ring 2.1s cubic-bezier(.2,.7,.3,1) .35s forwards; }
-    .cps-ring.r2 { border: 1.5px solid rgba(78,163,255,0.35); animation: cp-ring 2.1s cubic-bezier(.2,.7,.3,1) .62s forwards; }
-    .cps-center { position: relative; display: flex; flex-direction: column; align-items: center; animation: cp-splash-in .7s cubic-bezier(.2,.85,.3,1) both; }
-    .cps-wordwrap { position: relative; overflow: hidden; }
-    .cps-word { font-size: clamp(44px, 12vw, 76px); font-weight: 800; letter-spacing: -0.03em; line-height: 1; white-space: nowrap;
-      animation: cp-wordmark 1.1s cubic-bezier(.7,0,.2,1) .25s both; }
-    .cps-word .c1 { color: #4ea3ff; } .cps-word .c2 { color: #eaf2ff; }
-    .cps-sweep { position: absolute; top: 0; bottom: 0; width: 70px; pointer-events: none;
-      background: linear-gradient(100deg, rgba(140,200,255,0) 0%, rgba(180,220,255,0.85) 50%, rgba(140,200,255,0) 100%);
-      filter: blur(6px); animation: cp-sweep 1.4s cubic-bezier(.4,0,.2,1) .55s both; }
-    .cps-tag { margin-top: 20px; font-size: clamp(11px, 3vw, 15px); font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #6f83a3;
-      animation: cp-tag-in 1.5s ease both; }
-    @keyframes cp-splash-in { 0% { opacity:0; transform:translateY(14px) scale(.94); filter:blur(6px); } 100% { opacity:1; transform:translateY(0) scale(1); filter:blur(0); } }
-    @keyframes cp-wordmark { 0% { clip-path:inset(0 100% 0 0); } 100% { clip-path:inset(0 0 0 0); } }
-    @keyframes cp-sweep { 0% { transform:translateX(-120%); } 60%,100% { transform:translateX(320%); } }
-    @keyframes cp-tag-in { 0%,42% { opacity:0; transform:translateY(8px); } 72%,100% { opacity:1; transform:translateY(0); } }
-    @keyframes cp-ring { 0% { transform:scale(.4); opacity:.55; } 100% { transform:scale(2.4); opacity:0; } }
+      background: #0e1a2f; overflow: hidden; }   /* matches the video's own corners → seamless letterbox */
+    #cp-splash.fading { animation: cp-splash-out .6s ease forwards; }
+    /* contain keeps the whole logo visible on any aspect (portrait phones don't crop the wordmark) */
+    #cp-splash-video { width: 100%; height: 100%; object-fit: contain; background: #0e1a2f; }
     @keyframes cp-splash-out { 0% { opacity:1; } 100% { opacity:0; visibility:hidden; } }
 
     .section-title { font-size: 12px; font-weight: 700; color: var(--gold-soft); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 12px; }
@@ -500,6 +487,129 @@
     #remote-fab .fab-ring { position: absolute; top: 6px; right: 6px; bottom: 6px; left: 6px; inset: 6px; border-radius: 50%; border: 1px dashed rgba(109,184,255,0.45); animation: fabspin 8s linear infinite; }
     @keyframes fabspin { to { transform: rotate(360deg); } }
     #remote-fab:active { transform: scale(0.92); }
+
+    /* ══════════ REDESIGNED MOBILE REMOTE (minimalist, hairline, D-pad) ══════════ */
+    #phone-ctrl.rmt { font-family: 'Manrope', system-ui, sans-serif; background: #070b12; backdrop-filter: none;
+      border-top: 1px solid rgba(122,170,235,.22); box-shadow: 0 -20px 60px rgba(0,0,0,.55); color: #e9f0f9; }
+    .rmt-inner { max-width: 432px; margin: 0 auto; }
+    .rmt-hairline { border: 1px solid rgba(122,170,235,.25); }
+    .rmt-label { font-size: 9px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: rgba(185,203,230,.42); }
+    /* Status / connection-health pill */
+    .rmt-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+      padding: 12px 16px; border-radius: 99px; border: 1px solid rgba(122,170,235,.25); margin-bottom: 16px; }
+    .rmt-status .st-left { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .rmt-status .st-dot { width: 8px; height: 8px; border-radius: 50%; background: #4a9eff; animation: cpPulse 2.2s ease-in-out infinite; flex: none; }
+    .rmt-status .st-text { font-size: 11px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: #7cbcff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rmt-status .st-dev { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(185,203,230,.6); }
+    @keyframes cpPulse { 0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(74,158,255,.5);} 50% { opacity:.55; box-shadow:0 0 0 5px rgba(74,158,255,0);} }
+    /* Now-playing row */
+    .rmt-now { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .rmt-now .np-title { font-size: 13px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: #eaf1fb; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rmt-pill { display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 99px; border: 1px solid rgba(122,170,235,.25);
+      background: transparent; color: #cfe0f5; font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; cursor: pointer; }
+    .rmt-pill:active { border-color: rgba(122,170,235,.55); }
+    .rmt-circ { display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid rgba(122,170,235,.25); background: transparent; color: #cfe0f5; cursor: pointer; }
+    .rmt-circ:active { border-color: rgba(122,170,235,.55); }
+    /* Progress row */
+    .rmt-prog { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+    .rmt-prog .tl { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: rgba(200,216,240,.65); }
+    input[type=range].rmt-range { -webkit-appearance: none; appearance: none; flex: 1; height: 3px; border-radius: 99px; outline: none; background: rgba(122,170,235,.18); cursor: pointer; }
+    input[type=range].rmt-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #8cc4ff; border: 2px solid #eef6ff; box-shadow: 0 0 14px rgba(74,158,255,.75); }
+    input[type=range].rmt-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #8cc4ff; border: 2px solid #eef6ff; }
+    /* D-pad */
+    .rmt-dpad { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 22px; }
+    .rmt-dcol { display: flex; flex-direction: column; justify-content: space-between; height: 186px; padding: 6px 0; }
+    .rmt-cornerbtn { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 60px; min-height: 60px; justify-content: center;
+      border: none; background: transparent; color: #cfe0f5; font-family: inherit; cursor: pointer; }
+    .rmt-cornerbtn .cl { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; }
+    .rmt-cornerbtn.on { color: #8cc4ff; text-shadow: 0 0 10px rgba(140,196,255,.5); }
+    .rmt-ring { position: relative; width: 200px; height: 200px; border-radius: 50%; border: 1px solid rgba(122,170,235,.28);
+      background: radial-gradient(circle at 50% 40%, rgba(74,158,255,.05), transparent 70%); flex: none; }
+    .rmt-dkey { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 1px; border: none; background: transparent; color: #cfe0f5; cursor: pointer; }
+    .rmt-dkey:active { color: #8cc4ff; }
+    .rmt-dkey .dl { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: rgba(190,208,232,.6); }
+    .rmt-dkey.up { top: 12px; left: 0; right: 0; margin: 0 auto; width: 56px; min-height: 44px; justify-content: flex-start; }
+    .rmt-dkey.down { bottom: 12px; left: 0; right: 0; margin: 0 auto; width: 56px; min-height: 44px; justify-content: flex-end; }
+    .rmt-dkey.left { left: 8px; top: 0; bottom: 0; margin: auto 0; height: 56px; width: 44px; justify-content: center; }
+    .rmt-dkey.right { right: 8px; top: 0; bottom: 0; margin: auto 0; height: 56px; width: 44px; justify-content: center; }
+    .rmt-ok { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); display: flex; align-items: center; justify-content: center;
+      width: 82px; height: 82px; border-radius: 50%; border: none; background: radial-gradient(circle at 50% 35%, #8cc4ff, #4a9eff); color: #06101f; cursor: pointer; box-shadow: 0 0 36px rgba(74,158,255,.55); }
+    .rmt-ok:active { filter: brightness(1.06); transform: translate(-50%,-50%) scale(.96); }
+    /* Volume row */
+    .rmt-vol { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .rmt-vol .vlbl { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 44px; text-align: right; color: #cfe0f5; }
+    .rmt-vol .vlbl.muted { color: rgba(160,178,204,.55); }
+    /* Actions row (Replay / Playlist / Refresh) */
+    .rmt-actions { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; align-items: end; margin-bottom: 20px; }
+    .rmt-act { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 4px; border: none; background: transparent; color: #cfe0f5; font-family: inherit; cursor: pointer; }
+    .rmt-act .ac-ring { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; border: 1px solid rgba(122,170,235,.28); }
+    .rmt-act:active .ac-ring { border-color: rgba(122,170,235,.55); }
+    .rmt-act .ac-lbl { font-size: 10px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; }
+    .rmt-act.emph { color: #8cc4ff; }
+    .rmt-act.emph .ac-ring { width: 68px; height: 68px; border: 1px solid #4a9eff; background: radial-gradient(circle at 50% 35%, rgba(140,196,255,.22), rgba(74,158,255,.12)); box-shadow: 0 0 26px rgba(74,158,255,.3); }
+    .rmt-act.emph .ac-lbl { font-weight: 800; }
+    /* Source / add + resync */
+    .rmt-srcrow { display: flex; gap: 12px; margin-bottom: 14px; }
+    .rmt-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 9px; padding: 15px; border-radius: 14px;
+      border: 1px solid rgba(122,170,235,.25); background: transparent; color: #cfe0f5; font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; cursor: pointer; min-height: 48px; }
+    .rmt-btn:active { border-color: rgba(122,170,235,.5); }
+    .rmt-btn.primary { border: 1px solid #4a9eff; background: #4a9eff; color: #06101f; font-weight: 800; box-shadow: 0 6px 22px rgba(74,158,255,.32); }
+    .rmt-btn.primary:active { background: #5aa8ff; }
+    .rmt-btn.dashed { width: 100%; flex: none; border: 1px dashed rgba(122,170,235,.4); margin-bottom: 22px; font-weight: 700; letter-spacing: 1.3px; }
+    .rmt-btn.dashed:active { border-color: rgba(122,170,235,.7); color: #eaf1fb; }
+    /* TV Message collapsible */
+    .rmt-msg-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 15px 16px; border-radius: 14px;
+      border: 1px solid rgba(122,170,235,.25); background: transparent; color: #eaf1fb; font-family: inherit; cursor: pointer; min-height: 48px; }
+    .rmt-msg-toggle .mt-l { display: flex; align-items: center; gap: 11px; font-size: 11px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; }
+    .rmt-msg-toggle .mt-r { display: flex; align-items: center; gap: 13px; }
+    .rmt-msg-toggle .mt-count { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; color: rgba(185,203,230,.6); }
+    .rmt-msg-toggle .mt-count.full { color: #ff8080; }
+    .rmt-msg-toggle .mt-chev { transition: transform .2s; }
+    #rmt-msg-body { display: none; margin-top: 14px; }
+    #rmt-msg-body.open { display: block; }
+    .rmt-msg-toggle.open .mt-chev { transform: rotate(180deg); }
+    .rmt-tvprev { position: relative; width: 100%; min-height: 74px; border-radius: 14px; border: 1px solid rgba(122,170,235,.2);
+      background: linear-gradient(180deg, rgba(12,20,34,.5), rgba(6,10,18,.5)); display: flex; align-items: center; justify-content: center; padding: 16px 18px 14px; margin-bottom: 12px; overflow: hidden; text-align: center; }
+    .rmt-tvprev .pv-tag { position: absolute; top: 8px; left: 12px; font-size: 8px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: rgba(160,178,204,.4); }
+    .rmt-msg-inrow { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .rmt-msg-inrow input { flex: 1; height: 52px; padding: 0 18px; border-radius: 14px; border: 1px solid rgba(122,170,235,.25); background: transparent; color: #eaf1fb; font-family: inherit; font-size: 14px; outline: none; }
+    .rmt-msg-inrow input:focus { border-color: rgba(122,170,235,.5); }
+    .rmt-send { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 14px; border: 1px solid #4a9eff; background: #4a9eff; color: #06101f; cursor: pointer; flex: none; }
+    .rmt-send:active { background: #5aa8ff; }
+    .rmt-fontgrid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin: 9px 0 18px; }
+    .rmt-fontchip { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; padding: 11px 13px; border-radius: 12px; border: 1px solid rgba(122,170,235,.22); background: transparent; color: #eaf1fb; cursor: pointer; text-align: left; min-height: 48px; }
+    .rmt-fontchip.sel { border-color: #4a9eff; background: rgba(74,158,255,.1); }
+    .rmt-fontchip .fc-name { font-size: 15px; font-weight: 600; }
+    .rmt-fontchip .fc-desc { font-size: 9px; font-weight: 600; letter-spacing: .4px; color: rgba(170,190,216,.6); }
+    .rmt-colorrow { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 8px; }
+    .rmt-shadow-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(122,170,235,.25); background: transparent; color: #cfe0f5; font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; min-height: 40px; }
+    .rmt-shadow-btn.on { border-color: #4a9eff; background: rgba(74,158,255,.12); color: #8cc4ff; }
+    .rmt-swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+    .rmt-swatch { width: 34px; height: 34px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+    .rmt-swatch.sel { box-shadow: 0 0 0 2px #070b12, 0 0 0 4px #4a9eff; }
+    .rmt-durrow { display: flex; gap: 12px; margin-top: 16px; }
+    .rmt-durbtn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 12px; border: 1px solid rgba(122,170,235,.25);
+      background: transparent; color: #cfe0f5; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; min-height: 44px; }
+    .rmt-durbtn.sel { border-color: #4a9eff; background: rgba(74,158,255,.12); color: #8cc4ff; }
+    /* Playlist bottom sheet */
+    #rmt-sheet { position: fixed; top:0; right:0; bottom:0; left:0; inset: 0; z-index: 300; display: none; flex-direction: column; justify-content: flex-end;
+      background: rgba(4,7,13,.72); backdrop-filter: blur(6px); }
+    #rmt-sheet.open { display: flex; }
+    #rmt-sheet .sh-card { width: 100%; max-width: 432px; margin: 0 auto; background: #0a1120; border: 1px solid rgba(122,170,235,.22); border-bottom: none;
+      border-radius: 22px 22px 0 0; padding: 16px 18px calc(30px + env(safe-area-inset-bottom)); max-height: 82vh; overflow-y: auto; box-shadow: 0 -20px 60px rgba(0,0,0,.55); }
+    #rmt-sheet .sh-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+    #rmt-sheet .sh-title { font-size: 15px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase; color: #eaf1fb; }
+    #rmt-sheet .sh-meta { font-size: 9.5px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: rgba(185,203,230,.45); margin-bottom: 16px; }
+    .sh-row { display: flex; align-items: center; gap: 12px; position: relative; padding: 11px 12px; border-radius: 12px; border: 1px solid rgba(122,170,235,.14); overflow: hidden; }
+    .sh-row.active { border-color: rgba(74,158,255,.4); background: rgba(74,158,255,.06); }
+    .sh-idx { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(122,170,235,.22); flex: none; font-size: 12px; font-weight: 700; color: #cfe0f5; background: transparent; cursor: pointer; }
+    .sh-row.active .sh-idx { border: none; background: radial-gradient(circle at 50% 35%, #8cc4ff, #4a9eff); color: #06101f; }
+    .sh-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sh-row.active .sh-name { color: #8cc4ff; }
+    .sh-dur { font-size: 12px; font-variant-numeric: tabular-nums; color: rgba(185,203,230,.55); flex: none; }
+    .sh-bar { position: absolute; left: 0; bottom: 0; height: 2px; background: #4a9eff; }
+    .sh-edit-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(122,170,235,.22); background: transparent; color: #cfe0f5; cursor: pointer; flex: none; }
+    .sh-edit-btn.del { border-color: rgba(255,110,110,.3); color: #ff8080; }
 
     /* Phone floating sci-fi controller (slide-up panel) — Player 2 brushed-chrome glass */
     #phone-ctrl {
@@ -870,22 +980,15 @@
 </svg>
 
 
-<!-- SPLASH INTRO — 2.5s brand reveal, then fades out. Skipped on QR auto-join. -->
+<!-- SPLASH INTRO — animated CastParty logo video, then fades to home. Skipped on QR auto-join. -->
 <div id="cp-splash" aria-hidden="true">
-  <div class="cps-ring r1"></div>
-  <div class="cps-ring r2"></div>
-  <div class="cps-center">
-    <div class="cps-wordwrap">
-      <div class="cps-word"><span class="c1">Cast</span><span class="c2">Party</span></div>
-      <div class="cps-sweep"></div>
-    </div>
-    <div class="cps-tag">Cast your media over Wi-Fi</div>
-  </div>
+  <video id="cp-splash-video" src="./castparty-splash.mp4?v=1" poster="./castparty-splash-poster.jpg?v=1"
+         autoplay muted playsinline webkit-playsinline preload="auto"></video>
 </div>
 
 <header>
   <div>
-    <div class="logo">Cast<span>Party</span></div>
+    <img class="logo-img" src="./castparty-logo.png?v=1" alt="CastParty" />
     <div class="subtitle">Cast your media over Wi-Fi</div>
   </div>
   <button id="hdr-end" onclick="confirmTerminate()" title="Terminate session">End Session</button>
@@ -1194,46 +1297,124 @@
 </button>
 
 <!-- PHONE FLOATING CONTROLLER -->
-<div id="phone-ctrl" class="no-cast">
+<div id="phone-ctrl" class="no-cast rmt">
   <div class="ctrl-handle" onclick="toggleRemote()"><span></span></div>
-  <div class="ctrl-titlebar"><span class="ctrl-dot"></span><span id="ctrl-now">REMOTE</span><button class="ctrl-menu" onclick="exitToMenu()" title="Back to menu (keeps session)">☰ Menu</button><button class="ctrl-close" onclick="closeRemote()" aria-label="Close">▾</button></div>
-  <div class="scrub-row" id="scrub-wrap">
-    <span class="time-label" id="cur-time">0:00</span>
-    <input type="range" class="scrub" id="scrubber" min="0" max="100" value="0" step="0.1" />
-    <span class="time-label" id="dur-time">0:00</span>
-  </div>
-  <div class="ctrl-row" id="transport-row">
-    <button class="ctrl-btn" onclick="ctrl('rewind')" title="Back 10s"><svg class="icon"><use href="#ic-prev"/></svg></button>
-    <button class="ctrl-btn big" id="ph-playpause" onclick="ctrl('toggle')"><svg class="icon icon-lg"><use href="#ic-pause"/></svg></button>
-    <button class="ctrl-btn" onclick="ctrl('forward')" title="Forward 10s"><svg class="icon"><use href="#ic-next"/></svg></button>
-    <button class="ctrl-btn" id="ph-loop" onclick="ctrl('loop')" title="Loop"><svg class="icon"><use href="#ic-loop"/></svg></button>
-    <button class="ctrl-btn" onclick="ctrl('fullscreen')" title="Fullscreen"><svg class="icon"><use href="#ic-full"/></svg></button>
-  </div>
-  <!-- TV volume control -->
-  <div class="vol-row">
-    <button class="ctrl-btn vol-btn" id="ph-mute" onclick="ctrl('mute')" title="Mute TV"><svg class="icon"><use href="#ic-vol"/></svg></button>
-    <input type="range" class="scrub vol" id="volslider" min="0" max="100" value="100" step="1" oninput="onVolInput()" aria-label="TV volume" />
-    <span class="vol-pct" id="vol-pct">100%</span>
-  </div>
-  <div class="ctrl-row util-row">
-    <button class="ctrl-btn" onclick="ctrl('restart')" title="Replay from start" aria-label="Replay from start"><svg class="icon"><use href="#ic-replay"/></svg><span class="lbl">Replay</span></button>
-    <button class="ctrl-btn" onclick="recastCurrent()" title="Re-cast this file to the TV" aria-label="Recast to TV"><svg class="icon"><use href="#ic-cast"/></svg><span class="lbl">Recast</span></button>
-    <button class="ctrl-btn" onclick="ctrl('reload')" title="Refresh the TV video (if frozen)" aria-label="Refresh TV video"><svg class="icon"><use href="#ic-refresh"/></svg><span class="lbl">Refresh</span></button>
-    <button class="ctrl-btn danger" onclick="confirmTerminate()" title="End session" aria-label="End session"><svg class="icon"><use href="#ic-power"/></svg><span class="lbl">End</span></button>
-  </div>
-  <button class="ctrl-resync" onclick="resyncSession()"><svg class="icon"><use href="#ic-resync"/></svg> Resync / Reconnect to TV</button>
-  <div class="ctrl-msg">
-    <div class="ctrl-msg-label">TV message</div>
-    <div class="ctrl-party">
-      <input type="text" id="party-msg-input2" maxlength="100" placeholder="On-screen message…" oninput="onPartyInput2()" />
-      <button class="ctrl-flash" onclick="flashMessageToTV()" title="Show on screen" aria-label="Show message on TV"><svg class="icon"><use href="#ic-chat"/></svg></button>
-      <span class="ctrl-party-count" id="party-count2">0</span>
+  <div class="rmt-inner">
+
+    <!-- Connection health -->
+    <div class="rmt-status">
+      <div class="st-left"><span class="st-dot" id="rmt-dot"></span><span class="st-text" id="rmt-status-text">Playing on TV</span></div>
+      <div style="display:flex;align-items:center;gap:8px;flex:none">
+        <span class="st-dev" id="rmt-device">Connected</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="14" width="3" height="6" rx="1" fill="#4a9eff"/><rect x="8" y="10" width="3" height="10" rx="1" fill="#4a9eff"/><rect x="14" y="6" width="3" height="14" rx="1" fill="#4a9eff"/><rect x="20" y="14" width="3" height="6" rx="1" fill="rgba(122,170,235,.3)"/></svg>
+      </div>
     </div>
-    <div class="msg-mode-row">
-      <button class="msg-mode-btn on" id="msg-mode-timed" onclick="setFlashHold(false)">⏱ 5 seconds</button>
-      <button class="msg-mode-btn" id="msg-mode-hold" onclick="setFlashHold(true)"><svg class="icon"><use href="#ic-pin"/></svg> Keep on until off</button>
-      <button class="msg-mode-btn clear" id="msg-clear" onclick="clearFlash()" style="display:none;">✕ Clear</button>
+
+    <!-- Now playing -->
+    <div class="rmt-now">
+      <span class="np-title" id="ctrl-now">REMOTE</span>
+      <div style="display:flex;align-items:center;gap:9px;flex:none">
+        <button class="rmt-pill" onclick="exitToMenu()" aria-label="Back to menu"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg> Menu</button>
+        <button class="rmt-circ" style="width:40px;height:40px" onclick="closeRemote()" aria-label="Collapse player"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      </div>
     </div>
+
+    <!-- Progress -->
+    <div class="rmt-prog" id="scrub-wrap">
+      <span class="tl" id="cur-time">0:00</span>
+      <input type="range" class="rmt-range" id="scrubber" min="0" max="100" value="0" step="0.1" aria-label="Seek" />
+      <span class="tl" id="dur-time" style="min-width:38px;text-align:right">0:00</span>
+    </div>
+
+    <!-- D-pad transport -->
+    <div class="rmt-dpad" id="transport-row">
+      <div class="rmt-dcol">
+        <button class="rmt-cornerbtn" id="ph-loop" onclick="ctrl('loop')" aria-label="Toggle loop">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 4l3 3-3 3"/><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M7 20l-3-3 3-3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/></svg>
+          <span class="cl" id="rmt-loop-lbl">Loop</span>
+        </button>
+        <button class="rmt-cornerbtn" id="ph-mute" onclick="ctrl('mute')" aria-label="Toggle mute">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>
+          <span class="cl" id="rmt-mute-lbl">Mute</span>
+        </button>
+      </div>
+      <div class="rmt-ring">
+        <button class="rmt-dkey up" onclick="rmtVol(5)" aria-label="Volume up"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg><span class="dl">VOL +</span></button>
+        <button class="rmt-dkey down" onclick="rmtVol(-5)" aria-label="Volume down"><span class="dl">VOL −</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+        <button class="rmt-dkey left" onclick="ctrl('rewind')" aria-label="Skip back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6v12"/><path d="M18 6l-8 6 8 6z"/></svg><span class="dl">PREV</span></button>
+        <button class="rmt-dkey right" onclick="ctrl('forward')" aria-label="Skip forward"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 6v12"/><path d="M6 6l8 6-8 6z"/></svg><span class="dl">NEXT</span></button>
+        <button class="rmt-ok" id="ph-playpause" onclick="ctrl('toggle')" aria-label="Play or pause"><svg id="rmt-pp-icon" width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2" fill="#06101f"/><rect x="13.5" y="5" width="4" height="14" rx="1.2" fill="#06101f"/></svg></button>
+      </div>
+      <div class="rmt-dcol">
+        <button class="rmt-cornerbtn" onclick="ctrl('fullscreen')" aria-label="Fullscreen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V5a1 1 0 0 1 1-1h4"/><path d="M20 9V5a1 1 0 0 0-1-1h-4"/><path d="M4 15v4a1 1 0 0 0 1 1h4"/><path d="M20 15v4a1 1 0 0 1-1 1h-4"/></svg><span class="cl">Full</span></button>
+        <button class="rmt-cornerbtn" onclick="recastCurrent()" aria-label="Recast to TV"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16v9h-5"/><path d="M4 12a6 6 0 0 1 6 6"/><path d="M4 16a2 2 0 0 1 2 2"/></svg><span class="cl">Recast</span></button>
+      </div>
+    </div>
+
+    <!-- Volume -->
+    <div class="rmt-vol vol-row">
+      <svg id="rmt-vol-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#cfe0f5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a4.5 4.5 0 0 1 0 7"/></svg>
+      <input type="range" class="rmt-range" id="volslider" min="0" max="100" value="100" step="1" oninput="onVolInput()" aria-label="TV volume" />
+      <span class="vlbl" id="vol-pct">100%</span>
+    </div>
+
+    <!-- Actions: Replay / Playlist / Refresh -->
+    <div class="rmt-actions">
+      <button class="rmt-act" onclick="ctrl('restart')" aria-label="Replay from start"><span class="ac-ring"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 0 0-13.7-5.6L4 9"/><path d="M4 4v5h5"/></svg></span><span class="ac-lbl">Replay</span></button>
+      <button class="rmt-act emph" onclick="openRmtSheet()" aria-label="Open playlist"><span class="ac-ring"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8cc4ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h11M4 12h11M4 17h6"/><path d="M16 13.5v7l5.5-3.5z" fill="#8cc4ff"/></svg></span><span class="ac-lbl">Playlist</span></button>
+      <button class="rmt-act" onclick="ctrl('reload')" aria-label="Refresh stream"><span class="ac-ring"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 9"/><path d="M20 4v5h-5"/></svg></span><span class="ac-lbl">Refresh</span></button>
+    </div>
+
+    <!-- Source / add -->
+    <div class="rmt-srcrow">
+      <button class="rmt-btn" onclick="backToSource()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 0 0-13.7-5.6L4 9"/><path d="M4 4v5h5"/></svg> Other source</button>
+      <button class="rmt-btn primary" onclick="rmtAddMedia()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg> Add media</button>
+    </div>
+
+    <!-- Resync -->
+    <button class="rmt-btn dashed" onclick="resyncSession()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 4l3 3-3 3"/><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M7 20l-3-3 3-3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/></svg> Resync / Reconnect to TV</button>
+
+    <!-- TV Message (collapsible) -->
+    <button class="rmt-msg-toggle" id="rmt-msg-toggle" onclick="rmtToggleMsg()" aria-label="Toggle TV message section">
+      <span class="mt-l"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8cc4ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-4 4z"/></svg> TV Message</span>
+      <span class="mt-r"><span class="mt-count" id="party-count2">0/60</span><svg class="mt-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+    </button>
+    <div id="rmt-msg-body">
+      <div class="rmt-tvprev"><span class="pv-tag">TV Preview</span><span id="rmt-tvprev-text" style="font-size:20px;font-weight:700;color:rgba(180,200,226,.42)">Your message on TV</span></div>
+      <div class="rmt-msg-inrow">
+        <input type="text" id="party-msg-input2" maxlength="60" placeholder="On-screen message…" oninput="onPartyInput2()" aria-label="On-screen message" />
+        <button class="rmt-send" onclick="flashMessageToTV()" aria-label="Send message to TV"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5h14v10H9l-4 4z"/></svg></button>
+      </div>
+      <div class="rmt-label" style="margin-bottom:2px">Font Style</div>
+      <div class="rmt-fontgrid" id="rmt-font-grid"></div>
+      <div class="rmt-colorrow">
+        <div class="rmt-label">Text Color</div>
+        <button class="rmt-shadow-btn" id="rmt-shadow" onclick="rmtToggleShadow()" aria-label="Toggle drop shadow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5h6a5 5 0 0 1 0 10H8z" fill="currentColor" fill-opacity=".25"/><path d="M8 5v14"/></svg> Text Shadow</button>
+      </div>
+      <div class="rmt-swatches" id="rmt-swatches"></div>
+      <div class="rmt-durrow">
+        <button class="rmt-durbtn sel" id="msg-mode-timed" onclick="setFlashHold(false)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="14" r="7"/><path d="M12 14V10"/><path d="M9.5 3h5"/></svg> 5 seconds</button>
+        <button class="rmt-durbtn" id="msg-mode-hold" onclick="setFlashHold(true)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6"/><path d="M10 4l-1 6-3 2.5V15h12v-2.5L15 10l-1-6"/><path d="M12 15v5"/></svg> Keep on until off</button>
+        <button class="rmt-durbtn" id="msg-clear" onclick="clearFlash()" style="display:none;flex:none">Clear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Playlist bottom sheet (redesigned remote) -->
+<div id="rmt-sheet" onclick="closeRmtSheet()">
+  <div class="sh-card" onclick="event.stopPropagation()">
+    <div class="ctrl-handle" style="padding:0 0 16px"><span style="background:rgba(122,170,235,.35)"></span></div>
+    <div class="sh-head">
+      <span class="sh-title">Playlist</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="rmt-pill" id="rmt-edit-btn" onclick="rmtToggleEdit()">Edit</button>
+        <button class="rmt-circ" style="width:36px;height:36px" onclick="closeRmtSheet()" aria-label="Close playlist"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+    </div>
+    <div class="sh-meta" id="rmt-sheet-meta">0 items · My Cast Queue</div>
+    <div id="rmt-sheet-list"></div>
+    <button class="rmt-btn dashed" style="margin-top:14px;margin-bottom:0" onclick="rmtAddMedia()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg> Add to queue</button>
   </div>
 </div>
 
@@ -1264,7 +1445,7 @@
 })();
 </script>
 <script>
-var BUILD = '2026-07-05.2';
+var BUILD = '2026-07-05.4';
 console.log('CastParty build ' + BUILD);
 // Clear any stale caches on load
 if('caches' in window){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }
@@ -1433,6 +1614,104 @@ function _fabSync(){ var f=$('remote-fab'); if(f){ f.style.visibility = $('phone
 function toggleRemote(){ $('phone-ctrl').classList.toggle('open'); _fabSync(); }
 function openRemote(){ $('phone-ctrl').classList.add('open'); _fabSync(); }
 function closeRemote(){ $('phone-ctrl').classList.remove('open'); _fabSync(); }
+
+// ═══════════ Redesigned remote — additive wiring (no new backend calls) ═══════════
+// D-pad VOL +/- nudges the TV volume through the existing volume channel.
+function rmtVol(delta){
+  tvVol = Math.max(0, Math.min(100, (parseInt(tvVol,10)||0) + delta));
+  if(tvVol>0) tvMuted=false;
+  var sl=$('volslider'); if(sl) sl.value=tvVol;
+  send({t:'pb', a:'volume', v: tvVol/100});
+  updateVolUI();
+}
+// "Add media" opens the mid-session file picker (same path as the source screen)
+function rmtAddMedia(){ var h=$('hidden-file-holder'); if(h) h.click(); }
+function rmtToggleMsg(){
+  var b=$('rmt-msg-body'), t=$('rmt-msg-toggle');
+  var open=b.classList.toggle('open'); t.classList.toggle('open', open);
+  if(open) rmtUpdatePreview();
+}
+
+// ── TV-message styling (font / color / shadow) ──
+var msgFontKey='poppins', msgColor='#ffffff', msgShadow=false;
+var RMT_FONTS=[
+  {k:'poppins',name:'Poppins',css:"'Poppins',sans-serif",desc:'Primary UI'},
+  {k:'outfit',name:'Outfit',css:"'Outfit',sans-serif",desc:'Premium look'},
+  {k:'fredoka',name:'Fredoka',css:"'Fredoka',sans-serif",desc:'Celebration titles'},
+  {k:'spartan',name:'League Spartan',css:"'League Spartan',sans-serif",desc:'Large announcements'},
+  {k:'nunito',name:'Nunito',css:"'Nunito',sans-serif",desc:'Instructions'},
+  {k:'montserrat',name:'Montserrat',css:"'Montserrat',sans-serif",desc:'Formal events'},
+  {k:'cinzel',name:'Cinzel',css:"'Cinzel',serif",desc:'Classic engraved'},
+  {k:'greatvibes',name:'Great Vibes',css:"'Great Vibes',cursive",desc:'Elegant script'},
+  {k:'allura',name:'Allura',css:"'Allura',cursive",desc:'Flowing script'},
+  {k:'alexbrush',name:'Alex Brush',css:"'Alex Brush',cursive",desc:'Brush handwriting'}
+];
+var RMT_COLORS=['#ffffff','#4a9eff','#ffd24a','#ff6b6b','#4ade80','#c084fc'];
+function rmtFontCss(k){ for(var i=0;i<RMT_FONTS.length;i++){ if(RMT_FONTS[i].k===k) return RMT_FONTS[i].css; } return "'Poppins',sans-serif"; }
+function renderRmtFonts(){
+  var g=$('rmt-font-grid'); if(!g) return;
+  var h='';
+  for(var i=0;i<RMT_FONTS.length;i++){ var f=RMT_FONTS[i];
+    h+='<button class="rmt-fontchip'+(f.k===msgFontKey?' sel':'')+'" onclick="rmtPickFont(\''+f.k+'\')" aria-label="Font '+f.name+'">'+
+       '<span class="fc-name" style="font-family:'+f.css+'">'+f.name+'</span><span class="fc-desc">'+f.desc+'</span></button>';
+  }
+  g.innerHTML=h;
+  var s=$('rmt-swatches');
+  if(s){ var sh='';
+    for(var j=0;j<RMT_COLORS.length;j++){ var c=RMT_COLORS[j];
+      sh+='<button class="rmt-swatch'+(c===msgColor?' sel':'')+'" style="background:'+c+'" onclick="rmtPickColor(\''+c+'\')" aria-label="Color '+c+'"></button>';
+    }
+    s.innerHTML=sh; }
+}
+function rmtPickFont(k){ msgFontKey=k; renderRmtFonts(); rmtUpdatePreview(); }
+function rmtPickColor(c){ msgColor=c; renderRmtFonts(); rmtUpdatePreview(); }
+function rmtToggleShadow(){ msgShadow=!msgShadow; var b=$('rmt-shadow'); if(b) b.classList.toggle('on',msgShadow); rmtUpdatePreview(); }
+function rmtUpdatePreview(){
+  var el=$('rmt-tvprev-text'); if(!el) return;
+  var t=(partyMsg||'').trim();
+  el.textContent = t || 'Your message on TV';
+  el.style.fontFamily = rmtFontCss(msgFontKey);
+  el.style.color = t ? msgColor : 'rgba(180,200,226,.42)';
+  el.style.textShadow = (msgShadow && t) ? '0 2px 14px rgba(0,0,0,.85)' : 'none';
+}
+
+// ── Playlist bottom sheet (mirrors the real playlist[]) ──
+var rmtEdit=false;
+function openRmtSheet(){ rmtEdit=false; var e=$('rmt-edit-btn'); if(e) e.textContent='Edit'; renderRmtSheet(); $('rmt-sheet').classList.add('open'); }
+function closeRmtSheet(){ $('rmt-sheet').classList.remove('open'); }
+function rmtToggleEdit(){ rmtEdit=!rmtEdit; var e=$('rmt-edit-btn'); if(e) e.textContent=rmtEdit?'Done':'Edit'; renderRmtSheet(); }
+function renderRmtSheet(){
+  var list=$('rmt-sheet-list'); if(!list) return;
+  var meta=$('rmt-sheet-meta'); if(meta) meta.textContent = playlist.length+' item'+(playlist.length===1?'':'s')+' · My Cast Queue';
+  if(!playlist.length){
+    list.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:40px 0 30px;text-align:center">'+
+      '<span style="display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;border:1px solid rgba(122,170,235,.25)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(160,178,204,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11M4 12h8M4 17h6"/></svg></span>'+
+      '<div style="font-size:13px;font-weight:700;color:#e9f0f9">Your queue is empty</div>'+
+      '<div style="font-size:12px;color:rgba(185,203,230,.55);max-width:240px">Add media to start building your cast queue.</div></div>';
+    return;
+  }
+  var html='';
+  for(var i=0;i<playlist.length;i++){
+    var it=playlist[i], active=(i===nowPlayingIdx);
+    html+='<div class="sh-row'+(active?' active':'')+'" style="margin-bottom:6px">'+
+      '<button class="sh-idx" onclick="rmtPlayTrack('+i+')" aria-label="Play '+escapeHtml(it.name)+'">'+
+        (active?'<svg width="14" height="14" viewBox="0 0 24 24"><rect x="6.5" y="5" width="3.5" height="14" rx="1" fill="#06101f"/><rect x="14" y="5" width="3.5" height="14" rx="1" fill="#06101f"/></svg>':(i+1))+'</button>'+
+      '<span class="sh-name">'+escapeHtml(it.name)+'</span>';
+    if(rmtEdit){
+      html+='<div style="display:flex;gap:4px;flex:none">'+
+        '<button class="sh-edit-btn" onclick="movePl('+i+',-1);renderRmtSheet()" aria-label="Move up"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button>'+
+        '<button class="sh-edit-btn" onclick="movePl('+i+',1);renderRmtSheet()" aria-label="Move down"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>'+
+        '<button class="sh-edit-btn del" onclick="removeFromPlaylist('+i+');renderRmtSheet()" aria-label="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13"/></svg></button>'+
+        '</div>';
+    } else {
+      html+='<span class="sh-dur">'+it.kind+'</span>';
+    }
+    if(active){ html+='<span class="sh-bar" id="rmt-sh-bar" style="width:0%"></span>'; }
+    html+='</div>';
+  }
+  list.innerHTML=html;
+}
+function rmtPlayTrack(i){ if(!playlist[i]) return; castItem(playlist[i], true); closeRmtSheet(); }
 
 // Draggable remote FAB — tap toggles, drag repositions (position persisted)
 function initFabDrag(){
@@ -2155,7 +2434,13 @@ function applyTVCmd(a, val){
 // Swap a play/pause button's SVG icon without wiping it
 function setPPIcon(el, paused){
   if(!el) return;
-  var lg = (el.id==='ph-playpause' || el.id==='tv-ov-pp') ? ' icon-lg' : '';
+  if(el.id==='ph-playpause'){   // redesigned D-pad OK key uses the spec's own glyphs
+    el.innerHTML = paused
+      ? '<svg id="rmt-pp-icon" width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="#06101f"/></svg>'
+      : '<svg id="rmt-pp-icon" width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2" fill="#06101f"/><rect x="13.5" y="5" width="4" height="14" rx="1.2" fill="#06101f"/></svg>';
+    return;
+  }
+  var lg = (el.id==='tv-ov-pp') ? ' icon-lg' : '';
   el.innerHTML = '<svg class="icon'+lg+'"><use href="#'+(paused?'ic-play':'ic-pause')+'"/></svg>';
 }
 function updateTVIcons(){
@@ -2566,7 +2851,8 @@ function setPartyMsg(val){
   if(a && a.value!==partyMsg) a.value=partyMsg;
   if(b && b.value!==partyMsg) b.value=partyMsg;
   if($('party-count'))  $('party-count').textContent  = partyMsg.length;
-  if($('party-count2')) $('party-count2').textContent = partyMsg.length;
+  var pc2=$('party-count2'); if(pc2){ pc2.textContent = Math.min(partyMsg.length,60)+'/60'; pc2.classList.toggle('full', partyMsg.length>=60); }
+  rmtUpdatePreview();
   if(role==='phone' && primaryConn) send({t:'partymsg', text:partyMsg});
 }
 function onPartyInput(){ setPartyMsg($('party-msg-input').value); }
@@ -2576,13 +2862,14 @@ var flashHold = false;   // false = 5s auto-fade, true = stays until cleared
 function setFlashHold(hold){
   flashHold = !!hold;
   var t=$('msg-mode-timed'), h=$('msg-mode-hold');
-  if(t) t.classList.toggle('on', !flashHold);
-  if(h) h.classList.toggle('on', flashHold);
+  if(t){ t.classList.toggle('on', !flashHold); t.classList.toggle('sel', !flashHold); }
+  if(h){ h.classList.toggle('on', flashHold); h.classList.toggle('sel', flashHold); }
 }
 function flashMessageToTV(){
   var t = (partyMsg||'').trim();
   if(!t){ toast('Type a message first'); return; }
-  send({t:'flashmsg', text:t, hold:flashHold});
+  // include the chosen TV-message style so the TV renders it as previewed
+  send({t:'flashmsg', text:t, hold:flashHold, font:rmtFontCss(msgFontKey), color:msgColor, shadow:msgShadow});
   var mc=$('msg-clear'); if(mc) mc.style.display = flashHold ? 'inline-flex' : 'none';
   toast(flashHold ? '📌 Pinned on TV — stays until you clear it' : '💬 Shown on TV for 5s');
 }
@@ -2593,10 +2880,16 @@ function clearFlash(){
 }
 // TV side: show centered message; auto-fade after 5s unless held
 var _flashTimer = null;
-function flashMessageOnTV(text, hold){
+function flashMessageOnTV(text, hold, style){
   var f=$('tv-flash'), ft=$('tv-flash-text');
   if(!f||!ft) return;
   ft.textContent = text;
+  // Apply the sender's chosen font / color / shadow (falls back to defaults)
+  if(style){
+    ft.style.fontFamily = style.font || '';
+    ft.style.color = style.color || '';
+    ft.style.textShadow = style.shadow ? '0 3px 20px rgba(0,0,0,.9)' : '';
+  }
   f.classList.add('show');
   clearTimeout(_flashTimer);
   if(!hold){ _flashTimer = setTimeout(function(){ f.classList.remove('show'); }, 5000); }
@@ -2990,9 +3283,12 @@ function updateVolUI(){
   var pct=$('vol-pct'), mb=$('ph-mute'), sl=$('volslider');
   if(sl && !tvMuted) sl.value = tvVol;
   paintRangeFill(sl);
-  if(pct) pct.textContent = tvMuted ? 'muted' : (tvVol+'%');
-  if(mb){ mb.classList.toggle('muted', tvMuted || tvVol===0);
-    mb.querySelector('use').setAttribute('href', (tvMuted||tvVol===0) ? '#ic-mute' : '#ic-vol'); }
+  var isMuted = (tvMuted || tvVol===0);
+  if(pct){ pct.textContent = isMuted ? 'Muted' : (tvVol+'%'); pct.classList.toggle('muted', isMuted); }
+  if(mb){ mb.classList.toggle('on', isMuted);
+    var ml=$('rmt-mute-lbl'); if(ml) ml.textContent = isMuted ? 'Muted' : 'Mute';
+    var u = mb.querySelector('use'); if(u){ u.setAttribute('href', isMuted ? '#ic-mute' : '#ic-vol'); } }
+  var vi=$('rmt-vol-icon'); if(vi) vi.setAttribute('stroke', isMuted ? 'rgba(160,178,204,.55)' : '#cfe0f5');
 }
 // UI-only: paint the played portion of a range track (webkit has no ::-range-progress)
 function paintRangeFill(el){
@@ -3206,7 +3502,7 @@ function handleData(msg, dc, cid){
     case 'text': if(role==='tv') showTextOnTV(msg.text); break;
     case 'nav': if(role==='tv') navTV(msg.d); break;
     case 'partymsg': if(role==='tv'){ tvPartyMsg = msg.text||''; var pm=$('tv-party-msg'); if(pm) pm.textContent = tvPartyMsg; } break;
-    case 'flashmsg': if(role==='tv') flashMessageOnTV(msg.text||'', !!msg.hold); break;
+    case 'flashmsg': if(role==='tv') flashMessageOnTV(msg.text||'', !!msg.hold, {font:msg.font, color:msg.color, shadow:msg.shadow}); break;
     case 'flashclear': if(role==='tv') clearFlashOnTV(); break;
     case 'queue': if(role==='phone') onQueue(msg); break;
     case 'pberr': if(role==='phone'){
@@ -3370,6 +3666,9 @@ function onTime(m){
   lastPausedGuess = !!m.paused;                 // TV state is the truth — confirm the guess
   setPPIcon($('ph-playpause'), m.paused);
   $('ph-loop').classList.toggle('on', !!m.loop);
+  var ll=$('rmt-loop-lbl'); if(ll) ll.textContent = m.loop ? 'Loop On' : 'Loop';
+  if(m.kind!=='image') rmtSetStatus(m.paused ? 'Paused on TV' : 'Playing on TV', true);
+  var shb=$('rmt-sh-bar'); if(shb && dur){ shb.style.width = Math.min(100, ct/dur*100).toFixed(1)+'%'; }   // playlist active-row progress
 }
 function onQueue(m){
   // Map the TV's now-playing back to a playlist index (by name) so both lists highlight it
@@ -3380,7 +3679,14 @@ function onQueue(m){
   if(idx!==nowPlayingIdx){ nowPlayingIdx = idx; renderPlaylist(); }
   tvBusy = !!m.playing;       // phone-side knowledge: is the TV showing something right now?
   setCastLive(!!m.playing);   // reveal controls only while the TV is actually playing
+  if(!m.playing) rmtSetStatus('Nothing queued', false);
+  if($('rmt-sheet') && $('rmt-sheet').classList.contains('open')) renderRmtSheet();
   renderCastList();
+}
+// Redesigned remote: reflect connection/playback health in the status pill
+function rmtSetStatus(text, live){
+  var t=$('rmt-status-text'); if(t) t.textContent = text;
+  var d=$('rmt-dot'); if(d) d.style.background = live ? '#4a9eff' : 'rgba(122,170,235,.5)';
 }
 
 // Cast-screen list of the user's OWN files with per-item Play / Stop / Remove.
@@ -3619,6 +3925,7 @@ function send(obj){
 // ───────── TV video events ─────────
 document.addEventListener('DOMContentLoaded', function(){
   initScrubber();
+  renderRmtFonts();   // populate the TV-message font grid + color swatches
   initFabDrag();
   var evs = ['timeupdate','play','pause','seeked','ended','loadedmetadata','durationchange'];
   ['tv-video','tv-audio'].forEach(function(mid){
@@ -3758,9 +4065,18 @@ setInterval(function(){
 // just scanned a code want the name screen immediately, not an animation).
 (function(){
   var sp = $('cp-splash'); if(!sp) return;
+  // Guests arriving from a scanned QR skip the intro — they want the name screen now
   if(/[?&]join=\d/.test(location.search)){ sp.style.display = 'none'; return; }
-  setTimeout(function(){ sp.classList.add('fading'); }, 2100);
-  setTimeout(function(){ sp.style.display = 'none'; }, 2600);
+  var v = $('cp-splash-video'), done = false;
+  function dismiss(){ if(done) return; done = true; sp.classList.add('fading'); setTimeout(function(){ sp.style.display='none'; }, 600); }
+  if(v){
+    v.muted = true;
+    var p; try{ p = v.play(); }catch(e){ p = null; }
+    if(p && p.catch){ p.catch(function(){ /* autoplay blocked → poster shows; timer dismisses */ }); }
+    v.addEventListener('ended', dismiss, {once:true});                 // fade the moment the animation finishes
+    v.addEventListener('error', function(){ setTimeout(dismiss, 1000); });
+  }
+  setTimeout(dismiss, 4700);   // safety net: always reach the home screen even if 'ended' never fires
 })();
 
 // ───────── Auto-join from QR ─────────
