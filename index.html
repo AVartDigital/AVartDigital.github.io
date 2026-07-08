@@ -15,9 +15,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>CastParty — cast & stream to your TV</title>
-  <!-- BUILD 2026-07-05.7 — quiet queueing · tap-to-select playlist · clean idle loop ·
+  <!-- BUILD 2026-07-05.9 — quiet queueing · tap-to-select playlist · clean idle loop ·
        phone-independent playback · no-scroll UI · resilient long-video uploads -->
-  <meta name="castparty-build" content="2026-07-05.7" />
+  <meta name="castparty-build" content="2026-07-05.9" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <!-- Warm the QR service so the pairing code renders instantly on the TV -->
@@ -837,6 +837,9 @@
     .pl-item.nowplaying { border-color: var(--gold); background: rgba(109,184,255,0.14); box-shadow: 0 0 0 1px var(--edge), 0 0 16px rgba(109,184,255,0.25); opacity: 1; }
     .pl-badge { display:inline-block; font-size:9px; font-weight:800; letter-spacing:1px; padding:1px 6px; border-radius:20px; margin-right:6px; vertical-align:middle; }
     .pl-badge.new { background:rgba(109,184,255,0.2); color:var(--gold-soft); border:1px solid var(--edge); }
+    .pl-rdy { display:inline-block; font-weight:900; font-size:11px; margin-right:5px; vertical-align:middle; }
+    .pl-rdy.ok { color:#4ade80; } .pl-rdy.warn { color:#ffd24a; } .pl-rdy.bad { color:#ff8080; } .pl-rdy.chk { color:var(--muted); }
+    .pl-item.pl-blocked { opacity:.7; }
     .pl-badge.viewed { background:rgba(255,255,255,0.06); color:var(--muted); border:1px solid rgba(255,255,255,0.12); }
     .pl-badge.now { background:var(--gold); color:#042038; box-shadow:0 0 10px rgba(109,184,255,0.6); }
     #screen-phone-cast.active { padding-bottom: 96px; }
@@ -1470,7 +1473,7 @@
 })();
 </script>
 <script>
-var BUILD = '2026-07-05.7';
+var BUILD = '2026-07-05.9';
 console.log('CastParty build ' + BUILD);
 // Clear any stale caches on load
 if('caches' in window){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }
@@ -2181,6 +2184,7 @@ function playItem(item){
     item._retries = 0;
     vv.onerror = function(){
       if(tvPlaying !== item || !item.url) return;
+      cplog('error','video decode/network error '+(item.name||''), {code: vv.error?vv.error.code:0, retry:item._retries});
       if(item._retries < 3){
         item._retries++;
         var pos = vv.currentTime || 0;
@@ -2208,6 +2212,21 @@ function playItem(item){
     bufferedReveal(vv, 'video', item.url, function(){ tvFullscreenAuto(); });
   }
   tvBroadcast({t:'ready'}); broadcastQueue(); sendTime();
+  cplog('play','TV playing '+(item.name||'')+' ['+item.kind+']', {url: item.url?'cloud/blob':'stream'});
+  tvPreloadNext();   // warm the next queued item so transitions are near-instant
+}
+
+// Best-effort prefetch of the next queued cloud video so it starts instantly.
+// Uses a link prefetch (HTTP-cache warm) — no second decoder, safe for TV memory.
+var _tvPrefetch = null;
+function tvPreloadNext(){
+  if(role!=='tv') return;
+  var nx = tvQueue && tvQueue[0];
+  if(!nx || !nx.url || nx.kind!=='video' || nx.url.indexOf('blob:')===0) return;
+  if(_tvPrefetch && _tvPrefetch.href===nx.url) return;
+  try{ if(_tvPrefetch && _tvPrefetch.parentNode) _tvPrefetch.parentNode.removeChild(_tvPrefetch); }catch(e){}
+  try{ var l=document.createElement('link'); l.rel='prefetch'; l.href=nx.url; document.head.appendChild(l); _tvPrefetch=l;
+    cplog('preload','prefetch next '+(nx.name||'')); }catch(e){}
 }
 
 // ── Buffered State Pattern ──
@@ -2682,6 +2701,80 @@ function sniffVideoCodec(file){
 }
 function kindIcon(k){ var id = k==='image'?'ic-image':(k==='audio'?'ic-music':'ic-film'); return '<svg class="icon"><use href="#'+id+'"/></svg>'; }
 
+// ═══════════ MEDIA PIPELINE — diagnostics · capability · optimization ═══════════
+// Diagnostics ring buffer: every pipeline stage logs a structured event. Cheap in
+// normal operation, dumpable for debugging (window.cpdump() in the console).
+var CPLOG = [], CPLOG_MAX = 300;
+function cplog(cat, msg, data){
+  var t = 0; try{ t = Math.round(performance.now()); }catch(e){}
+  CPLOG.push({ t:t, cat:cat, msg:msg, data:(data==null?null:data) });
+  if(CPLOG.length > CPLOG_MAX) CPLOG.shift();
+  try{ console.log('%c[CP:'+cat+']','color:#4a9eff', msg, data!=null?data:''); }catch(e){}
+}
+try{ window.cpdump = function(){ return CPLOG.map(function(e){ return e.t+'ms ['+e.cat+'] '+e.msg+(e.data?' '+JSON.stringify(e.data):''); }).join('\n'); }; }catch(e){}
+
+// True if this browser can actually DECODE the given MIME/codec (strongest signals)
+function canPlayCodec(mime){
+  if(!mime) return false;
+  try{ var v=document.createElement('video'); if(v.canPlayType && v.canPlayType(mime)==='probably') return true; }catch(e){}
+  try{ if(window.MediaSource && MediaSource.isTypeSupported && MediaSource.isTypeSupported(mime)) return true; }catch(e){}
+  try{ var v2=document.createElement('video'); if(v2.canPlayType && v2.canPlayType(mime)==='maybe') return true; }catch(e){}
+  return false;
+}
+// Capability verdict for one item — drives routing + the per-item readiness badge.
+// Honest classification: 'ready' plays direct; 'risky' plays with fallbacks; 'block'
+// can't decode here and needs conversion the browser can't do (surfaced to the user).
+var CODEC_MIME = { h264:'video/mp4; codecs="avc1.42E01E"', hevc:'video/mp4; codecs="hvc1"',
+                   av1:'video/mp4; codecs="av01.0.05M.08"', vp9:'video/webm; codecs="vp9"' };
+function probeMedia(item){
+  var nm=(item.name||'').toLowerCase(), kind=item.kind;
+  return new Promise(function(res){
+    if(kind==='image'){
+      if(/\.(heic|heif)$/.test(nm)) return res({state:'block', reason:'HEIC can’t be decoded by browsers', hint:'Convert to JPEG (iPhone: Camera → Formats → Most Compatible)'});
+      return res({state:'ready', reason:'image renders natively'});
+    }
+    if(kind==='audio') return res({state:'ready', reason:'audio plays natively'});
+    if(/\.(mkv|avi|wmv|flv)$/.test(nm)) return res({state:'block', reason:'container not supported by browsers', hint:'Re-export as MP4 (H.264)'});
+    sniffVideoCodec(item.file).then(function(codec){
+      item.codec = codec;
+      if(codec==='hevc' && !canPlayCodec(CODEC_MIME.hevc)) return res({state:'block', codec:codec, reason:'HEVC/H.265 not decodable on this device', hint:'Record/export as H.264'});
+      if((codec==='av1'||codec==='vp9') && !canPlayCodec(CODEC_MIME[codec])) return res({state:'risky', codec:codec, reason:codec.toUpperCase()+' may not decode on some TVs', hint:'H.264 MP4 is safest'});
+      if(codec==='h264') return res({state:'ready', codec:codec, reason:'H.264 — broadly supported'});
+      // unknown container/codec: trust the browser's own guess
+      var ok = canPlayCodec(item.file.type||'');
+      return res({state: ok?'ready':'risky', codec:codec, reason: ok?'browser reports playable':'unverified codec'});
+    });
+  });
+}
+// Client-side auto-optimization we CAN do reliably: downscale oversized still
+// images (huge phone photos OOM cheap TV decoders) and re-encode to JPEG.
+// GIFs are skipped (animation) and small images are left untouched.
+function optimizeImage(item){
+  var f=item.file;
+  if(!f || !/^image\//.test(f.type||'') || /gif/i.test(f.type||'')) return Promise.resolve();
+  return new Promise(function(res){
+    var url; try{ url=URL.createObjectURL(f); }catch(e){ return res(); }
+    var img=new Image();
+    img.onload=function(){
+      var MAXD=2560, w=img.naturalWidth, h=img.naturalHeight;
+      if(!w || !h || Math.max(w,h)<=MAXD){ URL.revokeObjectURL(url); return res(); }
+      var s=MAXD/Math.max(w,h), nw=Math.round(w*s), nh=Math.round(h*s);
+      try{
+        var c=document.createElement('canvas'); c.width=nw; c.height=nh;
+        c.getContext('2d').drawImage(img,0,0,nw,nh);
+        c.toBlob(function(blob){
+          URL.revokeObjectURL(url);
+          if(blob && blob.size < f.size){ item.file=new File([blob], item.name, {type:'image/jpeg'}); item.size=blob.size;
+            cplog('optimize','image '+w+'x'+h+' → '+nw+'x'+nh, {from:f.size, to:blob.size}); try{ renderPlaylist(); renderCastList(); }catch(e){} }
+          res();
+        }, 'image/jpeg', 0.9);
+      }catch(e){ URL.revokeObjectURL(url); res(); }
+    };
+    img.onerror=function(){ URL.revokeObjectURL(url); res(); };
+    img.src=url;
+  });
+}
+
 // ── Phone playlist ──
 var playlist = [];   // {id, file, name, kind, size, onTV, url, uploaded}
 var partyMsg = '';
@@ -2705,34 +2798,17 @@ function addToPlaylist(f){
     toast('This file is too large. Please choose a file under 2 GB.');
     return false;
   }
-  var nm = (f.name||'').toLowerCase();
-  // HEIC/HEIF photos (iPhone default) cannot be displayed by TV browsers at all — block
-  if(/\.(heic|heif)$/.test(nm) || /image\/hei[cf]/.test(f.type||'')){
-    toast('iPhone HEIC photos can’t be shown on TVs — please convert "'+f.name+'" to JPEG first (or change iPhone camera settings to "Most Compatible").');
-    return false;
-  }
-  // Containers TV browsers usually can't play — allow, but warn up-front
-  if(/\.(mkv|avi|wmv|flv)$/.test(nm)){
-    toast('⚠ "'+f.name+'" may not play on TV browsers — MP4 (H.264) is the safe format.');
-  } else if(f.type && /^video\//.test(f.type) && typeof f.slice === 'function'){
-    // Sniff the real codec (MIME can't distinguish H.264 from HEVC in .mp4/.mov)
-    sniffVideoCodec(f).then(function(codec){
-      if(codec === 'hevc'){
-        toast('⚠ "'+f.name+'" is HEVC/H.265 — most TV browsers can\'t decode it. On iPhone: Settings → Camera → Formats → "Most Compatible" records TV-safe H.264.');
-      } else if(codec === 'av1' || codec === 'vp9'){
-        toast('⚠ "'+f.name+'" uses '+codec.toUpperCase()+' — may not play on older TV browsers. H.264 MP4 is the safe format.');
-      } else if(codec === 'unknown'){
-        try{
-          var probe = document.createElement('video');
-          if(probe.canPlayType && probe.canPlayType(f.type) === ''){
-            toast('⚠ "'+f.name+'" ('+f.type+') may not play on the TV — H.264 MP4 is the safe format.');
-          }
-        }catch(e){}
-      }
-      // 'h264' → TV-safe, no noise
-    });
-  }
-  playlist.push({ id:'it'+(++plSeq), file:f, name:f.name, kind:mediaKind(f.type,f.name), size:f.size, onTV:false, sent:false });
+  var it = { id:'it'+(++plSeq), file:f, name:f.name, kind:mediaKind(f.type,f.name), size:f.size, onTV:false, sent:false, ready:'checking' };
+  playlist.push(it);
+  cplog('ingest', 'added '+f.name, {kind:it.kind, type:f.type, size:f.size});
+  // Async pipeline: auto-optimize what we can (downscale huge images), then probe
+  // capability and store a verdict that drives routing + the per-item badge.
+  optimizeImage(it).then(function(){ return probeMedia(it); }).then(function(v){
+    it.ready = v.state; it.readyReason = v.reason; it.readyHint = v.hint || '';
+    cplog('probe', f.name+' → '+v.state, {codec:v.codec||it.codec, reason:v.reason});
+    if(v.state==='block'){ toast('⚠ "'+f.name+'": '+v.reason+(v.hint?' — '+v.hint:'')); }
+    try{ renderPlaylist(); renderCastList(); }catch(e){}
+  }).catch(function(e){ it.ready='risky'; cplog('probe','probe failed for '+f.name, {err:String(e)}); });
   return true;
 }
 function removeFromPlaylist(i){ if(!playlist[i]) return; playlist.splice(i,1); if(selectedPlIdx===i) selectedPlIdx=-1; else if(selectedPlIdx>i) selectedPlIdx--; renderPlaylist(); renderCastList(); }
@@ -2765,9 +2841,14 @@ function renderPlaylist(){
     var badge = isNow ? '<span class="pl-badge now">● NOW</span>'
               : it.sent ? '<span class="pl-badge viewed">✓ VIEWED</span>'
               : '<span class="pl-badge new">NEW</span>';
-    html += '<div class="pl-item'+(it.sent?' done':'')+(isNow?' nowplaying':'')+(isSel?' selected':'')+'">'+
+    // Capability readiness dot: green ✓ ready · amber ⚠ risky · red ✕ can't play
+    var rdy = it.ready==='ready' ? '<span class="pl-rdy ok" title="Ready to play">✓</span>'
+            : it.ready==='risky' ? '<span class="pl-rdy warn" title="'+escapeHtml(it.readyReason||'may not play everywhere')+'">⚠</span>'
+            : it.ready==='block' ? '<span class="pl-rdy bad" title="'+escapeHtml((it.readyReason||'')+(it.readyHint?' — '+it.readyHint:''))+'">✕</span>'
+            : '<span class="pl-rdy chk" title="Checking…">…</span>';
+    html += '<div class="pl-item'+(it.sent?' done':'')+(isNow?' nowplaying':'')+(isSel?' selected':'')+(it.ready==='block'?' pl-blocked':'')+'">'+
       '<div class="pl-ic">'+kindIcon(it.kind)+'</div>'+
-      '<div class="pl-meta"><div class="pl-name">'+escapeHtml(it.name)+'</div>'+
+      '<div class="pl-meta"><div class="pl-name">'+rdy+' '+escapeHtml(it.name)+'</div>'+
       '<div class="pl-sub">'+badge+' '+it.kind+' · '+formatBytes(it.size)+'</div></div>'+
       '<div class="pl-act">'+
         (it.sent
@@ -2788,7 +2869,15 @@ function renderPlaylist(){
 // (cloud URL or received blob) it replays INSTANTLY with no re-upload/re-send.
 function castItem(it, playNow){
   if(!it) return;
+  // Reliability gate: don't ship a file the TV provably can't decode — tell the
+  // user exactly what to do instead of casting it to a guaranteed black screen.
+  if(it.ready==='block'){
+    toast('“'+it.name+'” can’t play on the TV: '+(it.readyReason||'unsupported')+(it.readyHint?' — '+it.readyHint:''));
+    cplog('cast','blocked unsupported '+it.name, {reason:it.readyReason});
+    return;
+  }
   lastCast = {type:'file', it: it};
+  cplog('cast','cast '+it.name, {playNow:!!playNow, onTV:!!it.onTV, ready:it.ready});
   enterController(false);
   // Quiet-queue rule: if the TV is already showing something, new casts join the
   // queue and play after it — never interrupt. playNow=true (explicit "Play now",
@@ -3114,6 +3203,36 @@ function cloudCastVideo(item, force){
     }).catch(function(){ upload.start(); });
   });
 }
+
+// Live Supabase connection self-test: config → upload → public-read → delete a
+// tiny probe object, reporting each step. Run  window.cptest()  in the browser
+// console on the DEPLOYED site (the TV/phone can reach Supabase; verifies bucket,
+// policies, CORS and keys end-to-end).
+function cloudSelfTest(){
+  return new Promise(function(resolve){
+    var out = { url: SUPABASE_URL, bucket: SUPABASE_BUCKET, steps: [], pass: false };
+    function step(n, ok, info){ out.steps.push({ step:n, ok:!!ok, info:info||'' }); cplog('selftest', n+': '+(ok?'OK':'FAIL'), info); }
+    if(!cloudEnabled()){ step('config', false, 'SUPABASE_URL / ANON_KEY missing'); return resolve(out); }
+    step('config', true, 'url + anon key present');
+    var base = SUPABASE_URL.replace(/\/$/,'');
+    var path = 'selftest/' + (function(){ try{ return Date.now(); }catch(e){ return 'probe'; } })() + '.txt';
+    var H = { apikey: SUPABASE_ANON_KEY, authorization: 'Bearer ' + SUPABASE_ANON_KEY };
+    var body = new Blob(['castparty-selftest'], { type:'text/plain' });
+    fetch(base+'/storage/v1/object/'+SUPABASE_BUCKET+'/'+path, { method:'POST', headers:H, body:body })
+      .then(function(r){ step('upload (anon INSERT)', r.ok, 'HTTP '+r.status); if(!r.ok) throw new Error('upload');
+        return fetch(base+'/storage/v1/object/public/'+SUPABASE_BUCKET+'/'+path); })
+      .then(function(r){ step('public read (SELECT)', r.ok, 'HTTP '+r.status);
+        return fetch(base+'/storage/v1/object/'+SUPABASE_BUCKET+'/'+path, { method:'DELETE', headers:H }); })
+      .then(function(r){ step('cleanup (DELETE)', r.ok, 'HTTP '+r.status);
+        out.pass = out.steps.every(function(s){ return s.ok; }); resolve(out); })
+      .catch(function(e){ out.error = String(e && e.message || e); resolve(out); });
+  });
+}
+try{ window.cptest = function(){ return cloudSelfTest().then(function(r){
+  console.log('%cCastParty · Supabase self-test '+(r.pass?'✅ PASS':'❌ FAIL'), 'font-weight:bold;color:'+(r.pass?'#4ade80':'#ff8080'));
+  r.steps.forEach(function(s){ console.log((s.ok?'  ✓ ':'  ✗ ')+s.step+'  '+s.info); });
+  if(r.error) console.log('  error:', r.error);
+  return r; }); }; }catch(e){}
 
 // Delete all of this session's uploaded objects (Snapchat-style cleanup)
 function cloudCleanup(){
@@ -4083,6 +4202,7 @@ setInterval(function(){
   if(!v || v.paused || v.ended || v.seeking || v.readyState < 2){ _stallT = v ? v.currentTime : -1; return; }
   if(v.currentTime === _stallT){
     _stallN++;
+    cplog('stall','playback frozen at '+_stallT.toFixed(1)+'s (attempt '+_stallN+')');
     if(_stallN === 1){ try{ v.currentTime = v.currentTime + 0.1; }catch(e){} }
     else if(_stallN === 2 && tvPlaying.url){
       var pos = v.currentTime, u = tvPlaying.url;
@@ -4125,7 +4245,7 @@ setInterval(function(){
       _aqCalm = 0;
       if(tvHls && tvHls.levels && tvHls.levels.length>1){
         var cur = (tvHls.autoLevelCapping>=0) ? tvHls.autoLevelCapping : tvHls.currentLevel;
-        if(cur>0){ tvHls.autoLevelCapping = cur-1; console.log('AQ: cap HLS level ->', cur-1); }
+        if(cur>0){ tvHls.autoLevelCapping = cur-1; cplog('adapt','frame drops → cap HLS level '+(cur-1)); }
       } else {
         if(!_aqSlow){ _aqSlow=true; try{ v.playbackRate = 0.92; }catch(e){} }   // ease off to let decode catch up
         if(ahead < 0.5 && !_aqResumeFn){                                         // starved → micro-rebuffer a cushion
