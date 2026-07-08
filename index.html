@@ -15,9 +15,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>CastParty — cast & stream to your TV</title>
-  <!-- BUILD 2026-07-05.9 — quiet queueing · tap-to-select playlist · clean idle loop ·
+  <!-- BUILD 2026-07-08.1 — quiet queueing · tap-to-select playlist · clean idle loop ·
        phone-independent playback · no-scroll UI · resilient long-video uploads -->
-  <meta name="castparty-build" content="2026-07-05.9" />
+  <meta name="castparty-build" content="2026-07-08.1" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <!-- Warm the QR service so the pairing code renders instantly on the TV -->
@@ -837,6 +837,20 @@
     .pl-item.nowplaying { border-color: var(--gold); background: rgba(109,184,255,0.14); box-shadow: 0 0 0 1px var(--edge), 0 0 16px rgba(109,184,255,0.25); opacity: 1; }
     .pl-badge { display:inline-block; font-size:9px; font-weight:800; letter-spacing:1px; padding:1px 6px; border-radius:20px; margin-right:6px; vertical-align:middle; }
     .pl-badge.new { background:rgba(109,184,255,0.2); color:var(--gold-soft); border:1px solid var(--edge); }
+    /* Intent presets + playback-style chips */
+    .intent-row { margin-bottom: 14px; }
+    .intent-label { font-size: 11px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase; color: var(--gold-soft); margin-bottom: 8px; }
+    .intent-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .intent-chip { flex: 1 1 40%; min-width: 0; min-height: 44px; padding: 10px 8px; border-radius: 12px; font-size: 12.5px; font-weight: 700;
+      background: var(--surface); border: 1px solid rgba(255,255,255,0.1); color: var(--text); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .intent-chip.sel { border-color: var(--gold); background: rgba(109,184,255,0.12); color: var(--gold-soft); box-shadow: 0 0 12px rgba(109,184,255,0.25); }
+    .intent-tip { font-size: 11.5px; color: var(--muted); line-height: 1.45; margin-top: 8px; }
+    .style-row { display: flex; align-items: center; gap: 6px; margin: 8px 0 10px; }
+    .style-lbl { font-size: 10px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); flex: none; }
+    .style-chip { flex: 1; min-height: 36px; border-radius: 9px; font-size: 12px; font-weight: 700;
+      background: transparent; border: 1px solid rgba(255,255,255,0.12); color: var(--muted); cursor: pointer; position: relative; }
+    .style-chip::after { content:''; position:absolute; top:-5px; right:-2px; bottom:-5px; left:-2px; }  /* 46px effective tap area */
+    .style-chip.sel { border-color: var(--gold); background: rgba(109,184,255,0.14); color: var(--gold-soft); }
     .pl-rdy { display:inline-block; font-weight:900; font-size:11px; margin-right:5px; vertical-align:middle; }
     .pl-rdy.ok { color:#4ade80; } .pl-rdy.warn { color:#ffd24a; } .pl-rdy.bad { color:#ff8080; } .pl-rdy.chk { color:var(--muted); }
     .pl-item.pl-blocked { opacity:.7; }
@@ -1014,7 +1028,7 @@
 <header>
   <div>
     <img class="logo-img" src="./castparty-logo.png?v=1" alt="CastParty" />
-    <div class="subtitle">Cast your media over Wi-Fi</div>
+    <div class="subtitle">Make any screen your stage</div>
   </div>
   <button id="hdr-end" onclick="confirmTerminate()" title="Terminate session">End Session</button>
 </header>
@@ -1216,12 +1230,23 @@
       <summary class="source-summary"><span><svg class="icon"><use href="#ic-cast"/></svg> What do you want to show?</span><span class="chev">▾</span></summary>
       <div class="source-grid">
         <div class="source-btn" onclick="pickSource('file')"><div class="ic"><svg><use href="#ic-film"/></svg></div><div class="nm">Media &amp; playlist</div><div class="ds">Videos, photos, music</div></div>
-        <div class="source-btn" onclick="pickSource('screen')"><div class="ic"><svg><use href="#ic-mirror"/></svg></div><div class="nm">Screen / app</div><div class="ds">Mirror your screen</div></div>
+        <div class="source-btn" onclick="pickSource('screen')"><div class="ic"><svg><use href="#ic-mirror"/></svg></div><div class="nm">Screen / app <span style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--muted);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:1px 5px;vertical-align:middle;">BETA</span></div><div class="ds">Mirror your screen (desktop browsers)</div></div>
         <div class="source-btn" onclick="pickSource('url')"><div class="ic"><svg><use href="#ic-globe"/></svg></div><div class="nm">Website</div><div class="ds">Open a URL on TV</div></div>
         <div class="source-btn" onclick="pickSource('camera')"><div class="ic"><svg><use href="#ic-camera"/></svg></div><div class="nm">Camera</div><div class="ds">Live phone camera</div></div>
       </div>
     </details>
     <div id="src-file" style="display:none;">
+      <!-- Intent presets: pick what you're creating, get professional defaults -->
+      <div class="intent-row" role="group" aria-label="What are you creating?">
+        <div class="intent-label">What are you creating?</div>
+        <div class="intent-chips">
+          <button class="intent-chip" id="intent-slideshow" onclick="setIntent('slideshow')">🎉 Event Slideshow</button>
+          <button class="intent-chip" id="intent-playlist" onclick="setIntent('playlist')">🎬 Video Playlist</button>
+          <button class="intent-chip" id="intent-present" onclick="setIntent('present')">📊 Presentation</button>
+          <button class="intent-chip sel" id="intent-quick" onclick="setIntent('quick')">⚡ Quick Cast</button>
+        </div>
+        <p class="intent-tip" id="intent-tip">Plays your media once, in order, and holds on the last item.</p>
+      </div>
       <div class="media-layout">
         <div>
           <div id="file-drop-zone" onclick="document.getElementById('file-input').click()">
@@ -1244,6 +1269,12 @@
         <div class="playlist-panel">
           <h3>Playlist <span class="count" id="pl-count">0 items</span>
             <button class="pl-clear-btn" onclick="clearPlaylist()" title="Remove all files from the playlist">✕ Clear all</button></h3>
+          <div class="style-row" role="group" aria-label="How should this play?">
+            <span class="style-lbl">Plays:</span>
+            <button class="style-chip" id="style-loop" onclick="setPbStyle('loop')" title="Keeps playing until you stop it">Loop</button>
+            <button class="style-chip sel" id="style-once" onclick="setPbStyle('once')" title="Plays through once and holds on the final item">Once</button>
+            <button class="style-chip" id="style-manual" onclick="setPbStyle('manual')" title="You advance each item yourself">Manual</button>
+          </div>
           <div id="playlist-items"><div class="pl-empty">No media yet.<br>Tap "Add media" to build your playlist.</div></div>
           <div id="pl-confirm-bar">
             <span class="pl-conf-name" id="pl-conf-name"></span>
@@ -1473,7 +1504,7 @@
 })();
 </script>
 <script>
-var BUILD = '2026-07-05.9';
+var BUILD = '2026-07-08.1';
 console.log('CastParty build ' + BUILD);
 // Clear any stale caches on load
 if('caches' in window){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }
@@ -1501,6 +1532,12 @@ var tvQueue = [];
 var tvPlaying = null;
 var tvBusy = false;   // phone: latest known "TV is showing something" state (from queue broadcasts)
 var tvLoop = false;
+// Playback style (spec): 'loop' = repeat the whole show · 'once' = play through and
+// hold on the final item (never drop back to the idle screen mid-event) · 'manual'
+// = presenter mode, advance only on command. Mirrored from the phone via {t:'pbstyle'}.
+var tvStyle = 'once';
+var tvPlayed = [];    // TV: items already shown this run (fuel for whole-show looping)
+var pbStyle = 'once'; // phone-side selection
 var tvLibrary = {};   // TV: id -> item (every file received this session, for instant replay)
 var slideshow = [];   // image items this session, for looping slideshows
 var rx = null; // current receive state
@@ -2159,13 +2196,21 @@ function playItem(item){
   if($('tv-ov-title')) $('tv-ov-title').textContent = '';   // never show filenames on the TV
   if(item.sender) showCasterBanner(item.sender);
 
+  if(item.url && !item.isStream && !tvPlayed.some(function(p){ return p.id===item.id; })) tvPlayed.push(item);
   if(item.kind === 'image'){
     if(item.url && !slideshow.some(function(s){ return s.url===item.url; })) slideshow.push(item);
     showOnlyMedia('image');
     // Buffered State: keep spinner until the image is decoded, THEN reveal
     bufferedReveal($('tv-image'), 'image', item.url, function(){ tvFullscreenAuto(); });
-    // Slideshow: advance to next image after a few seconds (loops if tvLoop re-queues)
-    imgTimer = setTimeout(function(){ if(tvQueue.length>0) playNext(); else if(tvLoop && slideshow.length>1){ tvQueue = slideshow.slice(); playNext(); } }, 6000);
+    // Slideshow pacing (spec): 4s per image, 1s fade. Manual mode never auto-advances;
+    // Play-once holds on the final image instead of dropping back to the idle screen.
+    if(tvStyle !== 'manual'){
+      imgTimer = setTimeout(function(){
+        if(tvQueue.length > 0){ playNext(); }
+        else if((tvStyle==='loop'||tvLoop) && tvPlayed.length > 1){ tvQueue = tvPlayed.slice(); tvPlayed = []; playNext(); }
+        /* 'once' with nothing queued → stay on this image */
+      }, 4000);
+    }
   } else if(item.kind === 'audio'){
     var a = $('tv-audio');
     a.src = item.url; a.loop = tvLoop;
@@ -2273,12 +2318,14 @@ function playNext(){
   tvFadeOutThen(function(){ playItem(item); });   // 1s fade-out → fade-in between files
 }
 
-// fires when current video/audio ends naturally
+// fires when current video/audio ends naturally — behavior follows the playback style
 function onMediaEnded(){
-  if(tvLoop && tvQueue.length===0){ return; } // single looping item handled by element.loop
-  if(tvQueue.length > 0){ playNext(); }
-  else if(tvLoop && slideshow.length>1){ tvQueue = slideshow.slice(); playNext(); }
-  else { tvEndToIdle(); broadcastQueue(); }   // hold 1.5s → close window → idle art
+  if(tvLoop && tvQueue.length===0 && tvPlayed.length<=1){ return; } // single looping item handled by element.loop
+  if(tvStyle === 'manual'){ broadcastQueue(); return; }             // hold; the remote decides what's next
+  if(tvQueue.length > 0){ playNext(); return; }
+  if((tvStyle==='loop'||tvLoop) && tvPlayed.length > 0){ tvQueue = tvPlayed.slice(); tvPlayed = []; playNext(); return; }
+  if(tvStyle === 'once'){ broadcastQueue(); return; }               // stay on the final frame — no drop to idle
+  tvEndToIdle(); broadcastQueue();   // hold 1.5s → close window → idle art
 }
 
 function broadcastQueue(){
@@ -2355,13 +2402,26 @@ function tvFadeOutThen(cb){
 }
 // Reliable autoplay: start muted (always allowed), then unmute — avoids the
 // "needs a tap on the TV" problem that desynced phone↔TV playback.
+// Smoothly ramp a media element's volume (spec: no sudden loud audio, no abrupt cuts)
+function rampVolume(el, from, to, ms){
+  try{ el.volume = Math.max(0, Math.min(1, from)); }catch(e){ return; }
+  var steps = 8, i = 0;
+  clearInterval(el._rampIv);
+  el._rampIv = setInterval(function(){
+    i++;
+    var v = from + (to - from) * (i / steps);
+    try{ el.volume = Math.max(0, Math.min(1, v)); }catch(e){}
+    if(i >= steps) clearInterval(el._rampIv);
+  }, Math.max(20, ms / steps));
+}
 function autoPlay(el, onok){
   el.muted = true;
   // restore to the current TV volume (not hard 1) so the phone's volume setting sticks.
+  // Audio fades IN over ~0.7s instead of blasting at full level.
   // Some TV builds silently PAUSE when unmuted without a gesture — detect that,
   // resume muted, and surface the tap-to-play overlay instead of freezing.
   var run = function(){ if(onok) onok(); setTimeout(function(){
-    try{ el.volume = tvVolume; el.muted = (tvVolume===0); }catch(e){}
+    try{ el.muted = (tvVolume===0); if(!el.muted){ rampVolume(el, 0, tvVolume, 700); } }catch(e){}
     setTimeout(function(){
       if(el.paused && !el.ended){
         try{ el.muted = true; el.play().catch(function(){}); }catch(e){}
@@ -2657,6 +2717,7 @@ function phoneConfirm(){
   // Send the name as-is (may be blank) — the TV assigns "Device N" and tells us back
   send({t:'confirm'});
   send({t:'hello', name: (myName||'').trim()});
+  send({t:'pbstyle', style: pbStyle});   // TV mirrors the chosen playback style
   showScreen('screen-phone-source');
 }
 
@@ -2788,6 +2849,31 @@ function fileInputChange(e){
   for(var i=0;i<files.length;i++){ addToPlaylist(files[i]); }
   e.target.value='';
   renderPlaylist();
+}
+// ── Playback style + intent presets (spec: intent-driven, progressive disclosure) ──
+function setPbStyle(s, quiet){
+  pbStyle = (s==='loop'||s==='manual') ? s : 'once';
+  ['loop','once','manual'].forEach(function(k){ var b=$('style-'+k); if(b) b.classList.toggle('sel', k===pbStyle); });
+  send({t:'pbstyle', style: pbStyle});
+  if(!quiet){
+    toast(pbStyle==='loop' ? '🔁 Show loops until you stop it'
+        : pbStyle==='manual' ? '👆 Manual — you advance each item'
+        : '▶ Plays once and holds on the last item');
+  }
+  cplog('style','phone selected '+pbStyle);
+}
+var INTENTS = {
+  slideshow: { style:'loop',   tip:'Photos show 4s each with smooth fades, videos play in full, and the show loops until you stop it.' },
+  playlist:  { style:'once',   tip:'Videos play in order with clean transitions, then hold on the final frame.' },
+  present:   { style:'manual', tip:'Nothing advances until you say so — use Next on the remote like a clicker.' },
+  quick:     { style:'once',   tip:'Plays your media once, in order, and holds on the last item.' }
+};
+function setIntent(k){
+  var it = INTENTS[k] || INTENTS.quick;
+  ['slideshow','playlist','present','quick'].forEach(function(n){ var b=$('intent-'+n); if(b) b.classList.toggle('sel', n===k); });
+  var tip=$('intent-tip'); if(tip) tip.textContent = it.tip;
+  setPbStyle(it.style, true);
+  cplog('intent','experience → '+k);
 }
 // Single source of truth for the upload size limit. Matches the Supabase bucket's
 // configured 2 GB per-file limit — if you change one, change the other.
@@ -3586,7 +3672,11 @@ function handleData(msg, dc, cid){
     case 'stream-end': if(role==='tv'){ $('tv-spinner').classList.remove('show'); if(tvPlaying&&tvPlaying.isStream){ tvPlaying=null; if(tvQueue.length>0){playNext();}else{tvIdle();} broadcastQueue(); } } break;
     case 'stream-cancel': if(role==='tv'){ tvStreamPendingMeta=null; $('tv-spinner').classList.remove('show'); } break;
     case 'ready': if(role==='phone'){ setPill('phone-cast-status','phone-cast-text','streaming','Playing on TV'); } break;
-    case 'stop': if(role==='tv'){ tvQueue=[]; tvPlaying=null; stopViz(); tvCloseWindow(function(){ tvIdle(); }); broadcastQueue(); } break;
+    case 'stop': if(role==='tv'){ tvQueue=[]; tvPlayed=[]; tvPlaying=null; stopViz(); tvCloseWindow(function(){ tvIdle(); }); broadcastQueue(); } break;
+    case 'pbstyle': if(role==='tv'){ tvStyle = (msg.style==='loop'||msg.style==='manual') ? msg.style : 'once';
+      tvLoop = (tvStyle==='loop');
+      try{ var cm=curMedia(); if(cm) cm.loop = (tvLoop && tvQueue.length===0 && tvPlayed.length<=1); }catch(e){}
+      cplog('style','playback style → '+tvStyle); updateTVIcons(); } break;
     case 'pb': if(role==='tv'){ applyTVCmd(msg.a, msg.v); } break;
     case 'time': if(role==='phone') onTime(msg); break;
     case 'url': if(role==='tv'){ if(msg.sender) showCasterBanner(msg.sender); openUrlOnTV(msg.url); } break;
@@ -3725,6 +3815,7 @@ function reconnConnect(){
       // Full re-handshake so the TV re-authorizes this device under its old name
       send({t:'confirm'});
       send({t:'hello', name: (myName||'').trim()});
+      send({t:'pbstyle', style: pbStyle});
       reconnDone();
     });
   }catch(e){}
@@ -4057,7 +4148,7 @@ function resetConn(){
   var v = $('tv-video');
   try{ v.pause(); v.removeAttribute('src'); v.srcObject=null; }catch(e){}
   try{ clearTimeout(imgTimer); if(vizRAF){ cancelAnimationFrame(vizRAF); vizRAF=null; } var a=$('tv-audio'); a.pause(); a.removeAttribute('src'); a.srcObject=null; }catch(e){}
-  confirmed=false; rx=null; tvQueue=[]; tvPlaying=null; tvStreamPendingMeta=null; tvLibrary={};
+  confirmed=false; rx=null; tvQueue=[]; tvPlayed=[]; tvPlaying=null; tvStreamPendingMeta=null; tvLibrary={};
   playlist=[]; partyMsg=''; sending=false; slideshow=[]; nowPlayingIdx=-1; lastCast=null; myRole=null; deviceRoster=[]; myCid=null;
   var dp=$('devices-panel'); if(dp) dp.style.display='none';
   $('phone-ctrl').classList.remove('open');
@@ -4089,9 +4180,17 @@ document.addEventListener('DOMContentLoaded', function(){
         var isAudio = (mid==='tv-audio');
         var curIsAudio = (tvPlaying && tvPlaying.kind==='audio');
         if(isAudio !== !!curIsAudio) return;
+        // Audio fade-out over the last second (spec: no abrupt cuts) — only when the
+        // media will actually END here (not looping natively, nothing to crossfade)
+        if(ev === 'timeupdate' && !el.loop && isFinite(el.duration) && el.duration > 3 && !el.paused){
+          var rem = el.duration - el.currentTime;
+          if(rem <= 1.1 && rem >= 0 && !el._fadingOut){ el._fadingOut = true; rampVolume(el, el.volume, 0, Math.max(200, rem*900)); }
+          else if(rem > 1.6 && el._fadingOut){ el._fadingOut = false; rampVolume(el, el.volume, tvVolume, 300); }  // user seeked back
+        }
+        if(ev === 'seeked' || ev === 'play'){ if(el._fadingOut && isFinite(el.duration) && (el.duration - el.currentTime) > 1.6){ el._fadingOut=false; rampVolume(el, el.volume, tvVolume, 300); } }
         updateTVIcons();
         sendTime();
-        if(ev === 'ended') onMediaEnded();
+        if(ev === 'ended'){ el._fadingOut = false; onMediaEnded(); }
       });
     });
   });
