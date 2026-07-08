@@ -15,9 +15,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>CastParty — cast & stream to your TV</title>
-  <!-- BUILD 2026-07-05.5 — quiet queueing · tap-to-select playlist · clean idle loop ·
+  <!-- BUILD 2026-07-05.6 — quiet queueing · tap-to-select playlist · clean idle loop ·
        phone-independent playback · no-scroll UI · resilient long-video uploads -->
-  <meta name="castparty-build" content="2026-07-05.5" />
+  <meta name="castparty-build" content="2026-07-05.6" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap" rel="stylesheet" />
@@ -405,8 +405,7 @@
     }
     #tv-overlay.visible { opacity: 1; pointer-events: auto; }
     /* On-TV seek/progress bar */
-    #tv-overlay .ov-title { text-align: center; font-size: clamp(13px,1.6vw,19px); font-weight: 700; color: var(--gold-soft);
-      margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4%; letter-spacing: .5px; }
+    #tv-overlay .ov-title { display: none; }   /* filenames never shown on the TV */
     #tv-overlay .ov-seek {
       display: flex; align-items: center; gap: 14px; width: min(76%, 900px); margin-bottom: 16px;
       background: rgba(8,12,10,0.6); backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,0.18);
@@ -1445,7 +1444,7 @@
 })();
 </script>
 <script>
-var BUILD = '2026-07-05.5';
+var BUILD = '2026-07-05.6';
 console.log('CastParty build ' + BUILD);
 // Clear any stale caches on load
 if('caches' in window){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }
@@ -1964,13 +1963,13 @@ function tvShowStream(stream){
     a.srcObject = stream; a.src = '';
     showOnlyMedia('audio');
     $('tv-party-msg').textContent = tvPartyMsg || '';
-    autoPlay(a, function(){ startViz(a); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); });
+    autoPlay(a, function(){ startViz(a); playFadeIn(); tvFullscreenAuto(); });
   } else {
     var v = $('tv-video');
     v.srcObject = stream; v.src = '';
     showOnlyMedia('video');
     $('tv-play-overlay').classList.add('hidden');
-    autoPlay(v, function(){ playFadeIn(); tvFullscreenAuto(); showTVOverlay(); });
+    autoPlay(v, function(){ playFadeIn(); tvFullscreenAuto(); });
   }
 
   // When the stream closes naturally (phone ended), advance to next queued item
@@ -2128,14 +2127,14 @@ function playItem(item){
   $('tv-play-overlay').classList.add('hidden');
   $('tv-transfer').classList.remove('show');
   $('tv-corner-qr').classList.remove('show');
-  if($('tv-ov-title')) $('tv-ov-title').textContent = item.name || '';
+  if($('tv-ov-title')) $('tv-ov-title').textContent = '';   // never show filenames on the TV
   if(item.sender) showCasterBanner(item.sender);
 
   if(item.kind === 'image'){
     if(item.url && !slideshow.some(function(s){ return s.url===item.url; })) slideshow.push(item);
     showOnlyMedia('image');
     // Buffered State: keep spinner until the image is decoded, THEN reveal
-    bufferedReveal($('tv-image'), 'image', item.url, function(){ tvFullscreenAuto(); showTVOverlay(); });
+    bufferedReveal($('tv-image'), 'image', item.url, function(){ tvFullscreenAuto(); });
     // Slideshow: advance to next image after a few seconds (loops if tvLoop re-queues)
     imgTimer = setTimeout(function(){ if(tvQueue.length>0) playNext(); else if(tvLoop && slideshow.length>1){ tvQueue = slideshow.slice(); playNext(); } }, 6000);
   } else if(item.kind === 'audio'){
@@ -2143,7 +2142,7 @@ function playItem(item){
     a.src = item.url; a.loop = tvLoop;
     showOnlyMedia('audio');
     $('tv-party-msg').textContent = tvPartyMsg || '';
-    autoPlay(a, function(){ startViz(a); tvIntroReveal(); tvFullscreenAuto(); showTVOverlay(); });
+    autoPlay(a, function(){ startViz(a); tvIntroReveal(); tvFullscreenAuto(); });
   } else {
     var vv = $('tv-video');
     if(vv._url && vv._url!==item.url){ try{ URL.revokeObjectURL(vv._url); }catch(e){} }
@@ -2180,7 +2179,7 @@ function playItem(item){
     };
     showOnlyMedia('video');
     // Buffered State: spinner until the video can play through, THEN reveal + start
-    bufferedReveal(vv, 'video', item.url, function(){ tvFullscreenAuto(); showTVOverlay(); });
+    bufferedReveal(vv, 'video', item.url, function(){ tvFullscreenAuto(); });
   }
   tvBroadcast({t:'ready'}); broadcastQueue(); sendTime();
 }
@@ -2362,16 +2361,10 @@ function tvIdle(){
   updateCornerQR();
 }
 
-// "Casting from NAME" — auto-shows for 4s at the start of each file
+// Auto "Casting from NAME" banner is intentionally DISABLED — the TV shows nothing
+// but the media unless the user sends a custom text overlay or opens controls.
 var _casterTimer = null;
-function showCasterBanner(name){
-  if(!name) return;
-  var b=$('tv-caster'), t=$('tv-caster-text'); if(!b||!t) return;
-  t.textContent = 'Casting from “' + name + '”';
-  b.classList.add('show');
-  clearTimeout(_casterTimer);
-  _casterTimer = setTimeout(function(){ b.classList.remove('show'); }, 4000);
-}
+function showCasterBanner(name){ /* suppressed: no automatic on-screen overlays */ }
 
 // TV transport
 function tvOvCmd(a){ applyTVCmd(a); }
@@ -2406,7 +2399,7 @@ function applyTVCmd(a, val){
       case 'loop':     tvLoop=!tvLoop; break;
       case 'fullscreen': tvFullscreen(); break;
     }
-    updateTVIcons(); showTVOverlay(); return;
+    updateTVIcons(); return;
   }
   if($('tv-iframe').style.display === 'block'){
     if(a==='rewind') navTV('up');
@@ -2414,12 +2407,12 @@ function applyTVCmd(a, val){
     else if(a==='reload') navTV('reload');
     return;
   }
-  if(a==='fullscreen'){ tvFullscreen(); showTVOverlay(); return; }
+  if(a==='fullscreen'){ tvFullscreen(); return; }
   // Image: transport advances the playlist
   if(tvPlaying && tvPlaying.kind==='image'){
     if(a==='forward' || a==='toggle'){ if(tvQueue.length>0) playNext(); }
     else if(a==='loop'){ tvLoop = !tvLoop; }
-    showTVOverlay(); broadcastQueue(); return;
+    broadcastQueue(); return;
   }
   var v = curMedia();
   if(!v.src && !v.srcObject) return;
@@ -2439,8 +2432,7 @@ function applyTVCmd(a, val){
       break;
     }
   }
-  updateTVIcons(); sendTime();
-  showTVOverlay();
+  updateTVIcons(); sendTime();   // remote commands run silently on the TV — no overlay flash
 }
 
 // Swap a play/pause button's SVG icon without wiping it
@@ -3767,7 +3759,7 @@ function openYouTube(url){
       videoId: vid,
       playerVars:{ autoplay:1, controls:0, modestbranding:1, rel:0, iv_load_policy:3, fs:0, playsinline:1 },
       events:{
-        onReady: function(e){ $('tv-spinner').classList.remove('show'); e.target.setVolume(100); e.target.playVideo(); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); tvBroadcast({t:'ready'}); startYtSync(); },
+        onReady: function(e){ $('tv-spinner').classList.remove('show'); e.target.setVolume(100); e.target.playVideo(); playFadeIn(); tvFullscreenAuto(); tvBroadcast({t:'ready'}); startYtSync(); },
         onError: function(e){ $('tv-spinner').classList.remove('show'); toast('YouTube: video unavailable ('+e.data+')'); tvIdle(); }
       }
     });
@@ -3802,7 +3794,7 @@ function openHLS(url){
     var hls = new Hls({enableWorker:true, autoStartLoad:true, startLevel:-1, capLevelToPlayerSize:true, backBufferLength:60, maxBufferLength:30, maxMaxBufferLength:60});
     tvHls = hls;   // referenced by the adaptive-quality monitor
     hls.loadSource(url); hls.attachMedia(v);
-    hls.on(Hls.Events.MANIFEST_PARSED, function(){ v.muted=false; v.volume=1; v.play().then(function(){ $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); tvBroadcast({t:'ready'}); }).catch(function(){ v.muted=true; v.play().then(function(){ setTimeout(function(){ v.muted=false; },600); $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); }).catch(function(){}); }); });
+    hls.on(Hls.Events.MANIFEST_PARSED, function(){ v.muted=false; v.volume=1; v.play().then(function(){ $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); tvBroadcast({t:'ready'}); }).catch(function(){ v.muted=true; v.play().then(function(){ setTimeout(function(){ v.muted=false; },600); $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); }).catch(function(){}); }); });
     // Confirm ABR is actually switching (visible in the TV console)
     hls.on(Hls.Events.LEVEL_SWITCHED, function(e,d){ console.log('HLS ABR: now at level', d.level); });
     // Standard hls.js recovery ladder instead of instant give-up
@@ -3819,7 +3811,7 @@ function openHLS(url){
   } else if(v.canPlayType('application/vnd.apple.mpegurl')){
     // Native HLS (Safari/Silk)
     showOnlyMedia('video'); v.srcObject=null; v.src=url; v.muted=false; v.volume=1;
-    v.play().then(function(){ $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); tvBroadcast({t:'ready'}); }).catch(function(){});
+    v.play().then(function(){ $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); tvBroadcast({t:'ready'}); }).catch(function(){});
   } else {
     // Load hls.js on demand
     var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js';   // pinned: @latest can break without warning
@@ -3844,7 +3836,7 @@ function openDASH(url){
       }});
     }catch(e){}
     player.initialize(v, url, true);
-    player.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, function(){ $('tv-spinner').classList.remove('show'); v.muted=false; v.volume=1; playFadeIn(); tvFullscreenAuto(); showTVOverlay(); tvBroadcast({t:'ready'}); });
+    player.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, function(){ $('tv-spinner').classList.remove('show'); v.muted=false; v.volume=1; playFadeIn(); tvFullscreenAuto(); tvBroadcast({t:'ready'}); });
     // Confirm ABR is actually switching (visible in the TV console)
     player.on(dashjs.MediaPlayer.events.QUALITY_CHANGE_RENDERED, function(e){ console.log('DASH ABR: now at quality', e && e.newQuality); });
     var retried = false;
@@ -3870,7 +3862,7 @@ function openDirectVideo(url){
   $('tv-spinner').classList.add('show');
   showOnlyMedia('video');
   v.srcObject=null; v.src=url; v.loop=tvLoop; v.muted=false; v.volume=1;
-  v.play().then(function(){ $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); tvBroadcast({t:'ready'}); })
+  v.play().then(function(){ $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); tvBroadcast({t:'ready'}); })
    .catch(function(){ v.muted=true; v.play().then(function(){ setTimeout(function(){ v.muted=false; },500); $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); }).catch(function(){ $('tv-spinner').classList.remove('show'); toast('Video could not play — try a different link'); }); });
 }
 
