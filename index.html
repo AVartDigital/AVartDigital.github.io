@@ -15,9 +15,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>CastParty — cast & stream to your TV</title>
-  <!-- BUILD 2026-07-05.4 — quiet queueing · tap-to-select playlist · clean idle loop ·
+  <!-- BUILD 2026-07-05.5 — quiet queueing · tap-to-select playlist · clean idle loop ·
        phone-independent playback · no-scroll UI · resilient long-video uploads -->
-  <meta name="castparty-build" content="2026-07-05.4" />
+  <meta name="castparty-build" content="2026-07-05.5" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap" rel="stylesheet" />
@@ -1074,7 +1074,7 @@
       <div class="avtv-badge"><span class="live-dot"></span> CASTPARTY — STREAMING LIVE</div>
       <div class="tv-monitor-outer">
         <div id="tv-stage" class="idle" onclick="showTVOverlay()" ondblclick="tvFullscreen()">
-          <video id="tv-video" playsinline webkit-playsinline x5-playsinline muted autoplay></video>
+          <video id="tv-video" playsinline webkit-playsinline x5-playsinline muted autoplay preload="auto"></video>
           <img id="tv-image" alt="" />
           <audio id="tv-audio"></audio>
           <div id="tv-audio-stage">
@@ -1445,7 +1445,7 @@
 })();
 </script>
 <script>
-var BUILD = '2026-07-05.4';
+var BUILD = '2026-07-05.5';
 console.log('CastParty build ' + BUILD);
 // Clear any stale caches on load
 if('caches' in window){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }
@@ -2147,6 +2147,9 @@ function playItem(item){
   } else {
     var vv = $('tv-video');
     if(vv._url && vv._url!==item.url){ try{ URL.revokeObjectURL(vv._url); }catch(e){} }
+    if(tvHls && !item.isHls){ try{ tvHls.destroy(); }catch(e){} tvHls=null; }   // leaving an HLS stream
+    try{ vv.playbackRate = 1; }catch(e){} _aqSlow=false; _aqLast=null;           // reset adaptive state
+    vv.preload = 'auto';
     vv._url = item.url; vv.srcObject = null; vv.src = item.url; vv.loop = tvLoop;
     // Resilience: if the stream errors mid-play (Wi-Fi blip on a long movie),
     // retry from the same position up to 3 times before giving up.
@@ -2192,6 +2195,7 @@ function bufferedReveal(el, kind, url, after){
   $('tv-spinner').classList.add('show');
   function reveal(){
     if(revealed) return; revealed = true;
+    if(el._aqCleanup){ el._aqCleanup(); el._aqCleanup=null; }   // drop buffer-watch listeners
     $('tv-spinner').classList.remove('show');
     tvIntroReveal();
     if(after) after();
@@ -2201,14 +2205,22 @@ function bufferedReveal(el, kind, url, after){
     el.src = url;
     if(el.complete && el.naturalWidth) reveal();   // cached image
   } else {
-    el.addEventListener('canplaythrough', reveal, {once:true});
-    el.addEventListener('playing', reveal, {once:true});
-    autoPlay(el, function(){ /* started; reveal fires on canplaythrough/playing */ });
+    el.preload = 'auto';
+    // Prefer a HEALTHY buffer before revealing so playback starts smooth and holds
+    // a consistent frame rate (a slightly longer spinner is the intended trade-off).
+    var TARGET = 2.0;   // seconds of buffer-ahead we'd like before showing
+    function readyEnough(){ return el.readyState >= 4 || bufferedAhead(el) >= TARGET; }
+    function maybeReveal(){ if(readyEnough()) reveal(); }
+    el.addEventListener('canplaythrough', reveal, {once:true});   // browser says it can play through
+    el.addEventListener('progress', maybeReveal);
+    el.addEventListener('timeupdate', maybeReveal);
+    el._aqCleanup = function(){ el.removeEventListener('progress', maybeReveal); el.removeEventListener('timeupdate', maybeReveal); };
+    autoPlay(el, function(){ /* started under the spinner; reveal once buffered enough */ });
   }
-  // Safety-net: never hang the spinner forever — but if the element is in an
-  // error state, DON'T reveal a black player; the error handler's retry/idle
-  // path owns recovery from here.
-  setTimeout(function(){ if(!(el.error)) reveal(); }, 4000);
+  // Safety-net: never hang the spinner forever (longer now to allow a buffer to build) —
+  // but if the element is in an error state, DON'T reveal a black player; the error
+  // handler's retry/idle path owns recovery from here.
+  setTimeout(function(){ if(!(el.error)) reveal(); }, 6000);
 }
 
 function playNext(){
@@ -3785,7 +3797,10 @@ function openHLS(url){
     // startLevel:-1 = adaptive bitrate ON from the first segment (hls.js default,
     // made explicit); capLevelToPlayerSize stops a 720p TV pulling 4K renditions.
     // lowLatencyMode removed — it's for LL-HLS live streams and hurts VOD.
-    var hls = new Hls({enableWorker:true, autoStartLoad:true, startLevel:-1, capLevelToPlayerSize:true, backBufferLength:60});
+    // maxBufferLength 30s = preload a healthy chunk cushion ahead (smoother playback,
+    // trades a slightly longer initial buffer for consistent frame delivery)
+    var hls = new Hls({enableWorker:true, autoStartLoad:true, startLevel:-1, capLevelToPlayerSize:true, backBufferLength:60, maxBufferLength:30, maxMaxBufferLength:60});
+    tvHls = hls;   // referenced by the adaptive-quality monitor
     hls.loadSource(url); hls.attachMedia(v);
     hls.on(Hls.Events.MANIFEST_PARSED, function(){ v.muted=false; v.volume=1; v.play().then(function(){ $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); showTVOverlay(); tvBroadcast({t:'ready'}); }).catch(function(){ v.muted=true; v.play().then(function(){ setTimeout(function(){ v.muted=false; },600); $('tv-spinner').classList.remove('show'); playFadeIn(); tvFullscreenAuto(); }).catch(function(){}); }); });
     // Confirm ABR is actually switching (visible in the TV console)
@@ -4059,6 +4074,57 @@ setInterval(function(){
   } else { _stallN = 0; }
   _stallT = v.currentTime;
 }, 3000);
+
+// Seconds of buffered media ahead of the playhead
+function bufferedAhead(v){
+  try{ for(var i=0;i<v.buffered.length;i++){ if(v.buffered.start(i)<=v.currentTime+0.25 && v.currentTime<=v.buffered.end(i)+0.25){ return v.buffered.end(i)-v.currentTime; } } }catch(e){}
+  return 0;
+}
+// ── Adaptive quality: keep the frame rate consistent under load ──
+// Samples decoded vs dropped frames. When the TV can't keep up it throttles —
+// HLS streams drop one rendition (lower resolution); plain cloud/local video
+// pre-buffers a cushion and eases playbackRate down — then recovers automatically
+// once playback is smooth again. Prioritises steady frames over instant response,
+// exactly as intended (a slight buffering delay is acceptable).
+var tvHls = null;
+var _aqLast = null, _aqSlow = false, _aqCalm = 0, _aqResumeFn = null;
+setInterval(function(){
+  if(role!=='tv' || !tvPlaying || tvPlaying.kind!=='video'){ _aqLast=null; return; }
+  var v = $('tv-video');
+  if(!v || v.paused || v.ended || v.seeking || typeof v.getVideoPlaybackQuality!=='function'){ _aqLast=null; return; }
+  var q = v.getVideoPlaybackQuality();
+  var tot = q.totalVideoFrames||0, drop = q.droppedVideoFrames||0;
+  if(_aqLast){
+    var dTot = tot - _aqLast.tot, dDrop = drop - _aqLast.drop;
+    var ratio = dTot>0 ? dDrop/dTot : 0;
+    var ahead = bufferedAhead(v);
+    if(dTot >= 20 && ratio > 0.10){                 // sustained frame drops → throttle
+      _aqCalm = 0;
+      if(tvHls && tvHls.levels && tvHls.levels.length>1){
+        var cur = (tvHls.autoLevelCapping>=0) ? tvHls.autoLevelCapping : tvHls.currentLevel;
+        if(cur>0){ tvHls.autoLevelCapping = cur-1; console.log('AQ: cap HLS level ->', cur-1); }
+      } else {
+        if(!_aqSlow){ _aqSlow=true; try{ v.playbackRate = 0.92; }catch(e){} }   // ease off to let decode catch up
+        if(ahead < 0.5 && !_aqResumeFn){                                         // starved → micro-rebuffer a cushion
+          try{ v.pause(); }catch(e){} $('tv-spinner').classList.add('show');
+          _aqResumeFn = function(){ if(bufferedAhead(v) >= 2 || v.readyState>=4){ v.removeEventListener('progress',_aqResumeFn); _aqResumeFn=null; $('tv-spinner').classList.remove('show'); v.play().catch(function(){}); } };
+          v.addEventListener('progress', _aqResumeFn);
+        }
+      }
+    } else {                                        // smooth → relax after a calm streak
+      _aqCalm++;
+      if(_aqCalm >= 3){
+        if(_aqSlow){ _aqSlow=false; try{ v.playbackRate = 1; }catch(e){} }
+        if(tvHls && tvHls.autoLevelCapping >= 0 && ahead > 3){
+          var nc = tvHls.autoLevelCapping + 1;
+          tvHls.autoLevelCapping = (nc >= tvHls.levels.length-1) ? -1 : nc;      // -1 = full auto again
+        }
+        _aqCalm = 0;
+      }
+    }
+  }
+  _aqLast = {tot:tot, drop:drop};
+}, 2000);
 
 // ───────── Splash intro ─────────
 // 2.5s brand reveal on entry. Skipped entirely for QR auto-join (people who
