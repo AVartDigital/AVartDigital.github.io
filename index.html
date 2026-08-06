@@ -184,35 +184,44 @@
     #screen-tv-wait.active .btn-secondary { margin-top: clamp(8px,1.6vh,16px) !important; }
 
     /* ═══ 10-FOOT UI — the pairing screen on an actual television ═══
-       Viewed from 8-12ft, phone-scale type is unreadable and a small centred card
-       wastes two-thirds of the canvas. On large landscape displays the screen
+       Viewed from 8-12ft a small centred card wastes two-thirds of the canvas and
+       phone-scale type is unreadable. On large landscape displays the screen
        becomes a two-column stage: oversized QR beside oversized instructions,
-       everything inside a 5% overscan-safe margin. */
+       inside an overscan-safe gutter. (The card's inline max-width used to make
+       every rule here inert — removing it is what finally let this work.) */
     @media (min-width: 900px) and (orientation: landscape) {
-      #screen-tv-wait.active { padding: 5vh 5vw; justify-content: center; }
-      #screen-tv-wait.active .back-btn { position: absolute; top: 4vh; left: 5vw; margin: 0;
-        font-size: clamp(13px,1.1vw,17px); padding: 10px 20px; }
-      #screen-tv-wait.active .section-title { font-size: clamp(15px,1.5vw,24px); letter-spacing: 3px;
-        margin-bottom: clamp(16px,3vh,34px); }
-      /* Keep the proven single-column card, but scale it for across-the-room
-         reading: bigger QR, bigger type, wider card, generous overscan-safe padding. */
-      #screen-tv-wait.active .back-btn { position: absolute; top: 4vh; left: 5vw; margin: 0;
-        font-size: clamp(13px,1.1vw,17px); padding: 10px 20px; }
+      #screen-tv-wait.active { padding: 6vh 6vw; justify-content: center; }
+      #screen-tv-wait.active .back-btn { position: absolute; top: 4vh; left: 6vw; margin: 0;
+        font-size: clamp(13px,1.1vw,17px); padding: 10px 20px; z-index: 2; }
       /* A real title, not a phone eyebrow: sentence case reads far better at 10ft */
-      #screen-tv-wait.active .section-title { font-size: clamp(22px,2.2vh,34px); letter-spacing: .2px;
-        text-transform: none; color: var(--text); font-weight: 800;
-        margin-bottom: clamp(8px,1.4vh,16px); }
-      #screen-tv-wait.active .qr-backup .qr-code-inline { display: inline-block; margin-top: 4px; }
-      #screen-tv-wait.active .card { width: min(560px, 62vw); max-width: 62vw;
-        padding: clamp(18px,2.4vh,32px) clamp(20px,2.4vw,36px); }
-      #screen-tv-wait.active #qr-hero { width: min(300px,30vh); height: min(300px,30vh);
-        padding: 12px; border-radius: 20px; margin: clamp(4px,1vh,12px) auto; }
-      #screen-tv-wait.active .qr-lead { font-size: clamp(16px,1.35vw,24px); line-height: 1.3;
-        color: var(--text); font-weight: 700; }
-      #screen-tv-wait.active .status-pill { font-size: clamp(12px,1vw,16px); padding: 8px 18px; }
-      #screen-tv-wait.active .qr-backup { font-size: clamp(12px,.95vw,16px); line-height: 1.55; }
-      #screen-tv-wait.active .qr-backup .qr-code-inline { font-size: 1.5em; letter-spacing: 5px; padding: 3px 12px; }
-      #screen-tv-wait.active .btn-secondary { font-size: clamp(12px,1vw,16px); min-height: 48px; }
+      #screen-tv-wait.active .section-title { font-size: clamp(22px,2.4vh,36px); letter-spacing: .2px;
+        text-transform: none; color: var(--text); font-weight: 800; text-align: center;
+        margin-bottom: clamp(12px,2.2vh,26px); }
+      #screen-tv-wait.active .card {
+        width: auto; max-width: 88vw; max-height: none;
+        display: inline-flex; flex-direction: row; align-items: center; text-align: left;
+        gap: clamp(26px,3.4vw,56px); padding: clamp(20px,2.6vh,34px) clamp(24px,2.8vw,44px);
+      }
+      /* The QR is the hero of this screen — give it real presence */
+      #screen-tv-wait.active #qr-hero { flex: 0 0 auto; align-self: center;
+        width: clamp(220px,38vh,340px); height: clamp(220px,38vh,340px);
+        margin: 0; padding: 14px; border-radius: 22px; }
+      #screen-tv-wait.active .tvw-copy { max-width: 46ch; }
+      /* The copy column is a flex item; its children must not stretch vertically */
+      #screen-tv-wait.active .tvw-copy { flex: 1 1 auto; min-width: 0;
+        display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+        gap: clamp(8px,1.5vh,18px); }
+      #screen-tv-wait.active .tvw-copy > * { flex: 0 0 auto; margin: 0; width: auto; }
+      #screen-tv-wait.active .qr-lead { font-size: clamp(18px,2vh,30px); line-height: 1.28;
+        color: var(--text); font-weight: 700; text-align: left; }
+      #screen-tv-wait.active .status-pill { font-size: clamp(12px,1.3vh,17px); padding: 8px 18px; }
+      #screen-tv-wait.active .qr-backup { font-size: clamp(12px,1.25vh,17px); line-height: 1.55; text-align: left; }
+      /* Own line: the code is the fallback pairing path, not a run of body text */
+      #screen-tv-wait.active .qr-backup .qr-code-inline { display: block; width: max-content;
+        margin: 6px 0 0 0; font-size: 1.7em; letter-spacing: 6px; padding: 5px 16px; }
+      #screen-tv-wait.active #qr-fail-note { font-size: clamp(12px,1.2vh,16px); color: var(--danger); text-align: left; }
+      #screen-tv-wait.active .btn-secondary { width: auto; margin: 0 !important;
+        font-size: clamp(12px,1.25vh,17px); min-height: clamp(46px,6vh,60px); padding: 12px 28px; }
     }
     /* Very short viewports (old/small phones): compress further so it still fits */
     @media (max-height: 620px) {
