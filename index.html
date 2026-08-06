@@ -15,9 +15,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>CastParty — cast & stream to your TV</title>
-  <!-- BUILD 2026-07-08.1 — quiet queueing · tap-to-select playlist · clean idle loop ·
+  <!-- BUILD 2026-08-06.1 — quiet queueing · tap-to-select playlist · clean idle loop ·
        phone-independent playback · no-scroll UI · resilient long-video uploads -->
-  <meta name="castparty-build" content="2026-07-08.1" />
+  <meta name="castparty-build" content="2026-08-06.1" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <!-- Warm the QR service so the pairing code renders instantly on the TV -->
@@ -35,6 +35,39 @@
     button, .home-card, .source-btn, .rmt-fontchip, .rmt-swatch, .sh-row, .sh-idx, .pl-item, .preset-chip, [onclick] {
       -webkit-user-select: none; user-select: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
     button:active { transition-duration: .05s !important; }
+    /* Remote open → suppress the duplicated page-level status pill.
+       :has() derives it straight from the DOM so it can't desync; the class is a
+       fallback for engines without :has(). */
+    body.remote-open #phone-cast-status { display: none; }
+    body:has(#phone-ctrl.open) #phone-cast-status { display: none; }
+    /* ROOT CAUSE FIX: the global button box (padding 12/18, flex:1, min-width:48)
+       was never reset for the remote's self-sizing controls, deforming their
+       geometry — that is what pushed the "VOL +" label onto the OK key. */
+    .rmt-dkey, .rmt-cornerbtn, .rmt-ok, .rmt-act, .rmt-circ, .rmt-pill,
+    .rmt-swatch, .rmt-fontchip, .sh-idx, .sh-edit-btn, .rmt-send {
+      flex: none; min-width: 0; padding: 0;
+    }
+    .rmt-pill { padding: 9px 14px; }
+    .rmt-fontchip { padding: 11px 13px; }
+    .rmt-btn { flex: 1; }                 /* the full-width bars keep their stretch */
+    .rmt-btn.dashed { flex: none; }
+    /* Narrow phones: the D-pad row is 332px wide but only ~296px is available at
+       320px, so the panel scrolled sideways. Shrink the ring + corner columns. */
+    @media (max-width: 360px) {
+      #phone-ctrl .rmt-dcol { height: 168px; }
+      #phone-ctrl .rmt-cornerbtn { width: 46px; min-height: 52px; }
+      #phone-ctrl .rmt-cornerbtn .cl { font-size: 9px; letter-spacing: .6px; }
+      #phone-ctrl .rmt-ring { width: 188px; height: 188px; }
+      #phone-ctrl .rmt-ok { width: 74px; height: 74px; }
+      #phone-ctrl .rmt-dkey.left { left: 4px; } #phone-ctrl .rmt-dkey.right { right: 4px; }
+      #phone-ctrl .rmt-act .ac-ring { width: 50px; height: 50px; }
+      #phone-ctrl .rmt-act.emph .ac-ring { width: 60px; height: 60px; }
+    }
+    /* Respect the OS reduced-motion setting — infinite decorative loops off */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important; scroll-behavior: auto !important; }
+    }
     :root {
       /* AV-TV sci-fi silver/blue brand (matches Player 1.jpg) */
       --bg: #070a11; --bg2: #0b101a; --surface: rgba(255,255,255,0.04);
@@ -61,7 +94,7 @@
     header .logo { font-size: clamp(20px, 5vw, 30px); font-weight: 800; letter-spacing: -0.02em; color: #4ea3ff; line-height: 1; }
     header .logo span { color: #eaf2ff; font-weight: 800; }
     header .logo-img { height: clamp(26px, 6.5vw, 38px); width: auto; max-width: 62vw; display: block; }
-    .subtitle { font-size: clamp(10px, 2.4vw, 13px); color: #6f83a3; margin-top: 6px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+    .subtitle { font-size: clamp(10px, 2.4vw, 13px); color: #8298bb; margin-top: 6px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
     /* App fills the remaining viewport; never grows the page */
     #app { width: 100%; max-width: 1100px; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 
@@ -123,14 +156,14 @@
       content: ''; position: fixed; top: 0; right: 0; bottom: 0; left: 0; inset: 0; z-index: -1;
       background: linear-gradient(180deg, rgba(7,10,17,0.55) 0%, rgba(7,10,17,0.62) 50%, rgba(7,10,17,0.82) 100%);
     }
-    #screen-tv-wait.active { display: flex; flex-direction: column; align-items: center; justify-content: center;
+    #screen-tv-wait.active { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;
       overflow: hidden;                       /* never scroll — everything fits in the display */
       padding-top: max(10px, env(safe-area-inset-top));
       padding-bottom: max(10px, env(safe-area-inset-bottom)); }
     /* Compress + viewport-scale the pairing screen so the whole QR + code + hint
        block is always fully visible on a TV without any remote scrolling. */
     #screen-tv-wait.active .section-title { margin-bottom: clamp(6px, 1.4vh, 12px); }
-    #screen-tv-wait.active .card { margin-bottom: 0; padding: clamp(12px, 2vh, 20px);
+    #screen-tv-wait.active .card { margin: 0 auto; padding: clamp(12px, 2vh, 20px);
       width: min(460px, 92vw); max-height: calc(100dvh - 40px); }
     #screen-tv-wait.active #qr-img { width: min(210px, 30vh); height: min(210px, 30vh); margin: clamp(6px,1.4vh,14px) auto; }
     #screen-tv-wait.active .code-display { margin: clamp(6px,1.2vh,12px) 0; padding: clamp(8px,1.4vh,14px); }
@@ -149,6 +182,38 @@
     .qr-backup .qr-code-inline { display:inline-block; font-weight:900; letter-spacing:3px; color: var(--gold); font-variant-numeric: tabular-nums;
       background: var(--surface2); border:1px solid var(--edge); border-radius:7px; padding:2px 9px; margin-left:4px; font-size:1.15em; }
     #screen-tv-wait.active .btn-secondary { margin-top: clamp(8px,1.6vh,16px) !important; }
+
+    /* ═══ 10-FOOT UI — the pairing screen on an actual television ═══
+       Viewed from 8-12ft, phone-scale type is unreadable and a small centred card
+       wastes two-thirds of the canvas. On large landscape displays the screen
+       becomes a two-column stage: oversized QR beside oversized instructions,
+       everything inside a 5% overscan-safe margin. */
+    @media (min-width: 900px) and (orientation: landscape) {
+      #screen-tv-wait.active { padding: 5vh 5vw; justify-content: center; }
+      #screen-tv-wait.active .back-btn { position: absolute; top: 4vh; left: 5vw; margin: 0;
+        font-size: clamp(13px,1.1vw,17px); padding: 10px 20px; }
+      #screen-tv-wait.active .section-title { font-size: clamp(15px,1.5vw,24px); letter-spacing: 3px;
+        margin-bottom: clamp(16px,3vh,34px); }
+      /* Keep the proven single-column card, but scale it for across-the-room
+         reading: bigger QR, bigger type, wider card, generous overscan-safe padding. */
+      #screen-tv-wait.active .back-btn { position: absolute; top: 4vh; left: 5vw; margin: 0;
+        font-size: clamp(13px,1.1vw,17px); padding: 10px 20px; }
+      /* A real title, not a phone eyebrow: sentence case reads far better at 10ft */
+      #screen-tv-wait.active .section-title { font-size: clamp(22px,2.2vh,34px); letter-spacing: .2px;
+        text-transform: none; color: var(--text); font-weight: 800;
+        margin-bottom: clamp(8px,1.4vh,16px); }
+      #screen-tv-wait.active .qr-backup .qr-code-inline { display: inline-block; margin-top: 4px; }
+      #screen-tv-wait.active .card { width: min(560px, 62vw); max-width: 62vw;
+        padding: clamp(18px,2.4vh,32px) clamp(20px,2.4vw,36px); }
+      #screen-tv-wait.active #qr-hero { width: min(300px,30vh); height: min(300px,30vh);
+        padding: 12px; border-radius: 20px; margin: clamp(4px,1vh,12px) auto; }
+      #screen-tv-wait.active .qr-lead { font-size: clamp(16px,1.35vw,24px); line-height: 1.3;
+        color: var(--text); font-weight: 700; }
+      #screen-tv-wait.active .status-pill { font-size: clamp(12px,1vw,16px); padding: 8px 18px; }
+      #screen-tv-wait.active .qr-backup { font-size: clamp(12px,.95vw,16px); line-height: 1.55; }
+      #screen-tv-wait.active .qr-backup .qr-code-inline { font-size: 1.5em; letter-spacing: 5px; padding: 3px 12px; }
+      #screen-tv-wait.active .btn-secondary { font-size: clamp(12px,1vw,16px); min-height: 48px; }
+    }
     /* Very short viewports (old/small phones): compress further so it still fits */
     @media (max-height: 620px) {
       #screen-tv-wait.active { padding-top: 6px; padding-bottom: 6px; }
@@ -161,7 +226,9 @@
       #screen-tv-wait.active .btn-secondary { margin-top: 6px !important; min-height: 40px; }
     }
     #screen-tv-confirm.active, #screen-phone-confirm.active, #screen-phone-join.active, #screen-ended.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    #screen-phone-source.active { display: flex; flex-direction: column; }
+    #screen-phone-source.active { display: flex; flex-direction: column;
+      /* Clear the floating remote launcher so it never covers the primary CTA */
+      padding-bottom: calc(20px + 60px + 24px + env(safe-area-inset-bottom)); }
     /* Center content columns to minimize scrolling; cap width on larger screens */
     #screen-phone-source.active > *, #screen-phone-cast.active > * { width: 100%; max-width: 640px; margin-left: auto; margin-right: auto; }
     #screen-phone-cast.active { display: flex; flex-direction: column; align-items: center; }
@@ -197,7 +264,19 @@
     .home-card p { font-size: 12.5px; color: #93a6c6; line-height: 1.5; max-width: 280px; }
     .home-hint { text-align: center; font-size: 12px; color: var(--muted); margin-top: 16px; }
     #screen-home .home-lede { color: #8ba0c2; font-size: clamp(14px, 2vw, 20px); font-weight: 500; margin-bottom: clamp(18px, 4vh, 44px); text-align: center; }
-    @media (max-width: 400px) { .home-card { aspect-ratio: auto; min-height: 180px; } .home-card .mode-icon { font-size: 38px; } .home-card h2 { font-size: 15px; } }
+    /* Phones: stack the two choices as wide icon-left rows. Two narrow columns
+       forced 4-line ragged wrapping ("or other media to a / connected TV or / display."). */
+    @media (max-width: 560px) {
+      .mode-grid { grid-template-columns: 1fr; gap: 12px; }
+      .home-card { aspect-ratio: auto; min-height: clamp(96px, 15vh, 150px); flex-direction: row; align-items: center;
+        text-align: left; gap: 18px; padding: clamp(16px,2.4vh,28px) 20px; border-radius: 18px; }
+      .home-card:hover, .home-card.focused { transform: none; }   /* no lift in a stacked list */
+      .home-card .mode-icon { flex: none; margin-bottom: 0; }
+      .home-card .mode-icon svg { width: 40px; height: 40px; }
+      .home-card .hc-txt { min-width: 0; }
+      .home-card h2 { font-size: 17px; margin-bottom: 3px; }
+      .home-card p { font-size: 13px; max-width: none; line-height: 1.45; }
+    }
     @media (min-width: 768px) { .mode-grid { max-width: 880px; } .home-card { min-height: 420px; padding: 52px 40px; } .home-card h2 { font-size: 30px; } .home-card p { font-size: 16px; } }
 
     /* ═══ Splash intro (animated logo video) ═══ */
@@ -499,9 +578,12 @@
     #remote-fab {
       position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 260;
       width: 60px; height: 60px; min-height: 60px; padding: 0; border-radius: 50%; flex: none;
-      background: radial-gradient(circle at 35% 28%, #eef5fc, #9fc0db 45%, #2b4a6b);
-      border: 1px solid rgba(200,225,250,0.7); color: #0c2238;
-      box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 8px 28px rgba(0,0,0,0.55), 0 0 26px rgba(109,184,255,0.45);
+      /* Dark glass + accent hairline: on-brand, but deliberately NOT the primary
+         action colour — a floating utility must not compete with "Cast Now". */
+      background: radial-gradient(circle at 50% 30%, rgba(30,52,84,0.96), rgba(10,17,30,0.98));
+      border: 1px solid rgba(122,170,235,0.55); color: var(--gold);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.55), 0 0 22px rgba(74,158,255,0.28);
       display: none; align-items: center; justify-content: center; cursor: pointer;
     }
     #remote-fab.show { display: flex; }
@@ -515,14 +597,14 @@
       border-top: 1px solid rgba(122,170,235,.22); box-shadow: 0 -20px 60px rgba(0,0,0,.55); color: #e9f0f9; }
     .rmt-inner { max-width: 432px; margin: 0 auto; }
     .rmt-hairline { border: 1px solid rgba(122,170,235,.25); }
-    .rmt-label { font-size: 9px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: rgba(185,203,230,.42); }
+    .rmt-label { font-size: 9px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: rgba(185,203,230,.72); }
     /* Status / connection-health pill */
     .rmt-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
       padding: 12px 16px; border-radius: 99px; border: 1px solid rgba(122,170,235,.25); margin-bottom: 16px; }
     .rmt-status .st-left { display: flex; align-items: center; gap: 11px; min-width: 0; }
     .rmt-status .st-dot { width: 8px; height: 8px; border-radius: 50%; background: #4a9eff; animation: cpPulse 2.2s ease-in-out infinite; flex: none; }
     .rmt-status .st-text { font-size: 11px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: #7cbcff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .rmt-status .st-dev { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(185,203,230,.6); }
+    .rmt-status .st-dev { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(185,203,230,.78); }
     @keyframes cpPulse { 0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(74,158,255,.5);} 50% { opacity:.55; box-shadow:0 0 0 5px rgba(74,158,255,0);} }
     /* Now-playing row */
     .rmt-now { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
@@ -549,9 +631,10 @@
       background: radial-gradient(circle at 50% 40%, rgba(74,158,255,.05), transparent 70%); flex: none; }
     .rmt-dkey { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 1px; border: none; background: transparent; color: #cfe0f5; cursor: pointer; }
     .rmt-dkey:active { color: #8cc4ff; }
-    .rmt-dkey .dl { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: rgba(190,208,232,.6); }
-    .rmt-dkey.up { top: 12px; left: 0; right: 0; margin: 0 auto; width: 56px; min-height: 44px; justify-content: flex-start; }
-    .rmt-dkey.down { bottom: 12px; left: 0; right: 0; margin: 0 auto; width: 56px; min-height: 44px; justify-content: flex-end; }
+    .rmt-dkey .dl { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: rgba(190,208,232,.8); }
+    /* z-index keeps the VOL labels legible above the OK key's wide glow */
+    .rmt-dkey.up { top: 8px; left: 0; right: 0; margin: 0 auto; width: 60px; min-height: 44px; justify-content: flex-start; z-index: 2; }
+    .rmt-dkey.down { bottom: 8px; left: 0; right: 0; margin: 0 auto; width: 60px; min-height: 44px; justify-content: flex-end; z-index: 2; }
     .rmt-dkey.left { left: 8px; top: 0; bottom: 0; margin: auto 0; height: 56px; width: 44px; justify-content: center; }
     .rmt-dkey.right { right: 8px; top: 0; bottom: 0; margin: auto 0; height: 56px; width: 44px; justify-content: center; }
     .rmt-ok { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); display: flex; align-items: center; justify-content: center;
@@ -560,7 +643,7 @@
     /* Volume row */
     .rmt-vol { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
     .rmt-vol .vlbl { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 44px; text-align: right; color: #cfe0f5; }
-    .rmt-vol .vlbl.muted { color: rgba(160,178,204,.55); }
+    .rmt-vol .vlbl.muted { color: rgba(160,178,204,.85); }
     /* Actions row (Replay / Playlist / Refresh) */
     .rmt-actions { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; align-items: end; margin-bottom: 20px; }
     .rmt-act { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 4px; border: none; background: transparent; color: #cfe0f5; font-family: inherit; cursor: pointer; }
@@ -584,7 +667,7 @@
       border: 1px solid rgba(122,170,235,.25); background: transparent; color: #eaf1fb; font-family: inherit; cursor: pointer; min-height: 48px; }
     .rmt-msg-toggle .mt-l { display: flex; align-items: center; gap: 11px; font-size: 11px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; }
     .rmt-msg-toggle .mt-r { display: flex; align-items: center; gap: 13px; }
-    .rmt-msg-toggle .mt-count { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; color: rgba(185,203,230,.6); }
+    .rmt-msg-toggle .mt-count { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; color: rgba(185,203,230,.78); }
     .rmt-msg-toggle .mt-count.full { color: #ff8080; }
     .rmt-msg-toggle .mt-chev { transition: transform .2s; }
     #rmt-msg-body { display: none; margin-top: 14px; }
@@ -592,7 +675,7 @@
     .rmt-msg-toggle.open .mt-chev { transform: rotate(180deg); }
     .rmt-tvprev { position: relative; width: 100%; min-height: 74px; border-radius: 14px; border: 1px solid rgba(122,170,235,.2);
       background: linear-gradient(180deg, rgba(12,20,34,.5), rgba(6,10,18,.5)); display: flex; align-items: center; justify-content: center; padding: 16px 18px 14px; margin-bottom: 12px; overflow: hidden; text-align: center; }
-    .rmt-tvprev .pv-tag { position: absolute; top: 8px; left: 12px; font-size: 8px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: rgba(160,178,204,.4); }
+    .rmt-tvprev .pv-tag { position: absolute; top: 8px; left: 12px; font-size: 8px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: rgba(160,178,204,.7); }
     .rmt-msg-inrow { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
     .rmt-msg-inrow input { flex: 1; height: 52px; padding: 0 18px; border-radius: 14px; border: 1px solid rgba(122,170,235,.25); background: transparent; color: #eaf1fb; font-family: inherit; font-size: 14px; outline: none; }
     .rmt-msg-inrow input:focus { border-color: rgba(122,170,235,.5); }
@@ -602,7 +685,7 @@
     .rmt-fontchip { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; padding: 11px 13px; border-radius: 12px; border: 1px solid rgba(122,170,235,.22); background: transparent; color: #eaf1fb; cursor: pointer; text-align: left; min-height: 48px; }
     .rmt-fontchip.sel { border-color: #4a9eff; background: rgba(74,158,255,.1); }
     .rmt-fontchip .fc-name { font-size: 15px; font-weight: 600; }
-    .rmt-fontchip .fc-desc { font-size: 9px; font-weight: 600; letter-spacing: .4px; color: rgba(170,190,216,.6); }
+    .rmt-fontchip .fc-desc { font-size: 9px; font-weight: 600; letter-spacing: .4px; color: rgba(170,190,216,.8); }
     .rmt-colorrow { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 8px; }
     .rmt-shadow-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(122,170,235,.25); background: transparent; color: #cfe0f5; font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; min-height: 40px; }
     .rmt-shadow-btn.on { border-color: #4a9eff; background: rgba(74,158,255,.12); color: #8cc4ff; }
@@ -621,14 +704,14 @@
       border-radius: 22px 22px 0 0; padding: 16px 18px calc(30px + env(safe-area-inset-bottom)); max-height: 82vh; overflow-y: auto; box-shadow: 0 -20px 60px rgba(0,0,0,.55); }
     #rmt-sheet .sh-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
     #rmt-sheet .sh-title { font-size: 15px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase; color: #eaf1fb; }
-    #rmt-sheet .sh-meta { font-size: 9.5px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: rgba(185,203,230,.45); margin-bottom: 16px; }
+    #rmt-sheet .sh-meta { font-size: 9.5px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: rgba(185,203,230,.72); margin-bottom: 16px; }
     .sh-row { display: flex; align-items: center; gap: 12px; position: relative; padding: 11px 12px; border-radius: 12px; border: 1px solid rgba(122,170,235,.14); overflow: hidden; }
     .sh-row.active { border-color: rgba(74,158,255,.4); background: rgba(74,158,255,.06); }
     .sh-idx { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(122,170,235,.22); flex: none; font-size: 12px; font-weight: 700; color: #cfe0f5; background: transparent; cursor: pointer; }
     .sh-row.active .sh-idx { border: none; background: radial-gradient(circle at 50% 35%, #8cc4ff, #4a9eff); color: #06101f; }
     .sh-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sh-row.active .sh-name { color: #8cc4ff; }
-    .sh-dur { font-size: 12px; font-variant-numeric: tabular-nums; color: rgba(185,203,230,.55); flex: none; }
+    .sh-dur { font-size: 12px; font-variant-numeric: tabular-nums; color: rgba(185,203,230,.75); flex: none; }
     .sh-bar { position: absolute; left: 0; bottom: 0; height: 2px; background: #4a9eff; }
     .sh-edit-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(122,170,235,.22); background: transparent; color: #cfe0f5; cursor: pointer; flex: none; }
     .sh-edit-btn.del { border-color: rgba(255,110,110,.3); color: #ff8080; }
@@ -837,6 +920,9 @@
     .pl-item.nowplaying { border-color: var(--gold); background: rgba(109,184,255,0.14); box-shadow: 0 0 0 1px var(--edge), 0 0 16px rgba(109,184,255,0.25); opacity: 1; }
     .pl-badge { display:inline-block; font-size:9px; font-weight:800; letter-spacing:1px; padding:1px 6px; border-radius:20px; margin-right:6px; vertical-align:middle; }
     .pl-badge.new { background:rgba(109,184,255,0.2); color:var(--gold-soft); border:1px solid var(--edge); }
+    .msg-collapse { margin: 12px 0; }
+    .msg-collapse .party-input-wrap { margin-top: 10px; }
+    .sr-only-lbl { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
     /* Intent presets + playback-style chips */
     .intent-row { margin-bottom: 14px; }
     .intent-label { font-size: 11px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase; color: var(--gold-soft); margin-bottom: 8px; }
@@ -1061,8 +1147,10 @@
             <path d="M17 33h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>
           </svg>
         </div>
-        <h2>Share from Device</h2>
-        <p>Share photos, videos, or other media to a connected TV or display.</p>
+        <div class="hc-txt">
+          <h2>Share from Device</h2>
+          <p>Send photos, videos and music to a connected screen.</p>
+        </div>
       </div>
       <div class="home-card focused" id="home-tv" onclick="goTV()">
         <div class="mode-icon">
@@ -1073,8 +1161,10 @@
             <path d="M20 19v8l7-4-7-4Z" fill="currentColor"/>
           </svg>
         </div>
-        <h2>View on Display</h2>
-        <p>Scan QR code with your mobile device to connect and share.</p>
+        <div class="hc-txt">
+          <h2>View on Display</h2>
+          <p>Turn this screen into the display. Scan to connect your phone.</p>
+        </div>
       </div>
     </div>
     <p class="home-hint">Arrow keys + Enter to navigate • TV remote friendly</p>
@@ -1084,16 +1174,18 @@
   <div id="screen-tv-wait" class="screen">
     <button class="back-btn" onclick="endAll(true)">← Back</button>
     <div class="section-title">Scan to connect your phone</div>
-    <div class="card" style="max-width:460px;margin:0 auto;">
+    <div class="card">
       <!-- QR is the primary path: point the phone camera, tap the link, done -->
       <div id="qr-hero"><img id="qr-img" alt="Scan to connect" /></div>
-      <p class="qr-lead">Point your phone camera at this code<br>and tap the link to connect.</p>
-      <div id="tv-wait-status" class="status-pill"><span class="dot"></span><span id="tv-wait-text">Waiting for phone…</span></div>
-      <!-- Manual code is only a backup for when scanning isn't possible -->
-      <div class="qr-backup"><span>Can’t scan?</span> Open this site on your phone → <em>Share from Device</em> → enter code
-        <span class="qr-code-inline" id="tv-code">——</span></div>
-      <p id="qr-fail-note" class="hint" style="display:none;">QR unavailable right now — use the backup code above from your phone.</p>
-      <button class="btn-secondary btn-wide" style="margin-top:14px;" onclick="regenQR()">🔄 New code</button>
+      <div class="tvw-copy">
+        <p class="qr-lead">Point your phone camera at this code<br>and tap the link to connect.</p>
+        <div id="tv-wait-status" class="status-pill"><span class="dot"></span><span id="tv-wait-text">Waiting for phone…</span></div>
+        <!-- Manual code is only a backup for when scanning isn't possible -->
+        <div class="qr-backup"><span>Can’t scan?</span> Open this site on your phone → <em>Share from Device</em> → enter code
+          <span class="qr-code-inline" id="tv-code">——</span></div>
+        <p id="qr-fail-note" class="hint" style="display:none;">QR unavailable right now — use the backup code above from your phone.</p>
+        <button class="btn-secondary btn-wide" style="margin-top:14px;" onclick="regenQR()"><svg class="icon"><use href="#ic-refresh"/></svg> New code</button>
+      </div>
     </div>
   </div>
 
@@ -1236,29 +1328,33 @@
       </div>
     </details>
     <div id="src-file" style="display:none;">
-      <!-- Intent presets: pick what you're creating, get professional defaults -->
-      <div class="intent-row" role="group" aria-label="What are you creating?">
-        <div class="intent-label">What are you creating?</div>
-        <div class="intent-chips">
-          <button class="intent-chip" id="intent-slideshow" onclick="setIntent('slideshow')">🎉 Event Slideshow</button>
-          <button class="intent-chip" id="intent-playlist" onclick="setIntent('playlist')">🎬 Video Playlist</button>
-          <button class="intent-chip" id="intent-present" onclick="setIntent('present')">📊 Presentation</button>
-          <button class="intent-chip sel" id="intent-quick" onclick="setIntent('quick')">⚡ Quick Cast</button>
-        </div>
-        <p class="intent-tip" id="intent-tip">Plays your media once, in order, and holds on the last item.</p>
-      </div>
       <div class="media-layout">
         <div>
           <div id="file-drop-zone" onclick="document.getElementById('file-input').click()">
             <div class="drop-icon"><svg><use href="#ic-film"/></svg><svg><use href="#ic-image"/></svg><svg><use href="#ic-music"/></svg></div><p><strong>Tap to add media</strong></p><p>Videos · Photos · Music (MP3, M4A, WAV)</p>
           </div>
           <input type="file" id="file-input" accept="video/*,image/*,audio/*" multiple />
-          <div class="party-input-wrap">
-            <label for="party-msg-input"><svg class="icon"><use href="#ic-spark"/></svg> On-screen message</label>
-            <input type="text" id="party-msg-input" maxlength="100" placeholder="e.g. Happy Birthday Nalan" oninput="onPartyInput()" />
-            <div class="party-count"><span id="party-count">0</span>/100</div>
-            <button class="btn-secondary btn-wide" style="margin-top:8px;" onclick="flashMessageToTV()"><svg class="icon"><use href="#ic-chat"/></svg> Display on Screen (5s)</button>
+          <!-- Intent presets: pick what you're creating, get professional defaults -->
+          <div class="intent-row" role="group" aria-label="What are you creating?">
+            <div class="intent-label">What are you creating?</div>
+            <div class="intent-chips">
+              <button class="intent-chip" id="intent-slideshow" onclick="setIntent('slideshow')"><svg class="icon"><use href="#ic-image"/></svg> Event Slideshow</button>
+              <button class="intent-chip" id="intent-playlist" onclick="setIntent('playlist')"><svg class="icon"><use href="#ic-film"/></svg> Video Playlist</button>
+              <button class="intent-chip" id="intent-present" onclick="setIntent('present')"><svg class="icon"><use href="#ic-cast"/></svg> Presentation</button>
+              <button class="intent-chip sel" id="intent-quick" onclick="setIntent('quick')"><svg class="icon"><use href="#ic-play"/></svg> Quick Cast</button>
+            </div>
+            <p class="intent-tip" id="intent-tip">Plays your media once, in order, and holds on the last item.</p>
           </div>
+          <!-- Secondary: collapsed by default (also lives in the remote's TV Message panel) -->
+          <details class="msg-collapse">
+            <summary class="source-summary"><span><svg class="icon"><use href="#ic-spark"/></svg> On-screen message</span><span class="chev">▾</span></summary>
+            <div class="party-input-wrap">
+              <label for="party-msg-input" class="sr-only-lbl">On-screen message</label>
+              <input type="text" id="party-msg-input" maxlength="100" placeholder="e.g. Happy Birthday Nalan" oninput="onPartyInput()" />
+              <div class="party-count"><span id="party-count">0</span>/100</div>
+              <button class="btn-secondary btn-wide" style="margin-top:8px;" onclick="flashMessageToTV()"><svg class="icon"><use href="#ic-chat"/></svg> Display on Screen (5s)</button>
+            </div>
+          </details>
           <div class="button-group">
             <button class="btn-secondary" onclick="addMoreMedia()"><svg class="icon"><use href="#ic-plus"/></svg> Add to Playlist</button>
             <button class="btn-primary" id="btn-cast-file" onclick="castNow()" disabled><svg class="icon"><use href="#ic-play"/></svg> Cast Now</button>
@@ -1504,7 +1600,7 @@
 })();
 </script>
 <script>
-var BUILD = '2026-07-08.1';
+var BUILD = '2026-08-06.1';
 console.log('CastParty build ' + BUILD);
 // Clear any stale caches on load
 if('caches' in window){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }
@@ -1675,7 +1771,12 @@ function resyncSession(){
 }
 // UI: the floating launcher hides while the panel is open (it overlapped the
 // bottom controls) and returns when the panel closes.
-function _fabSync(){ var f=$('remote-fab'); if(f){ f.style.visibility = $('phone-ctrl').classList.contains('open') ? 'hidden' : ''; } }
+function _fabSync(){
+  var open = $('phone-ctrl').classList.contains('open');
+  var f=$('remote-fab'); if(f){ f.style.visibility = open ? 'hidden' : ''; }
+  // The remote carries its own status pill — hide the page-level duplicate while it's open
+  try{ document.body.classList.toggle('remote-open', open); }catch(e){}
+}
 function toggleRemote(){ $('phone-ctrl').classList.toggle('open'); _fabSync(); }
 function openRemote(){ $('phone-ctrl').classList.add('open'); _fabSync(); }
 function closeRemote(){ $('phone-ctrl').classList.remove('open'); _fabSync(); }
@@ -1752,7 +1853,7 @@ function renderRmtSheet(){
     list.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:40px 0 30px;text-align:center">'+
       '<span style="display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;border:1px solid rgba(122,170,235,.25)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(160,178,204,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11M4 12h8M4 17h6"/></svg></span>'+
       '<div style="font-size:13px;font-weight:700;color:#e9f0f9">Your queue is empty</div>'+
-      '<div style="font-size:12px;color:rgba(185,203,230,.55);max-width:240px">Add media to start building your cast queue.</div></div>';
+      '<div style="font-size:12px;color:rgba(185,203,230,.75);max-width:240px">Add media to start building your cast queue.</div></div>';
     return;
   }
   var html='';
