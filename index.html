@@ -178,6 +178,11 @@
     #screen-tv-wait.active #qr-hero #qr-img { width:100%; height:100%; margin:0; padding:0; background:transparent; position:relative; z-index:1; border-radius:6px; }
     @keyframes qrShim { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
     .qr-lead { font-size: clamp(12px,1.8vh,15px); font-weight:600; color: var(--gold-soft); text-align:center; line-height:1.4; margin-bottom: clamp(6px,1.2vh,12px); }
+    /* The literal address the QR encodes — readable and typeable */
+    .qr-url { font-size: clamp(10px,1.3vh,12px); color: var(--gold-soft); text-align:center; line-height:1.4;
+      margin-top: clamp(6px,1.2vh,10px); word-break: break-all; font-variant-numeric: tabular-nums; opacity: .9; }
+    .qr-warn { font-size: clamp(10px,1.35vh,13px); color: var(--danger); text-align:center; line-height:1.45;
+      margin-top: 6px; border: 1px solid rgba(255,138,138,.35); border-radius: 10px; padding: 7px 10px; }
     .qr-backup { font-size: clamp(10px,1.4vh,12px); color: var(--muted); text-align:center; line-height:1.5; margin-top: clamp(6px,1.2vh,12px); }
     .qr-backup .qr-code-inline { display:inline-block; font-weight:900; letter-spacing:3px; color: var(--gold); font-variant-numeric: tabular-nums;
       background: var(--surface2); border:1px solid var(--edge); border-radius:7px; padding:2px 9px; margin-left:4px; font-size:1.15em; }
@@ -220,16 +225,22 @@
       #screen-tv-wait.active .qr-backup .qr-code-inline { display: block; width: max-content;
         margin: 6px 0 0 0; font-size: 1.7em; letter-spacing: 6px; padding: 5px 16px; }
       #screen-tv-wait.active #qr-fail-note { font-size: clamp(12px,1.2vh,16px); color: var(--danger); text-align: left; }
+      #screen-tv-wait.active .qr-url { text-align: left; font-size: clamp(12px,1.25vh,17px); }
+      #screen-tv-wait.active .qr-warn { text-align: left; font-size: clamp(12px,1.3vh,17px); }
       #screen-tv-wait.active .btn-secondary { width: auto; margin: 0 !important;
         font-size: clamp(12px,1.25vh,17px); min-height: clamp(46px,6vh,60px); padding: 12px 28px; }
     }
     /* Very short viewports (old/small phones): compress further so it still fits */
     @media (max-height: 620px) {
       #screen-tv-wait.active { padding-top: 6px; padding-bottom: 6px; }
-      #screen-tv-wait.active #qr-hero { width: 26vh; height: 26vh; padding: 6px; margin: 4px auto; }
+      #screen-tv-wait.active #qr-hero { width: 21vh; height: 21vh; padding: 5px; margin: 3px auto; }
       #screen-tv-wait.active .qr-lead { display: none; }        /* QR is self-explanatory */
       #screen-tv-wait.active .hint { display: none; }
       #screen-tv-wait.active .qr-backup { font-size: 10px; margin-top: 5px; }
+      #screen-tv-wait.active .qr-url { display: none; }   /* the QR itself is the path here */
+      /* Keep the unreachable-origin warning (it's the one thing that explains a
+         failed scan) but compress it so the card still fits without scrolling. */
+      #screen-tv-wait.active .qr-warn { font-size: 10px; line-height: 1.3; padding: 4px 7px; margin-top: 4px; }
       #screen-tv-wait.active .section-title { margin-bottom: 4px; }
       #screen-tv-wait.active .status-pill { margin-bottom: 5px; }
       #screen-tv-wait.active .btn-secondary { margin-top: 6px !important; min-height: 40px; }
@@ -1190,6 +1201,10 @@
         <p class="qr-lead">Point your phone camera at this code<br>and tap the link to connect.</p>
         <div id="tv-wait-status" class="status-pill"><span class="dot"></span><span id="tv-wait-text">Waiting for phone…</span></div>
         <!-- Manual code is only a backup for when scanning isn't possible -->
+        <!-- The exact address the QR encodes, shown so it can be read/typed and
+             so a wrong origin (file://, localhost, preview host) is visible. -->
+        <div class="qr-url" id="qr-url"></div>
+        <div id="qr-origin-warn" class="qr-warn" style="display:none;"></div>
         <div class="qr-backup"><span>Can’t scan?</span> Open this site on your phone → <em>Share from Device</em> → enter code
           <span class="qr-code-inline" id="tv-code">——</span></div>
         <p id="qr-fail-note" class="hint" style="display:none;">QR unavailable right now — use the backup code above from your phone.</p>
@@ -1963,7 +1978,9 @@ function goTV(){
   tvDeviceSeq = 0;
   showScreen('screen-tv-wait');
   $('tv-code').textContent = roomId;
-  drawQR($('qr-img'), location.origin + location.pathname + '?join=' + roomId);
+  var _ju = joinUrl(roomId);
+  drawQR($('qr-img'), _ju);
+  showJoinUrl(_ju);
   peer = new Peer(roomId, {config: ICE});
   var tvOpened = false;
   peer.on('open', function(){ tvOpened = true; goTV._retried = false; setPill('tv-wait-status','tv-wait-text','','Waiting for phone…'); });
@@ -2045,7 +2062,7 @@ function updateCornerQR(){
   if(role==='tv' && confirmed && noDevices && stageIdle){
     if($('tv-corner-code')) $('tv-corner-code').textContent = roomId || '——';
     var img=$('tv-corner-qr-img');
-    if(img && !img.src){ drawQR(img, location.origin + location.pathname + '?join=' + roomId); }
+    if(img && !img.src){ drawQR(img, joinUrl(roomId)); }
     box.classList.add('show');
   } else {
     box.classList.remove('show');
@@ -4323,6 +4340,38 @@ document.addEventListener('DOMContentLoaded', function(){
 // ───────── Helpers ─────────
 function genCode(){ return Math.floor(100000 + Math.random()*900000).toString(); }
 function setPill(p,t,c,txt){ $(p).className='status-pill'+(c?' '+c:''); $(t).textContent=txt; }
+// Build the join URL the QR encodes. Uses the URL API so the path is correctly
+// encoded (a stray space — e.g. serving "index (5).html" — produced a link that
+// looked right but wouldn't open), and strips any existing query/hash.
+function joinUrl(code){
+  try{
+    var u = new URL(location.href);
+    u.search = ''; u.hash = '';
+    u.searchParams.set('join', code);
+    return u.toString();
+  }catch(e){
+    var base = location.origin + location.pathname.split('?')[0].split('#')[0];
+    return base.replace(/ /g,'%20') + '?join=' + encodeURIComponent(code);
+  }
+}
+// A phone can only open the QR link if the TV's own address is publicly reachable.
+// file://, localhost and private LAN hosts look correct but fail on the phone —
+// say so plainly instead of leaving the user with "page can't be opened".
+function joinUrlReachable(){
+  var h = location.hostname || '';
+  if(location.protocol === 'file:') return { ok:false, why:'This TV is showing the app from a local file, so your phone can’t open the link. Open the published web address on the TV instead.' };
+  if(/^(localhost|127\.0\.0\.1|\[?::1\]?)$/i.test(h)) return { ok:false, why:'This TV is on a local preview address (localhost), which your phone can’t reach. Open the published web address on the TV instead.' };
+  if(/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h)) return { ok:false, why:'This TV is on a private network address. Your phone must be on the same Wi-Fi, or use the published web address instead.' };
+  return { ok:true };
+}
+function showJoinUrl(url){
+  var el = document.getElementById('qr-url');
+  if(el) el.textContent = url.replace(/^https?:\/\//,'');
+  var w = document.getElementById('qr-origin-warn');
+  var r = joinUrlReachable();
+  if(w){ w.style.display = r.ok ? 'none' : 'block'; if(!r.ok) w.textContent = '⚠ ' + r.why; }
+  cplog('pair', 'join URL ' + url + (r.ok ? '' : ' [UNREACHABLE FROM PHONE]'));
+}
 function drawQR(img,url){
   // Primary + live fallback QR services (the old chart.googleapis.com fallback is
   // shut down). A loading shimmer shows until the code paints; if both services
