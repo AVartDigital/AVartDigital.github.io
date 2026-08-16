@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PULSE — audio-reactive visualizer</title>
+<meta name="description" content="Eleven GPU visualizers that react to live audio. Drop-in React component for any player.">
+<style>
+:root{
+  --ink:#04060b;
+  --ink-2:#070c15;
+  --glass:rgba(9,16,29,.58);
+  --line:rgba(122,170,235,.16);
+  --line-hi:rgba(122,170,235,.42);
+  --text:#e9f0f9;
+  --muted:rgba(176,197,226,.56);
+  --brand:#4a9eff;
+  --brand-hi:#a8d3ff;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --hud-pad:clamp(14px,2.2vw,26px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--ink);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+body{overflow-x:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--brand-hi);outline-offset:2px;border-radius:4px}
+
+/* ---------- stage ---------- */
+.stage{position:relative;width:100%;height:100svh;min-height:520px;overflow:hidden;background:#000;isolation:isolate}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stage::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 42%,transparent 45%,rgba(0,0,0,.55) 100%);z-index:1}
+
+.hud{position:absolute;z-index:3;transition:opacity .45s ease,transform .45s ease}
+.stage.idle .hud{opacity:0;transform:translateY(4px);pointer-events:none}
+.stage.idle{cursor:none}
+
+/* ---------- top bar ---------- */
+.top{top:0;left:0;right:0;display:flex;align-items:flex-start;justify-content:space-between;
+  gap:18px;padding:var(--hud-pad);
+  background:linear-gradient(to bottom,rgba(2,5,10,.72),transparent)}
+.brand{display:flex;flex-direction:column;gap:5px;min-width:0}
+.wordmark{font-size:clamp(17px,2vw,21px);font-weight:800;letter-spacing:-.02em;line-height:1;display:flex;align-items:center;gap:9px}
+.wordmark .dot{width:7px;height:7px;border-radius:50%;background:var(--brand);box-shadow:0 0 12px var(--brand);flex:none}
+.wordmark em{font-style:normal;color:var(--muted);font-weight:600}
+.tagline{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+
+.readout{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.chip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border:1px solid var(--line);
+  border-radius:99px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);
+  white-space:nowrap;transition:border-color .2s,color .2s}
+.chip:hover{border-color:var(--line-hi);color:var(--text)}
+.chip[aria-pressed="true"],.chip.on{border-color:rgba(74,158,255,.55);color:var(--brand-hi);background:rgba(74,158,255,.1)}
+.chip .led{width:6px;height:6px;border-radius:50%;background:var(--muted);flex:none;transition:background .2s,box-shadow .2s}
+.chip.on .led{background:var(--brand);box-shadow:0 0 9px var(--brand)}
+
+/* band meters */
+.meters{display:flex;align-items:flex-end;gap:3px;height:30px;padding:6px 11px;border:1px solid var(--line);
+  border-radius:99px;background:var(--glass);backdrop-filter:blur(14px)}
+.meters i{display:block;width:3px;height:100%;background:rgba(122,170,235,.2);border-radius:2px;position:relative;overflow:hidden}
+.meters i::after{content:"";position:absolute;left:0;right:0;bottom:0;height:var(--v,10%);
+  background:linear-gradient(to top,var(--brand),var(--brand-hi));border-radius:2px}
+
+/* ---------- mode rail ---------- */
+.rail{left:var(--hud-pad);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:2px;
+  padding:8px;border:1px solid var(--line);border-radius:16px;background:var(--glass);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);max-height:min(74vh,640px);overflow:auto;scrollbar-width:none}
+.rail::-webkit-scrollbar{display:none}
+.stage.idle .rail{transform:translateY(-50%) translateX(-6px)}
+.mode{display:flex;align-items:center;gap:11px;padding:8px 13px 8px 10px;border-radius:11px;text-align:left;
+  transition:background .18s,color .18s;color:var(--muted);width:206px}
+.mode:hover{background:rgba(122,170,235,.08);color:var(--text)}
+.mode[aria-current="true"]{background:rgba(74,158,255,.14);color:var(--text)}
+.mode .num{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:rgba(122,170,235,.5);width:16px;flex:none}
+.mode[aria-current="true"] .num{color:var(--brand)}
+.mode .txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mode .nm{font-size:12.5px;font-weight:650;letter-spacing:-.005em;line-height:1.1}
+.mode .bl{font-family:var(--mono);font-size:8.5px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mode[aria-current="true"] .bl{color:rgba(168,211,255,.7)}
+
+/* ---------- bottom dock ---------- */
+.dock{left:0;right:0;bottom:0;padding:var(--hud-pad);display:flex;align-items:flex-end;
+  justify-content:space-between;gap:16px;flex-wrap:wrap;
+  background:linear-gradient(to top,rgba(2,5,10,.8),transparent)}
+.group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.swatches{display:flex;gap:6px;padding:6px;border:1px solid var(--line);border-radius:99px;background:var(--glass);backdrop-filter:blur(14px)}
+.sw{width:20px;height:20px;border-radius:50%;border:1px solid rgba(255,255,255,.14);position:relative;transition:transform .16s}
+.sw:hover{transform:scale(1.14)}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ink),0 0 0 3.5px var(--brand-hi)}
+.slider{display:flex;align-items:center;gap:9px;height:30px;padding:0 14px;border:1px solid var(--line);
+  border-radius:99px;background:var(--glass);backdrop-filter:blur(14px)}
+.slider label{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.slider input{-webkit-appearance:none;appearance:none;width:88px;height:2px;background:rgba(122,170,235,.24);border-radius:2px}
+.slider input::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--brand);
+  box-shadow:0 0 10px rgba(74,158,255,.8);cursor:pointer}
+.slider input::-moz-range-thumb{width:11px;height:11px;border:0;border-radius:50%;background:var(--brand);cursor:pointer}
+.slider output{font-family:var(--mono);font-size:10px;color:var(--text);width:26px;text-align:right;font-variant-numeric:tabular-nums}
+
+.nowplaying{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+  display:flex;align-items:center;gap:9px}
+.nowplaying b{color:var(--text);font-weight:500}
+
+/* ---------- start gate ---------- */
+.gate{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:rgba(3,6,12,.82);
+  backdrop-filter:blur(7px);transition:opacity .5s ease,visibility .5s}
+.gate.hide{opacity:0;visibility:hidden;pointer-events:none}
+.gate-inner{text-align:center;padding:28px;max-width:460px}
+.gate h1{font-size:clamp(30px,6vw,52px);font-weight:800;letter-spacing:-.035em;margin:0 0 12px;text-wrap:balance;line-height:1}
+.gate h1 span{color:var(--brand)}
+.gate p{color:var(--muted);font-size:14px;line-height:1.6;margin:0 0 26px}
+.play{display:inline-flex;align-items:center;gap:12px;padding:14px 26px 14px 20px;border-radius:99px;
+  background:var(--brand);color:#04101f;font-weight:750;font-size:14px;letter-spacing:-.01em;
+  box-shadow:0 8px 34px rgba(74,158,255,.42);transition:transform .18s,box-shadow .18s}
+.play:hover{transform:translateY(-1px);box-shadow:0 12px 42px rgba(74,158,255,.55)}
+.gate .alt{margin-top:16px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.gate .alt button{color:var(--brand-hi);text-decoration:underline;text-underline-offset:3px}
+
+.toast{position:absolute;left:50%;bottom:calc(var(--hud-pad) + 74px);transform:translateX(-50%);z-index:6;
+  padding:9px 16px;border:1px solid var(--line-hi);border-radius:99px;background:rgba(6,12,22,.9);
+  font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+  opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+
+/* ---------- ship section ---------- */
+.ship{max-width:1080px;margin:0 auto;padding:clamp(52px,8vw,104px) var(--hud-pad) 96px}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--brand);margin-bottom:14px}
+.ship h2{font-size:clamp(26px,4.2vw,40px);font-weight:800;letter-spacing:-.03em;margin:0 0 14px;text-wrap:balance}
+.ship .lede{color:var(--muted);font-size:15.5px;line-height:1.65;max-width:62ch;margin:0 0 44px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:14px;margin-bottom:44px}
+.card{border:1px solid var(--line);border-radius:15px;padding:20px;background:linear-gradient(180deg,rgba(122,170,235,.05),transparent)}
+.card h3{margin:0 0 8px;font-size:13.5px;font-weight:700;letter-spacing:-.005em}
+.card p{margin:0;color:var(--muted);font-size:12.5px;line-height:1.6}
+.steps{display:grid;gap:2px;border:1px solid var(--line);border-radius:15px;overflow:hidden;margin-bottom:28px}
+.step{display:grid;grid-template-columns:38px 1fr;gap:16px;padding:18px 20px;background:rgba(122,170,235,.032);align-items:start}
+.step .n{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--brand);padding-top:2px}
+.step h4{margin:0 0 5px;font-size:13.5px;font-weight:700}
+.step p{margin:0;color:var(--muted);font-size:12.5px;line-height:1.65}
+.step code{font-family:var(--mono);font-size:11.5px;color:var(--brand-hi);background:rgba(74,158,255,.09);
+  padding:2px 6px;border-radius:5px;white-space:nowrap}
+pre{margin:0;overflow-x:auto;border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+  background:rgba(122,170,235,.04);font-family:var(--mono);font-size:12px;line-height:1.7;color:#cfe0f5}
+pre .k{color:#ff8fd0}pre .s{color:#8ce8b4}pre .c{color:rgba(176,197,226,.42)}pre .t{color:var(--brand-hi)}
+.copy{display:inline-flex;align-items:center;gap:10px;margin-bottom:18px;padding:12px 22px;border-radius:99px;
+  background:var(--brand);color:#04101f;font-weight:750;font-size:13px;box-shadow:0 6px 26px rgba(74,158,255,.34)}
+.copy:hover{background:#5aa8ff}
+.foot{margin-top:52px;padding-top:22px;border-top:1px solid var(--line);font-family:var(--mono);font-size:9.5px;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+@media (max-width:900px){
+  .rail{left:0;right:0;top:auto;bottom:calc(var(--hud-pad) + 96px);transform:none;flex-direction:row;
+    border-radius:0;border-left:0;border-right:0;max-height:none;overflow-x:auto;padding:8px var(--hud-pad);gap:6px}
+  .stage.idle .rail{transform:translateY(6px)}
+  .mode{width:auto;flex:none;padding:7px 13px}
+  .mode .bl,.mode .num{display:none}
+  .dock{flex-direction:column;align-items:stretch;gap:10px}
+  .group{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .group::-webkit-scrollbar{display:none}
+  .wordmark{font-size:16px}
+  .wordmark em{display:none}
+  .nowplaying,.meters,#bloomSlider{display:none}
+  .top{gap:10px}
+  .readout{gap:6px}
+}
+@media (prefers-reduced-motion:reduce){
+  .hud,.play,.sw,.copy{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <canvas id="gl"></canvas>
+
+  <header class="hud top">
+    <div class="brand">
+      <div class="wordmark"><span class="dot"></span>PULSE <em>/ visualizer</em></div>
+      <div class="tagline" id="modeLabel">Loading…</div>
+    </div>
+    <div class="readout">
+      <div class="meters" title="Bass / mid / treble">
+        <i id="mBass"></i><i id="mMid"></i><i id="mTreb"></i>
+      </div>
+      <button class="chip on" id="srcDemo"><span class="led"></span>Demo track</button>
+      <button class="chip" id="srcMic"><span class="led"></span>Mic</button>
+      <button class="chip" id="srcFile"><span class="led"></span>Audio file</button>
+      <span class="chip" id="fps" style="cursor:default">60 fps</span>
+    </div>
+  </header>
+
+  <nav class="rail hud" id="rail" aria-label="Visualizer presets"></nav>
+
+  <div class="dock hud">
+    <div class="group">
+      <div class="swatches" id="swatches"></div>
+      <div class="slider">
+        <label for="intensity">React</label>
+        <input id="intensity" type="range" min="30" max="220" value="100">
+        <output id="intensityOut">1.0</output>
+      </div>
+      <div class="slider" id="bloomSlider">
+        <label for="bloom">Glow</label>
+        <input id="bloom" type="range" min="0" max="200" value="100">
+        <output id="bloomOut">1.0</output>
+      </div>
+    </div>
+    <div class="group">
+      <div class="nowplaying"><span>Source</span><b id="srcLabel">Demo track · 122 BPM</b></div>
+      <button class="chip" id="cycle"><span class="led"></span>Auto-cycle</button>
+      <button class="chip" id="quality">Quality · High</button>
+      <button class="chip" id="full">Fullscreen</button>
+    </div>
+  </div>
+
+  <div class="gate" id="gate">
+    <div class="gate-inner">
+      <h1>Eleven scenes that <span>listen</span>.</h1>
+      <p>GPU visualizers driven by live FFT analysis — spectrum, waveform, band energy and beat detection, all running on one WebGL context. Start the built-in demo track, or feed it your own audio.</p>
+      <button class="play" id="start">
+        <svg width="15" height="17" viewBox="0 0 15 17" fill="currentColor" aria-hidden="true"><path d="M14 7.63 2.5.42A1 1 0 0 0 1 1.28v14.44a1 1 0 0 0 1.5.86L14 9.37a1 1 0 0 0 0-1.74Z"/></svg>
+        Start demo track
+      </button>
+      <div class="alt">or <button id="gateFile">play your own file</button> · <button id="gateMic">use the mic</button></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <input type="file" id="file" accept="audio/*" hidden>
+  <audio id="player" crossorigin="anonymous"></audio>
+</div>
+
+<section class="ship">
+  <div class="eyebrow">Drop-in component</div>
+  <h2>Paste it into Base44 and wire it to your player.</h2>
+  <p class="lede">Everything above is one self-contained React component — no npm packages, no three.js, no CDN. It renders with raw WebGL and taps the Web Audio graph your player already has. Point it at your <code>&lt;audio&gt;</code> element and it starts reacting.</p>
+
+  <div class="cards">
+    <div class="card"><h3>Zero dependencies</h3><p>React and the browser. Nothing to install, nothing to bundle, nothing that can break your build.</p></div>
+    <div class="card"><h3>One canvas, eleven scenes</h3><p>All presets share a single GL context, audio texture and bloom chain. Switching is instant and allocation-free.</p></div>
+    <div class="card"><h3>Adapts to the device</h3><p>Render scale, particle counts and mesh density scale with quality, and drop automatically if frame rate sags.</p></div>
+    <div class="card"><h3>Non-destructive audio tap</h3><p>The analyser sits alongside your output, so playback stays audible and untouched. Streams and mic input work too.</p></div>
+  </div>
+
+  <button class="copy" id="copyBtn">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5.5" y="5.5" width="9" height="9" rx="2"/><path d="M10.5 2.5h-7a2 2 0 0 0-2 2v7"/></svg>
+    Copy the React component
+  </button>
+
+  <div class="steps">
+    <div class="step"><div class="n">01</div><div><h4>Create the file</h4><p>In Base44, add <code>components/AudioVisualizer.jsx</code> and paste the copied source.</p></div></div>
+    <div class="step"><div class="n">02</div><div><h4>Import it where your player lives</h4><p><code>import AudioVisualizer from "@/components/AudioVisualizer";</code></p></div></div>
+    <div class="step"><div class="n">03</div><div><h4>Hand it your audio element</h4><p>Pass the same <code>&lt;audio&gt;</code> ref your player controls. The component taps it once and reuses that node forever after.</p></div></div>
+    <div class="step"><div class="n">04</div><div><h4>Pick your defaults</h4><p>Set <code>mode</code>, <code>palette</code>, <code>intensity</code> and <code>quality</code>, or leave the built-in controls on and let listeners choose.</p></div></div>
+  </div>
+
+  <pre><span class="c">// Base44 page — the visualizer as your player's backdrop</span>
+<span class="k">import</span> React, { useRef } <span class="k">from</span> <span class="s">"react"</span>;
+<span class="k">import</span> <span class="t">AudioVisualizer</span> <span class="k">from</span> <span class="s">"@/components/AudioVisualizer"</span>;
+
+<span class="k">export default function</span> <span class="t">NowPlaying</span>({ track }) {
+  <span class="k">const</span> audioRef = useRef(<span class="k">null</span>);
+  <span class="k">return</span> (
+    &lt;<span class="t">div</span> className=<span class="s">"relative h-screen w-full bg-black"</span>&gt;
+      &lt;<span class="t">AudioVisualizer</span>
+        audioRef={audioRef}
+        mode=<span class="s">"aurora"</span>
+        palette=<span class="s">"ultramarine"</span>
+        intensity={1.15}
+        quality=<span class="s">"high"</span>
+        showControls
+        className=<span class="s">"absolute inset-0"</span>
+      /&gt;
+      &lt;<span class="t">audio</span> ref={audioRef} src={track.url} controls autoPlay /&gt;
+    &lt;/<span class="t">div</span>&gt;
+  );
+}</pre>
+
+  <div class="foot">
+    <span>Pulse · 11 scenes · 8 palettes</span>
+    <span>WebGL 1 · Web Audio API · React 18</span>
+  </div>
+</section>
+
+<script type="module">
+import { createVisualizer, MODES, PALETTES } from './src/engine.js';
+import { bootDemoUI } from './src/ui.js';
+bootDemoUI({ createVisualizer, MODES, PALETTES });
+</script>
+</body>
+</html>
