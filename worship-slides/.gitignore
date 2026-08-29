@@ -1,0 +1,4 @@
+# Built decks and proofs are regenerated from the service files.
+out/
+__pycache__/
+*.pyc

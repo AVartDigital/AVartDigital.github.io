@@ -1,0 +1,148 @@
+# ---------------------------------------------------------------------------
+# Weekly worship slides — copy this file to services/YYYY-MM-DD.yaml and fill in.
+#
+#   python build.py services/2026-09-06.yaml --check   # read it through first
+#   python build.py services/2026-09-06.yaml           # write the .pptx
+#
+# You only ever edit this one file. Everything that does not change week to
+# week (the Lord's Prayer, the creeds, the communion responses) lives in
+# library/ and is pulled in by name.
+# ---------------------------------------------------------------------------
+
+service:
+  date: 2026-01-01              # YYYY-MM-DD
+  title: ""                     # e.g. "Second Sunday of Advent"
+  time: "10:30 a.m."
+  communion: false              # true on communion Sundays
+
+# From the flower chart. Leave the whole block out on weeks with no dedication.
+# Any combination of the four "in_" lines works; they are joined into a sentence.
+flowers:
+  given_by: ""                  # "the Smith family"
+  in_memory_of: ""
+  in_honor_of: ""
+  in_celebration_of: ""
+  in_thanksgiving_for: ""
+  # text: ""                    # or write the whole sentence yourself
+
+# One slide each, in this order.
+announcements:
+  - title: ""
+    when: ""                    # "Sunday, September 13 · 9:00 a.m."
+    where: ""                   # "Fellowship Hall"
+    body: ""
+
+# ---------------------------------------------------------------------------
+# The order of service. Elements render in the order you list them.
+# Full list of element names is in README.md.
+# ---------------------------------------------------------------------------
+order:
+
+  - prelude:
+      title: ""
+      composer: ""
+      performer: ""
+
+  - welcome
+
+  - announcements                # one slide per item in the block above
+  - flowers                      # the dedication above
+
+  - call_to_worship:
+      source: ""                 # optional, printed next to the heading
+      # Lines starting with L: or P: are detected automatically. The
+      # congregation's lines are set in bold.
+      text: |
+        L:
+        P:
+
+  - hymn:
+      hymnal: UMH
+      number:
+      title: ""
+      copyright: "Public Domain"   # or the CCLI/OneLicense credit line
+      # ccli: "12345"
+      # onelicense: "A-700000"
+      stanzas:
+        - |
+
+        - |
+
+
+  - opening_prayer:
+      text: |
+
+
+  - passing_the_peace            # from library/passing-the-peace.yaml
+
+  - children:
+      title: "Children's Message"
+
+  - blank                        # black slide — use freely between elements
+
+  - scripture:
+      reference: ""
+      translation: ""
+      text: |
+
+
+  - sermon:
+      title: ""
+      preacher: ""
+
+  - blank
+
+  - hymn:
+      hymnal: UMH
+      number:
+      title: ""
+      copyright: "Public Domain"
+      stanzas:
+        - |
+
+
+  - apostles_creed               # from library/apostles-creed.yaml
+
+  - joys_and_concerns
+
+  - pastoral_prayer:
+      text: |
+
+
+  - lords_prayer                 # from library/lords-prayer.yaml
+
+  - offering:
+      text: |
+
+
+  - offertory:
+      title: ""
+      composer: ""
+      performer: ""
+
+  - doxology
+
+  # Communion Sundays only — delete this pair otherwise, and set
+  # service.communion back to false.
+  # - section: {title: "Holy Communion"}
+  # - communion
+
+  - hymn:
+      hymnal: UMH
+      number:
+      title: ""
+      copyright: "Public Domain"
+      stanzas:
+        - |
+
+
+  - benediction:
+      text: |
+
+
+  - postlude:
+      title: ""
+      composer: ""
+      performer: ""
+
+  - blank

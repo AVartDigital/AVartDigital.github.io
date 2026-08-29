@@ -1,0 +1,34 @@
+title: Holy Communion
+header: Holy Communion
+responsive: true
+
+# Only the congregation's parts are projected. The pastor's portions of the
+# Great Thanksgiving are spoken from the table and are not on screen -- which
+# is both how most services actually run it and how you avoid reproducing the
+# copyrighted UMPH text of "A Service of Word and Table" on a slide.
+#
+# If your pastor wants their own portions projected too, paste them in below
+# from the church's licensed copy and add the credit line to `copyright:`.
+copyright: Congregational responses are ancient liturgical texts. Public Domain.
+
+text: |
+  L: The Lord be with you.
+  P: And also with you.
+  L: Lift up your hearts.
+  P: We lift them up to the Lord.
+  L: Let us give thanks to the Lord our God.
+  P: It is right to give our thanks and praise.
+
+  P: Holy, holy, holy Lord, God of power and might,
+  heaven and earth are full of your glory.
+  Hosanna in the highest.
+  Blessed is he who comes in the name of the Lord.
+  Hosanna in the highest.
+
+  P: Christ has died; Christ is risen; Christ will come again.
+
+  P: Amen.
+
+notes: |
+  Follow the pastor's pace. The pastor's prayers between these responses are
+  spoken, not projected -- hold the current slide until the next people's part.

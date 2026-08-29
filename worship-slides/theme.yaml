@@ -1,0 +1,47 @@
+# Look and feel for the projected slides.
+# Every value here is optional -- anything you leave out falls back to the
+# defaults in slidegen/theme.py.
+
+slide:
+  width_in: 13.333   # 16:9
+  height_in: 7.5
+
+colors:
+  background: "101820"        # deep navy-black: high contrast in a lit sanctuary
+  title_background: "0A1018"
+  text: "F4F6F8"
+  accent: "C6A664"            # muted gold for headings and speaker labels
+  muted: "8D97A5"             # copyright lines, slide counters
+
+fonts:
+  body: "Georgia"             # serif reads well for liturgy and hymn text
+  heading: "Georgia"
+  ui: "Arial"                 # headings, labels, footers
+
+type:
+  body_pt: 34                 # preferred size for liturgy and hymn stanzas
+  min_body_pt: 24             # never shrink below this
+  heading_pt: 22
+  title_pt: 50                # the opening slide and section dividers
+  card_title_pt: 38           # hymn/anthem/announcement/sermon titles
+  subtitle_pt: 26             # credit lines under a card title
+  footer_pt: 11
+
+margins:
+  x_in: 1.0
+  top_in: 0.55
+  bottom_in: 0.65
+
+layout:
+  line_spacing: 1.22
+  # Average glyph width as a fraction of the point size. Raise it if text
+  # overflows the slide, lower it if slides break earlier than they need to.
+  char_width_ratio: 0.5
+  header_gap_in: 0.3
+  # Shrinking the body font to rescue an orphan slide is good; shrinking it a
+  # lot to cram a whole reading onto one slide is not. Past this many points
+  # below the preferred size, the text splits across slides instead.
+  shrink_step_pt: 2
+  max_shrink_pt: 6
+  show_page_numbers: true     # small "2 / 4" for the operator
+  show_labels: true           # print the L: / P: speaker labels

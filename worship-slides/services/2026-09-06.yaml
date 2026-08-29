@@ -1,0 +1,200 @@
+# A complete worked example — a communion Sunday with flowers and two
+# announcements. Build it with:
+#
+#   python build.py services/2026-09-06.yaml --check
+
+service:
+  date: 2026-09-06
+  title: "Fourteenth Sunday after Pentecost"
+  time: "10:30 a.m."
+  communion: true
+
+flowers:
+  given_by: "Carol and Jim Whitfield"
+  in_memory_of: "their parents"
+  in_thanksgiving_for: "fifty years of marriage"
+
+announcements:
+  - title: "Rally Day"
+    when: "Sunday, September 13 · 9:00 a.m."
+    where: "Fellowship Hall"
+    body: |
+      Sunday School starts up again for all ages.
+      Breakfast is served from 8:30. Bring a friend.
+
+  - title: "Chancel Choir Resumes"
+    when: "Thursday, September 10 · 7:00 p.m."
+    where: "The Sanctuary"
+    body: |
+      New singers are always welcome — no audition, just come.
+
+order:
+
+  - prelude:
+      title: "Prelude in C Major, BWV 547"
+      composer: "Johann Sebastian Bach"
+      performer: "Margaret Ellis, organ"
+
+  - welcome
+
+  - announcements
+  - flowers
+
+  - call_to_worship:
+      source: "from Psalm 139"
+      text: |
+        L: O Lord, you have searched me and known me.
+        P: You know when I sit down and when I rise up;
+        you discern my thoughts from far away.
+        L: Where can I go from your spirit?
+        P: If I take the wings of the morning
+        and settle at the farthest limits of the sea,
+        even there your hand shall lead me.
+        L: Let us worship God.
+        P: Search us, O God, and know our hearts.
+
+  - hymn:
+      hymnal: UMH
+      number: 57
+      title: "O For a Thousand Tongues to Sing"
+      copyright: "Words: Charles Wesley, 1739. Public Domain."
+      stanzas:
+        - |
+          O for a thousand tongues to sing
+          my great Redeemer's praise,
+          the glories of my God and King,
+          the triumphs of his grace!
+        - |
+          My gracious Master and my God,
+          assist me to proclaim,
+          to spread through all the earth abroad
+          the honors of thy name.
+        - |
+          Jesus! the name that charms our fears,
+          that bids our sorrows cease;
+          'tis music in the sinner's ears,
+          'tis life, and health, and peace.
+        - |
+          He breaks the power of canceled sin,
+          he sets the prisoner free;
+          his blood can make the foulest clean;
+          his blood availed for me.
+
+  - opening_prayer:
+      text: |
+        Eternal God, you have called us out of many places
+        into this one place, and out of many concerns
+        into this one hour.
+
+        Quiet in us whatever is restless,
+        and wake in us whatever has grown sleepy,
+        that we may hear you gladly
+        and follow you faithfully. Amen.
+
+  - passing_the_peace
+  - blank
+
+  - children:
+      title: "Children's Message"
+
+  - blank
+
+  - scripture:
+      reference: "Philemon 1:8-16"
+      translation: "NRSVue"
+      copyright: "New Revised Standard Version Updated Edition, © 2021 NCC. Used by permission."
+      text: |
+        For this reason, though I am bold enough in Christ
+        to command you to do the right thing,
+        yet I would rather appeal to you on the basis of love.
+
+        I am appealing to you for my child Onesimus,
+        whose father I have become during my imprisonment.
+        Formerly he was useless to you,
+        but now he is indeed useful both to you and to me.
+
+        I am sending him, that is, my own heart, back to you.
+        Perhaps this is the reason he was separated from you
+        for a while, so that you might have him back forever,
+        no longer as a slave but as more than a slave,
+        a beloved brother.
+
+  - sermon:
+      title: "No Longer as a Slave"
+      preacher: "The Rev. Dr. Sarah Lindgren"
+
+  - blank
+
+  - hymn:
+      hymnal: UMH
+      number: 378
+      title: "Amazing Grace"
+      copyright: "Words: John Newton, 1779. Public Domain."
+      stanzas:
+        - |
+          Amazing grace! How sweet the sound
+          that saved a wretch like me!
+          I once was lost, but now am found;
+          was blind, but now I see.
+        - |
+          'Twas grace that taught my heart to fear,
+          and grace my fears relieved;
+          how precious did that grace appear
+          the hour I first believed.
+        - |
+          Through many dangers, toils, and snares,
+          I have already come;
+          'tis grace hath brought me safe thus far,
+          and grace will lead me home.
+
+  - apostles_creed
+
+  - joys_and_concerns
+  - lords_prayer
+
+  - offering:
+      text: |
+        Let us bring our gifts before God.
+
+  - offertory:
+      title: "Be Thou My Vision"
+      composer: "Traditional Irish, arr. Alice Parker"
+      performer: "The Chancel Choir"
+      copyright: "Arrangement used by permission. OneLicense A-700000."
+
+  - doxology
+
+  - section:
+      title: "Holy Communion"
+
+  - communion
+
+  - hymn:
+      hymnal: UMH
+      number: 557
+      title: "Blest Be the Tie That Binds"
+      copyright: "Words: John Fawcett, 1782. Public Domain."
+      stanzas:
+        - |
+          Blest be the tie that binds
+          our hearts in Christian love;
+          the fellowship of kindred minds
+          is like to that above.
+        - |
+          When we asunder part,
+          it gives us inward pain;
+          but we shall still be joined in heart,
+          and hope to meet again.
+
+  - benediction:
+      text: |
+        Go now in peace.
+        Love and serve the Lord,
+        rejoicing in the power of the Holy Spirit.
+
+  - postlude:
+      title: "Toccata in F"
+      composer: "Dieterich Buxtehude"
+      performer: "Margaret Ellis, organ"
+
+  - blank
